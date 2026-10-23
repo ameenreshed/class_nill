@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookings · amnrd.scheduler</title>
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('theme');
+    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+  <h1 class="page-title"><i class="fas fa-calendar-check" style="color:var(--orange);margin-right:6px"></i>Bookings</h1>
+  <p class="page-subtitle">Approve or reject pending requests.</p>
+
+  <div class="row mt-6">
+    <button class="btn active" data-filter="pending">
+      <i class="fas fa-clock"></i> pending
+    </button>
+    <button class="btn" data-filter="approved">
+      <i class="fas fa-check"></i> approved
+    </button>
+    <button class="btn" data-filter="rejected">
+      <i class="fas fa-xmark"></i> rejected
+    </button>
+    <button class="btn" data-filter="all">
+      <i class="fas fa-list"></i> all
+    </button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date · Slot</th><th>Room</th><th>Type</th><th>Status</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="bookingsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script type="module">
+import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.js';
+
+(async () => {
+  const auth = await requireRole(['admin']);
+  if (!auth) return;
+  renderNav(auth.profile);
+
+  let filter = 'pending';
+
+  async function load() {
+    let q = supabase.from('bookings').select('*').order('book_date');
+    if (filter !== 'all') q = q.eq('status', filter);
+    const { data: bookings } = await q;
+    const list = bookings ?? [];
+
+    if (!list.length) {
+      document.getElementById('bookingsBody').innerHTML =
+        '<tr><td colspan="5" class="empty"><i class="fas fa-inbox"></i>No bookings in this view.</td></tr>';
+      return;
+    }
+
+    const roomIds = [...new Set(list.map(b => b.room_id))];
+    const slotIds = [...new Set(list.map(b => b.slot_id))];
+    const [{ data: rooms }, { data: slots }] = await Promise.all([
+      supabase.from('rooms').select('room_id,display_name').in('room_id', roomIds),
+      supabase.from('time_slots').select('slot_id,label').in('slot_id', slotIds),
+    ]);
+    const roomMap = new Map((rooms ?? []).map(r => [r.room_id, r.display_name]));
+    const slotMap = new Map((slots ?? []).map(s => [s.slot_id, s.label ?? s.slot_id]));
+
+    document.getElementById('bookingsBody').innerHTML = list.map(b => `
+      <tr>
+        <td>
+          <div style="color:var(--text)">${b.book_date}</div>
+          <div style="font-size:11px;color:var(--dim)">${escapeHtml(slotMap.get(b.slot_id) ?? b.slot_id)}</div>
+        </td>
+        <td class="mono">${escapeHtml(roomMap.get(b.room_id) ?? b.room_id)}</td>
+        <td>${escapeHtml(b.type)}</td>
+        <td><span class="badge badge-${b.status}">${b.status}</span></td>
+        <td style="text-align:right">
+          ${b.status === 'pending' ? `
+            <button class="btn btn-sm btn-success" data-action="approve" data-id="${b.id}">
+              <i class="fas fa-check"></i> Approve
+            </button>
+            <button class="btn btn-sm btn-danger" data-action="reject" data-id="${b.id}">
+              <i class="fas fa-xmark"></i> Reject
+            </button>
+          ` : ''}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  document.querySelectorAll('[data-filter]').forEach(btn => {
+    btn.onclick = () => {
+      filter = btn.dataset.filter;
+      document.querySelectorAll('[data-filter]').forEach(b => b.classList.toggle('active', b === btn));
+      load();
+    };
+  });
+
+  document.getElementById('bookingsBody').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const status = btn.dataset.action === 'approve' ? 'approved' : 'rejected';
+    const { error } = await supabase
+      .from('bookings')
+      .update({ status, approved_by: auth.session.user.id })
+      .eq('id', btn.dataset.id);
+    if (error) { toast(error.message, 'error'); return; }
+    toast(`Booking ${status}`, 'success');
+    await load();
+  });
+
+  await load();
+})();
+</script>
+</body>
+</html>

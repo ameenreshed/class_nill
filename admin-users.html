@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Users · amnrd.scheduler</title>
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('theme');
+    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+  <h1 class="page-title"><i class="fas fa-users" style="color:var(--orange);margin-right:6px"></i>Users</h1>
+  <p class="page-subtitle">Change roles below — takes effect immediately.</p>
+
+  <input class="input mt-6" id="searchInput" placeholder="Search by name or email…">
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>User</th><th>Role</th><th>Department</th></tr>
+      </thead>
+      <tbody id="usersBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script type="module">
+import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.js';
+
+(async () => {
+  const auth = await requireRole(['admin']);
+  if (!auth) return;
+  renderNav(auth.profile);
+
+  let users = [];
+
+  async function load() {
+    const { data } = await supabase
+      .from('profiles').select('*').order('created_at', { ascending: false });
+    users = data ?? [];
+    render();
+  }
+
+  function render() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = users.filter(u =>
+      !q ||
+      u.email.toLowerCase().includes(q) ||
+      (u.full_name || '').toLowerCase().includes(q)
+    );
+
+    document.getElementById('usersBody').innerHTML = filtered.length
+      ? filtered.map(u => `
+        <tr>
+          <td>
+            <div style="color:var(--text)">${escapeHtml(u.full_name || u.email)}</div>
+            <div style="font-size:11px;color:var(--dim)">${escapeHtml(u.email)}</div>
+          </td>
+          <td>
+            <select class="input" data-user="${escapeHtml(u.id)}" style="padding:4px 8px;width:auto">
+              <option value="admin"   ${u.role === 'admin'   ? 'selected' : ''}>admin</option>
+              <option value="faculty" ${u.role === 'faculty' ? 'selected' : ''}>faculty</option>
+              <option value="student" ${u.role === 'student' ? 'selected' : ''}>student</option>
+            </select>
+          </td>
+          <td class="muted">${escapeHtml(u.department || '—')}</td>
+        </tr>
+      `).join('')
+      : '<tr><td colspan="3" class="empty"><i class="fas fa-user-slash"></i>No users matched.</td></tr>';
+
+    document.querySelectorAll('[data-user]').forEach(sel => {
+      sel.onchange = async () => {
+        const { error } = await supabase
+          .from('profiles').update({ role: sel.value }).eq('id', sel.dataset.user);
+        if (error) { toast(error.message, 'error'); return; }
+        toast(`Role updated → ${sel.value}`, 'success');
+        const u = users.find(x => x.id === sel.dataset.user);
+        if (u) u.role = sel.value;
+      };
+    });
+  }
+
+  document.getElementById('searchInput').oninput = render;
+  await load();
+})();
+</script>
+</body>
+</html>

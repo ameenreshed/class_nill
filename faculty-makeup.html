@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Makeup class · amnrd.scheduler</title>
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('theme');
+    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fas fa-chalkboard-user" style="color:var(--orange);margin-right:6px"></i>Schedule a makeup class</h1>
+      <p class="page-subtitle">Free rooms update live. Works offline — auto-syncs when back online.</p>
+    </div>
+    <div class="row">
+      <span id="offlineBanner" class="badge badge-pending" style="display:none">
+        <i class="fas fa-plug-circle-xmark"></i> Offline — queued
+      </span>
+      <span id="pendingBanner" class="badge badge-admin" style="display:none"></span>
+    </div>
+  </div>
+
+  <div class="row mt-6">
+    <label class="field" style="margin:0;flex:1;min-width:180px">
+      <span><i class="fas fa-calendar-days" style="margin-right:4px"></i>Date</span>
+      <input class="input" type="date" id="dateInput">
+    </label>
+    <label class="field" style="margin:0;flex:1;min-width:180px">
+      <span><i class="fas fa-clock" style="margin-right:4px"></i>Period</span>
+      <select class="input" id="slotSelect"></select>
+    </label>
+  </div>
+
+  <h2 class="mt-6" style="font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em">
+    <i class="fas fa-door-open" style="color:var(--green);margin-right:6px"></i>
+    Free rooms (<span id="freeCount">0</span>)
+  </h2>
+  <div class="room-grid" id="freeGrid"></div>
+
+  <h2 class="mt-6" style="font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em">
+    <i class="fas fa-lock" style="color:var(--red);margin-right:6px"></i>
+    Already booked (<span id="busyCount">0</span>)
+  </h2>
+  <div class="room-grid" id="busyGrid"></div>
+</div>
+
+<script type="module">
+import { requireRole, renderNav, supabase, todayISO, toast, escapeHtml,
+         isOnline, onNetworkChange, queueBooking, getPendingBookings, syncPendingBookings } from './js/core.js';
+
+(async () => {
+  const auth = await requireRole(['faculty', 'admin']);
+  if (!auth) return;
+  renderNav(auth.profile);
+
+  const dateInput = document.getElementById('dateInput');
+  const slotSelect = document.getElementById('slotSelect');
+  dateInput.value = todayISO();
+
+  const [{ data: slotData }, { data: roomData }] = await Promise.all([
+    supabase.from('time_slots').select('*').order('start_time'),
+    supabase.from('rooms').select('*').eq('bookable', true).order('building').order('floor'),
+  ]);
+  const slots = slotData ?? [];
+  const rooms = roomData ?? [];
+
+  slotSelect.innerHTML = slots.map(s =>
+    `<option value="${s.slot_id}">${escapeHtml(s.label ?? s.slot_id)} (${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)})</option>`
+  ).join('');
+
+  if (isOnline()) {
+    const pending = getPendingBookings();
+    if (pending.length) {
+      try {
+        const r = await syncPendingBookings();
+        if (r.synced > 0) toast(`✓ Synced ${r.synced} pending booking(s)`, 'success');
+      } catch (e) {}
+    }
+  }
+
+  async function refresh() {
+    const { data: busy } = await supabase
+      .from('bookings').select('room_id')
+      .eq('book_date', dateInput.value)
+      .eq('slot_id', slotSelect.value)
+      .in('status', ['pending', 'approved']);
+    const busySet = new Set((busy ?? []).map(b => b.room_id));
+
+    const pendingList = getPendingBookings();
+    pendingList.forEach(b => {
+      if (b.book_date === dateInput.value && b.slot_id === slotSelect.value) busySet.add(b.room_id);
+    });
+
+    const free = rooms.filter(r => !busySet.has(r.room_id));
+    const busyRooms = rooms.filter(r => busySet.has(r.room_id));
+
+    document.getElementById('freeCount').textContent = free.length;
+    document.getElementById('busyCount').textContent = busyRooms.length;
+
+    document.getElementById('freeGrid').innerHTML = free.length
+      ? free.map(r => `
+        <button class="room-card" data-room="${escapeHtml(r.room_id)}" data-name="${escapeHtml(r.display_name)}">
+          <div class="rc-name"><i class="fas fa-door-open"></i>${escapeHtml(r.display_name)}</div>
+          <div class="rc-meta">Block ${r.building} · Floor ${r.floor} · ${escapeHtml(r.type)}${r.capacity ? ' · ' + r.capacity + ' seats' : ''}</div>
+        </button>
+      `).join('')
+      : '<div class="empty" style="grid-column:1/-1"><i class="fas fa-door-closed"></i>No free rooms at this time.</div>';
+
+    document.getElementById('busyGrid').innerHTML = busyRooms.length
+      ? busyRooms.map(r => `
+        <div class="room-card busy">
+          <div class="rc-name"><i class="fas fa-lock"></i>${escapeHtml(r.display_name)}</div>
+          <div class="rc-meta">Block ${r.building} · Floor ${r.floor}</div>
+        </div>
+      `).join('')
+      : '<div class="empty" style="grid-column:1/-1"><i class="fas fa-circle-info"></i>No bookings yet at this time.</div>';
+
+    document.querySelectorAll('[data-room]').forEach(btn => {
+      btn.onclick = () => bookRoom(btn.dataset.room, btn.dataset.name);
+    });
+  }
+
+  async function bookRoom(room_id, name) {
+    const booking = {
+      room_id,
+      book_date: dateInput.value,
+      slot_id: slotSelect.value,
+      type: 'makeup',
+      status: 'pending',
+      faculty_id: auth.session.user.id,
+      created_by: auth.session.user.id,
+    };
+
+    if (!isOnline()) {
+      queueBooking({ ...booking, _pending: true, _createdAt: new Date().toISOString() });
+      updatePendingBanner();
+      toast(`✓ Queued ${name} (offline — will sync)`, 'success');
+      await refresh();
+      return;
+    }
+
+    const { error } = await supabase.from('bookings').insert(booking);
+    if (error) {
+      if (!isOnline() || error.message?.toLowerCase().includes('fetch')) {
+        queueBooking({ ...booking, _pending: true, _createdAt: new Date().toISOString() });
+        updatePendingBanner();
+        toast(`Network error — queued ${name}`, 'info');
+      } else {
+        toast(error.message, 'error');
+      }
+      await refresh();
+      return;
+    }
+
+    toast(`✓ ${name} · ${dateInput.value} · ${slotSelect.value} (pending approval)`, 'success');
+    await refresh();
+  }
+
+  function updatePendingBanner() {
+    const n = getPendingBookings().length;
+    const el = document.getElementById('pendingBanner');
+    if (n > 0) {
+      el.style.display = 'inline-block';
+      el.innerHTML = `<i class="fas fa-clock"></i> ${n} queued`;
+    } else {
+      el.style.display = 'none';
+    }
+  }
+
+  function updateOnlineStatus() {
+    document.getElementById('offlineBanner').style.display = isOnline() ? 'none' : 'inline-block';
+  }
+  onNetworkChange(updateOnlineStatus);
+  updateOnlineStatus();
+  updatePendingBanner();
+
+  dateInput.onchange = refresh;
+  slotSelect.onchange = refresh;
+  await refresh();
+})();
+</script>
+</body>
+</html>

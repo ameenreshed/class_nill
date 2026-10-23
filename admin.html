@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin · amnrd.scheduler</title>
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('theme');
+    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+  <h1 class="page-title"><i class="fas fa-gauge-high" style="color:var(--orange);margin-right:6px"></i>Admin dashboard</h1>
+  <p class="page-subtitle">Overview of the scheduler.</p>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="mt-6" style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+    <a href="admin-add.html" class="action-card">
+      <span class="ac-icon"><i class="fas fa-bolt"></i></span>
+      <div class="ac-body">
+        <div class="ac-title">Quick add rooms</div>
+        <div class="ac-sub">Fast offline entry while walking floors</div>
+      </div>
+    </a>
+    <a href="admin-bookings.html" class="action-card">
+      <span class="ac-icon"><i class="fas fa-calendar-check"></i></span>
+      <div class="ac-body">
+        <div class="ac-title">Review bookings</div>
+        <div class="ac-sub">Approve or reject pending requests</div>
+      </div>
+    </a>
+    <a href="admin-rooms.html" class="action-card">
+      <span class="ac-icon"><i class="fas fa-door-open"></i></span>
+      <div class="ac-body">
+        <div class="ac-title">Manage rooms</div>
+        <div class="ac-sub">Add, edit or remove rooms</div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<script type="module">
+import { requireRole, renderNav, supabase, todayISO } from './js/core.js';
+
+(async () => {
+  const auth = await requireRole(['admin']);
+  if (!auth) return;
+  renderNav(auth.profile);
+
+  const [rooms, pending, todayBookings, users] = await Promise.all([
+    supabase.from('rooms').select('room_id', { count: 'exact', head: true }),
+    supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('book_date', todayISO()),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }),
+  ]);
+
+  document.getElementById('stats').innerHTML = `
+    <a class="stat" href="admin-rooms.html">
+      <i class="fas fa-door-open stat-icon"></i>
+      <div class="stat-value">${rooms.count ?? 0}</div>
+      <div class="stat-label">Rooms</div>
+    </a>
+    <a class="stat" href="admin-bookings.html">
+      <i class="fas fa-hourglass-half stat-icon"></i>
+      <div class="stat-value">${pending.count ?? 0}</div>
+      <div class="stat-label">Pending approvals</div>
+    </a>
+    <a class="stat" href="admin-bookings.html">
+      <i class="fas fa-calendar-day stat-icon"></i>
+      <div class="stat-value">${todayBookings.count ?? 0}</div>
+      <div class="stat-label">Today's bookings</div>
+    </a>
+    <a class="stat" href="admin-users.html">
+      <i class="fas fa-users stat-icon"></i>
+      <div class="stat-value">${users.count ?? 0}</div>
+      <div class="stat-label">Users</div>
+    </a>
+  `;
+})();
+</script>
+</body>
+</html>

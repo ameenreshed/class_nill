@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quick add rooms · amnrd.scheduler</title>
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('theme');
+    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fas fa-bolt" style="color:var(--orange);margin-right:6px"></i>Quick add rooms</h1>
+      <p class="page-subtitle">Fast entry while walking. Works offline — sync when back online.</p>
+    </div>
+    <div class="row">
+      <span id="offlineBanner" class="badge badge-pending" style="display:none">
+        <i class="fas fa-plug-circle-xmark"></i> Offline — queueing
+      </span>
+      <button class="btn btn-primary" id="syncBtn">
+        <i class="fas fa-cloud-arrow-up"></i> Sync
+        <span class="badge" id="pendingCount" style="background:rgba(255,255,255,.25);color:#fff">0</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="card mt-6">
+    <div style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500;margin-bottom:8px">Building</div>
+        <div class="chips" id="buildingChips"></div>
+      </div>
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500;margin-bottom:8px">Floor</div>
+        <div class="chips" id="floorChips"></div>
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500;margin-bottom:8px">Room number</div>
+      <div style="display:flex;gap:8px;align-items:stretch">
+        <input class="input" id="roomInput" placeholder="07" autocomplete="off" autocapitalize="characters" autofocus style="font-size:18px;font-weight:500;text-align:center">
+        <input class="input" id="suffixInput" placeholder="A" style="width:80px;text-align:center;font-size:18px">
+        <button class="btn" id="autoNextBtn" title="Suggest next room" style="min-width:48px">
+          <i class="fas fa-rotate-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500;margin-bottom:8px">Type</div>
+      <div class="chips" id="typeChips"></div>
+    </div>
+
+    <div class="mt-4">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500;margin-bottom:8px">Capacity</div>
+      <input class="input" id="capacityInput" type="number" inputmode="numeric" placeholder="60" style="max-width:160px">
+    </div>
+
+    <div class="mt-4">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500;margin-bottom:8px">Facilities</div>
+      <div class="chips" id="facilityChips"></div>
+    </div>
+
+    <div class="row mt-4">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="bookableCb" checked> Bookable
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="weekendCb"> Open on weekends
+      </label>
+    </div>
+
+    <div class="mt-4" style="padding:12px;border-radius:8px;background:var(--panel2);font-size:13px">
+      Preview: <span class="mono" id="previewId" style="color:var(--text);font-weight:500"></span>
+    </div>
+
+    <button class="btn btn-primary btn-block mt-4" id="saveBtn" style="padding:16px;font-size:15px;font-weight:600">
+      <i class="fas fa-check"></i> Save & next room
+    </button>
+  </div>
+
+  <div class="mt-6">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+      <h2 style="font-size:14px"><i class="fas fa-clock" style="color:var(--orange);margin-right:6px"></i>Pending sync</h2>
+      <span class="dim" id="pendingListCount" style="font-size:12px">0 rooms</span>
+    </div>
+    <div id="pendingList"></div>
+  </div>
+</div>
+
+<script type="module">
+import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
+         queueRoom, getPendingRooms, removePendingRoom, syncPendingRooms,
+         isOnline, onNetworkChange } from './js/core.js';
+
+(async () => {
+  const auth = await requireRole(['admin']);
+  if (!auth) return;
+  renderNav(auth.profile);
+
+  const $ = id => document.getElementById(id);
+  const state = {
+    building: '27', floor: 1, type: 'lecture',
+    facilities: [], bookable: true, weekendOpen: false,
+  };
+
+  const BUILDINGS = ['25','26','27','28'];
+  const FLOORS = [1,2,3,4,5,6];
+  const TYPES = [
+    { id:'lecture',  label:'Lecture',   bookable:true,  icon:'fa-chalkboard-user' },
+    { id:'lab',      label:'Lab',       bookable:true,  icon:'fa-flask' },
+    { id:'seminar',  label:'Seminar',   bookable:true,  icon:'fa-users-rectangle' },
+    { id:'library',  label:'Library',   bookable:true,  icon:'fa-book' },
+    { id:'staffroom',label:'Staffroom', bookable:false, icon:'fa-user-tie' },
+    { id:'hod',      label:'HOD',       bookable:false, icon:'fa-crown' },
+    { id:'office',   label:'Office',    bookable:false, icon:'fa-briefcase' },
+    { id:'store',    label:'Store',     bookable:false, icon:'fa-box' },
+    { id:'washroom', label:'Washroom',  bookable:false, icon:'fa-restroom' },
+    { id:'other',    label:'Other',     bookable:false, icon:'fa-ellipsis' },
+  ];
+  const FACILITIES = ['projector','ac','fan','blackboard','whiteboard','computers','smartboard','wifi','lab_benches'];
+
+  function renderChipSet(el, items, isOn, onClick, defaultIcon) {
+    el.innerHTML = items.map(item => {
+      const id    = typeof item === 'string' ? item : item.id;
+      const label = typeof item === 'string' ? item.replace('_',' ') : item.label;
+      const icon  = (typeof item === 'object' && item.icon) || defaultIcon || '';
+      const iconHtml = icon ? `<i class="fas ${icon}"></i>` : '';
+      return `<button class="chip ${isOn(id) ? 'on' : ''}" data-id="${id}">${iconHtml}${escapeHtml(label)}</button>`;
+    }).join('');
+    el.querySelectorAll('[data-id]').forEach(btn => {
+      btn.onclick = () => onClick(btn.dataset.id);
+    });
+  }
+
+  function renderBuilding() {
+    renderChipSet($('buildingChips'), BUILDINGS, id => state.building === id,
+      id => { state.building = id; renderBuilding(); updatePreview(); },
+      'fa-building');
+  }
+  function renderFloor() {
+    renderChipSet($('floorChips'),
+      FLOORS.map(f => ({ id: f, label: f === 1 ? 'G' : f })),
+      id => state.floor === id,
+      id => { state.floor = parseInt(id); renderFloor(); updatePreview(); },
+      'fa-layer-group');
+  }
+  function renderType() {
+    renderChipSet($('typeChips'), TYPES, id => state.type === id, id => {
+      state.type = id;
+      const t = TYPES.find(x => x.id === id);
+      if (t) { state.bookable = t.bookable; $('bookableCb').checked = t.bookable; }
+      renderType();
+    });
+  }
+  function renderFacilities() {
+    renderChipSet($('facilityChips'), FACILITIES,
+      id => state.facilities.includes(id),
+      id => {
+        if (state.facilities.includes(id)) state.facilities = state.facilities.filter(x => x !== id);
+        else state.facilities.push(id);
+        renderFacilities();
+      });
+  }
+
+  function updatePreview() {
+    const rn = $('roomInput').value.trim() || '01';
+    const sfx = $('suffixInput').value.trim();
+    const { room_id, display_name } = deriveRoomId(state.building, state.floor, rn, sfx);
+    $('previewId').textContent = `${room_id}  ·  ${display_name}`;
+  }
+
+  $('roomInput').addEventListener('input', updatePreview);
+  $('suffixInput').addEventListener('input', updatePreview);
+  $('roomInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); saveRoom(); }
+  });
+
+  $('autoNextBtn').onclick = () => {
+    const cur = $('roomInput').value.trim() || '01';
+    const sfx = $('suffixInput').value.trim();
+    if (sfx && sfx < 'Z') {
+      $('suffixInput').value = String.fromCharCode(sfx.charCodeAt(0) + 1);
+    } else {
+      $('suffixInput').value = '';
+      $('roomInput').value = String((parseInt(cur, 10) || 0) + 1).padStart(2, '0');
+    }
+    updatePreview();
+    $('roomInput').focus();
+  };
+
+  function saveRoom() {
+    const rn = $('roomInput').value.trim();
+    if (!rn) { toast('Enter room number', 'error'); $('roomInput').focus(); return; }
+    const sfx = $('suffixInput').value.trim().toUpperCase();
+    const cap = $('capacityInput').value.trim();
+    const { room_id, display_name, floor_digit, room_number } =
+      deriveRoomId(state.building, state.floor, rn, sfx);
+
+    queueRoom({
+      room_id, display_name,
+      building: state.building, floor: state.floor, floor_digit, room_number,
+      suffix: sfx, type: state.type,
+      capacity: (state.bookable && cap) ? parseInt(cap, 10) : null,
+      bookable: state.bookable, weekend_open: state.weekendOpen,
+      facilities: [...state.facilities], notes: null,
+      _pending: true, _createdAt: new Date().toISOString(),
+    });
+
+    toast(`✓ Queued ${display_name}`, 'success');
+    $('autoNextBtn').click();
+    $('capacityInput').value = '';
+    refreshPendingList();
+  }
+
+  $('saveBtn').onclick = saveRoom;
+
+  function refreshPendingList() {
+    const pending = getPendingRooms();
+    $('pendingCount').textContent = pending.length;
+    $('pendingListCount').textContent = `${pending.length} room${pending.length === 1 ? '' : 's'}`;
+
+    if (!pending.length) {
+      $('pendingList').innerHTML = '<div class="card"><div class="empty"><i class="fas fa-check-circle"></i>No pending rooms. Start adding above.</div></div>';
+      return;
+    }
+
+    $('pendingList').innerHTML = pending.slice().reverse().map(r => `
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;margin-bottom:8px">
+        <div style="min-width:0">
+          <div class="mono" style="color:var(--text);font-weight:500">
+            <i class="fas fa-door-open" style="color:var(--orange);font-size:11px;margin-right:6px"></i>
+            ${escapeHtml(r.display_name)}
+          </div>
+          <div style="font-size:11px;color:var(--dim);margin-top:2px">
+            ${escapeHtml(r.type)}${r.capacity ? ' · ' + r.capacity + ' seats' : ''}${r.bookable ? '' : ' · hidden'}
+          </div>
+        </div>
+        <button class="btn btn-sm btn-danger" data-remove="${escapeHtml(r.room_id)}">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    `).join('');
+
+    $('pendingList').querySelectorAll('[data-remove]').forEach(btn => {
+      btn.onclick = () => {
+        removePendingRoom(btn.dataset.remove);
+        refreshPendingList();
+        toast('Removed', 'success');
+      };
+    });
+  }
+
+  $('syncBtn').onclick = async () => {
+    if (!isOnline()) { toast('You are offline. Sync when back online.', 'error'); return; }
+    const pending = getPendingRooms();
+    if (!pending.length) { toast('Nothing to sync', 'info'); return; }
+
+    $('syncBtn').disabled = true;
+    $('syncBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing…';
+    try {
+      const result = await syncPendingRooms();
+      toast(`✓ Synced ${result.synced} room${result.synced === 1 ? '' : 's'}`, 'success');
+    } catch (e) {
+      toast('Sync failed: ' + e.message, 'error');
+    } finally {
+      $('syncBtn').disabled = false;
+      $('syncBtn').innerHTML = `<i class="fas fa-cloud-arrow-up"></i> Sync <span class="badge" id="pendingCount" style="background:rgba(255,255,255,.25);color:#fff">0</span>`;
+      refreshPendingList();
+    }
+  };
+
+  function updateOnlineStatus() {
+    $('offlineBanner').style.display = isOnline() ? 'none' : 'inline-block';
+  }
+  onNetworkChange(updateOnlineStatus);
+  updateOnlineStatus();
+
+  if (isOnline() && getPendingRooms().length > 0) {
+    try {
+      const r = await syncPendingRooms();
+      if (r.synced > 0) toast(`✓ Auto-synced ${r.synced} room(s)`, 'success');
+    } catch (e) {}
+  }
+
+  renderBuilding(); renderFloor(); renderType(); renderFacilities();
+  updatePreview(); refreshPendingList();
+})();
+</script>
+</body>
+</html>

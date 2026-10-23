@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Faculty · amnrd.scheduler</title>
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('theme');
+    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fas fa-gauge-high" style="color:var(--orange);margin-right:6px"></i>Faculty dashboard</h1>
+      <p class="page-subtitle">Your upcoming bookings.</p>
+    </div>
+    <a href="faculty-makeup.html" class="btn btn-primary">
+      <i class="fas fa-plus"></i> New makeup class
+    </a>
+  </div>
+  <div id="bookingsList" class="mt-6"></div>
+</div>
+
+<script type="module">
+import { requireRole, renderNav, supabase, todayISO, escapeHtml } from './js/core.js';
+
+(async () => {
+  const auth = await requireRole(['faculty', 'admin']);
+  if (!auth) return;
+  renderNav(auth.profile);
+
+  const { data: bookings } = await supabase
+    .from('bookings').select('*')
+    .eq('faculty_id', auth.session.user.id)
+    .gte('book_date', todayISO())
+    .order('book_date', { ascending: true })
+    .limit(100);
+
+  const list = bookings ?? [];
+  if (!list.length) {
+    document.getElementById('bookingsList').innerHTML =
+      '<div class="empty"><i class="fas fa-calendar-xmark"></i>No upcoming bookings. Schedule a makeup class to get started.</div>';
+    return;
+  }
+
+  const roomIds = [...new Set(list.map(b => b.room_id))];
+  const slotIds = [...new Set(list.map(b => b.slot_id))];
+  const [{ data: rooms }, { data: slots }] = await Promise.all([
+    supabase.from('rooms').select('room_id,display_name').in('room_id', roomIds),
+    supabase.from('time_slots').select('slot_id,label,start_time,end_time').in('slot_id', slotIds),
+  ]);
+  const roomMap = new Map((rooms ?? []).map(r => [r.room_id, r.display_name]));
+  const slotMap = new Map((slots ?? []).map(s => [s.slot_id, s]));
+
+  document.getElementById('bookingsList').innerHTML = list.map(b => {
+    const slot = slotMap.get(b.slot_id);
+    return `
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:8px">
+        <div>
+          <div class="mono" style="color:var(--text);font-weight:500">
+            <i class="fas fa-door-open" style="color:var(--orange);font-size:11px;margin-right:6px"></i>
+            ${escapeHtml(roomMap.get(b.room_id) ?? b.room_id)}
+          </div>
+          <div style="font-size:12px;color:var(--dim);margin-top:2px">
+            <i class="fas fa-calendar-days" style="font-size:10px"></i>
+            ${b.book_date} · ${escapeHtml(slot?.label ?? b.slot_id)}
+            ${slot ? `(${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)})` : ''}
+          </div>
+        </div>
+        <span class="badge badge-${b.status}">${b.status}</span>
+      </div>
+    `;
+  }).join('');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rooms · amnrd.scheduler</title>
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('theme');
+    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fas fa-door-open" style="color:var(--orange);margin-right:6px"></i>Rooms</h1>
+      <p class="page-subtitle"><span id="roomCount">0</span> rooms in system.</p>
+    </div>
+    <div class="row">
+      <a href="admin-add.html" class="btn btn-primary">
+        <i class="fas fa-bolt"></i> Quick add
+      </a>
+      <button class="btn" id="addBtn">
+        <i class="fas fa-plus"></i> Add room
+      </button>
+    </div>
+  </div>
+
+  <div class="card mt-6" id="formCard" style="display:none">
+    <h2 style="font-size:14px" id="formTitle">Add room</h2>
+    <div class="mt-4" style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+      <label class="field"><span>Building</span>
+        <select class="input" id="fBuilding">
+          <option>25</option><option>26</option><option>27</option><option>28</option>
+        </select>
+      </label>
+      <label class="field"><span>Floor (1 = Ground)</span>
+        <input class="input" type="number" id="fFloor" min="1" max="10" value="1">
+      </label>
+      <label class="field"><span>Room number</span>
+        <input class="input" id="fRoomNo" value="01">
+      </label>
+      <label class="field"><span>Suffix (optional)</span>
+        <input class="input" id="fSuffix" placeholder="A">
+      </label>
+      <label class="field"><span>Type</span>
+        <select class="input" id="fType">
+          <option>lecture</option><option>lab</option><option>seminar</option>
+          <option>library</option><option>other</option>
+        </select>
+      </label>
+      <label class="field"><span>Capacity</span>
+        <input class="input" type="number" id="fCapacity" value="60">
+      </label>
+      <label class="field"><span>Facilities (comma separated)</span>
+        <input class="input" id="fFacilities" placeholder="projector, ac">
+      </label>
+      <label class="field"><span>Notes</span>
+        <input class="input" id="fNotes">
+      </label>
+    </div>
+    <div class="row mt-2">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px">
+        <input type="checkbox" id="fBookable" checked> Bookable
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px">
+        <input type="checkbox" id="fWeekend"> Open on weekends
+      </label>
+    </div>
+    <div class="mt-4" style="padding:10px;border-radius:8px;background:var(--panel2);font-size:12px;color:var(--dim)">
+      Preview: <span class="mono" id="previewId" style="color:var(--text)"></span>
+    </div>
+    <div class="row mt-4">
+      <button class="btn btn-success" id="saveBtn">
+        <i class="fas fa-check"></i> Save
+      </button>
+      <button class="btn btn-ghost" id="cancelBtn">
+        <i class="fas fa-xmark"></i> Cancel
+      </button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Room</th><th>Type</th><th>Capacity</th><th>Flags</th><th style="text-align:right">Actions</th></tr>
+      </thead>
+      <tbody id="roomsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script type="module">
+import { requireRole, renderNav, supabase, deriveRoomId, escapeHtml } from './js/core.js';
+
+(async () => {
+  const auth = await requireRole(['admin']);
+  if (!auth) return;
+  renderNav(auth.profile);
+
+  let editingId = null;
+  let rooms = [];
+  const $ = id => document.getElementById(id);
+
+  function readForm() {
+    const d = deriveRoomId(
+      $('fBuilding').value,
+      parseInt($('fFloor').value, 10) || 1,
+      $('fRoomNo').value,
+      $('fSuffix').value
+    );
+    return {
+      ...d,
+      building: $('fBuilding').value,
+      floor: parseInt($('fFloor').value, 10) || 1,
+      type: $('fType').value,
+      capacity: $('fCapacity').value ? parseInt($('fCapacity').value, 10) : null,
+      bookable: $('fBookable').checked,
+      weekend_open: $('fWeekend').checked,
+      facilities: $('fFacilities').value.split(',').map(s => s.trim()).filter(Boolean),
+      notes: $('fNotes').value || null,
+    };
+  }
+
+  function updatePreview() {
+    const { room_id, display_name } = readForm();
+    $('previewId').textContent = `${room_id}  ·  ${display_name}`;
+  }
+
+  ['fBuilding','fFloor','fRoomNo','fSuffix'].forEach(id =>
+    $(id).addEventListener('input', updatePreview));
+
+  function resetForm() {
+    editingId = null;
+    $('fBuilding').value = '27';
+    $('fFloor').value = 1;
+    $('fRoomNo').value = '01';
+    $('fSuffix').value = '';
+    $('fType').value = 'lecture';
+    $('fCapacity').value = '60';
+    $('fFacilities').value = '';
+    $('fNotes').value = '';
+    $('fBookable').checked = true;
+    $('fWeekend').checked = false;
+    $('formTitle').textContent = 'Add room';
+    updatePreview();
+  }
+
+  $('addBtn').onclick = () => { resetForm(); $('formCard').style.display = 'block'; };
+  $('cancelBtn').onclick = () => { $('formCard').style.display = 'none'; editingId = null; };
+
+  async function load() {
+    const { data } = await supabase.from('rooms').select('*').order('room_id');
+    rooms = data ?? [];
+    $('roomCount').textContent = rooms.length;
+    $('roomsBody').innerHTML = rooms.length
+      ? rooms.map(r => `
+        <tr>
+          <td>
+            <div class="mono" style="color:var(--text)">${escapeHtml(r.display_name)}</div>
+            <div style="font-size:11px;color:var(--dim);margin-top:2px">Block ${r.building} · Floor ${r.floor}</div>
+          </td>
+          <td>${escapeHtml(r.type)}</td>
+          <td>${r.capacity ?? '—'}</td>
+          <td>
+            ${r.bookable
+              ? '<span class="badge badge-approved"><i class="fas fa-check"></i>bookable</span>'
+              : '<span class="badge badge-gray"><i class="fas fa-eye-slash"></i>hidden</span>'}
+            ${r.weekend_open
+              ? '<span class="badge badge-student" style="margin-left:4px"><i class="fas fa-calendar-week"></i>weekend</span>'
+              : ''}
+          </td>
+          <td style="text-align:right">
+            <button class="btn btn-sm" data-action="edit" data-id="${escapeHtml(r.room_id)}">
+              <i class="fas fa-pen"></i> Edit
+            </button>
+            <button class="btn btn-sm btn-danger" data-action="delete" data-id="${escapeHtml(r.room_id)}">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('')
+      : '<tr><td colspan="5" class="empty"><i class="fas fa-door-closed"></i>No rooms yet. Add one above.</td></tr>';
+  }
+
+  $('roomsBody').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const { action, id } = btn.dataset;
+    const room = rooms.find(r => r.room_id === id);
+    if (!room) return;
+
+    if (action === 'edit') {
+      editingId = id;
+      $('fBuilding').value = room.building;
+      $('fFloor').value = room.floor;
+      $('fRoomNo').value = room.room_number;
+      $('fSuffix').value = room.suffix;
+      $('fType').value = room.type;
+      $('fCapacity').value = room.capacity ?? '';
+      $('fFacilities').value = (room.facilities || []).join(', ');
+      $('fNotes').value = room.notes || '';
+      $('fBookable').checked = room.bookable;
+      $('fWeekend').checked = room.weekend_open;
+      $('formTitle').textContent = `Edit ${id}`;
+      $('formCard').style.display = 'block';
+      updatePreview();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    if (action === 'delete') {
+      if (!confirm(`Delete ${id}?`)) return;
+      const { error } = await supabase.from('rooms').delete().eq('room_id', id);
+      if (error) { alert(error.message); return; }
+      await load();
+    }
+  });
+
+  $('saveBtn').onclick = async () => {
+    const payload = readForm();
+    let error;
+    if (editingId) {
+      ({ error } = await supabase.from('rooms').update(payload).eq('room_id', editingId));
+    } else {
+      ({ error } = await supabase.from('rooms').insert(payload));
+    }
+    if (error) { alert(error.message); return; }
+    $('formCard').style.display = 'none';
+    editingId = null;
+    await load();
+  };
+
+  resetForm();
+  await load();
+})();
+</script>
+</body>
+</html>
