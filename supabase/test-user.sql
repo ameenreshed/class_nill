@@ -1,9 +1,3 @@
--- ============================================================
--- LPU Scheduler — Test accounts
--- Run AFTER schema.sql
--- Passwords: admin123 / faculty123 / student123
--- ============================================================
-
 do $$
 declare uid uuid;
 begin
