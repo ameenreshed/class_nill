@@ -4,15 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Free rooms · amnrd.scheduler</title>
-<script>
-(function(){
-  try {
-    var stored = localStorage.getItem('theme');
-    var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-theme', stored || (systemDark ? 'dark' : 'light'));
-  } catch (e) {}
-})();
-</script>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
 <link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +20,7 @@
   <div class="page-header">
     <div>
       <h1 class="page-title"><i class="fas fa-building"></i> Free rooms</h1>
-      <p class="page-subtitle">Live availability across campus. Updates automatically.</p>
+      <p class="page-subtitle">Live availability — updates every minute.</p>
     </div>
     <div class="row">
       <input class="input" type="date" id="dateInput" style="width:auto">
@@ -36,36 +28,35 @@
     </div>
   </div>
 
-  <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap">
-    <div style="min-width:180px">
-      <div class="label-small"><i class="fas fa-signal" style="color:var(--success)"></i> Live now</div>
-      <div id="liveClock" class="mono" style="font-size:28px;font-weight:600;color:var(--text);letter-spacing:-0.02em;margin-top:2px">--:--:--</div>
-      <div id="liveInfo" style="font-size:var(--text-sm);color:var(--text-muted);margin-top:4px">—</div>
-    </div>
-    <div style="text-align:right">
-      <div class="label-small">Free right now</div>
-      <div id="freeNowCount" style="font-size:40px;font-weight:600;color:var(--success);line-height:1;letter-spacing:-0.03em;margin-top:4px">—</div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap">
+      <div style="min-width:180px">
+        <div class="label-small"><i class="fas fa-signal" style="color:var(--success)"></i> Live now</div>
+        <div id="liveClock" class="mono" style="font-size:28px;font-weight:600;color:var(--text);letter-spacing:-0.02em;margin-top:2px">--:--:--</div>
+        <div id="liveInfo" style="font-size:var(--text-sm);color:var(--text-muted);margin-top:4px">—</div>
+      </div>
+      <div style="text-align:right">
+        <div class="label-small">Free right now</div>
+        <div id="freeNowCount" style="font-size:40px;font-weight:600;color:var(--success);line-height:1;letter-spacing:-0.03em;margin-top:4px">—</div>
+      </div>
     </div>
   </div>
 
   <div id="freeNowList" class="mt-4"></div>
 
   <div class="grid-toolbar" id="buildingTabs"></div>
-
-  <div id="gridContainer">
-    <div class="card" style="padding:32px">
-      <div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading rooms…</div>
-    </div>
-  </div>
+  <div id="gridContainer"></div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, parseTimeOnDate, todayISO } from './js/core.js';
+import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, parseTimeOnDate, todayISO, openModal } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['student', 'faculty', 'admin']);
   if (!auth) return;
-  renderNav(auth.profile);
+  renderNav(auth.profile, [
+    { label: 'Jump to today', icon: 'fa-calendar-day', keywords: 'today now', action: () => { document.getElementById('dateInput').value = todayISO(); document.getElementById('loadBtn').click(); } },
+  ]);
 
   const $ = id => document.getElementById(id);
   const dateInput = $('dateInput');
@@ -82,8 +73,7 @@ import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, pars
   slots = slotData ?? [];
 
   async function loadBookings() {
-    const { data } = await supabase
-      .from('bookings')
+    const { data } = await supabase.from('bookings')
       .select('room_id,slot_id')
       .eq('book_date', dateInput.value)
       .in('status', ['pending', 'approved']);
@@ -101,13 +91,13 @@ import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, pars
     return slots.find(s => nowStr >= s.start_time && nowStr < s.end_time) || null;
   }
 
-  function slotStatus(slot, viewDate) {
+  function slotStatus(s, viewDate) {
     const today = todayISO();
     if (viewDate < today) return 'past-day';
     if (viewDate > today) return 'future-day';
     const now = nowDate();
-    const start = parseTimeOnDate(viewDate, slot.start_time);
-    const end = parseTimeOnDate(viewDate, slot.end_time);
+    const start = parseTimeOnDate(viewDate, s.start_time);
+    const end = parseTimeOnDate(viewDate, s.end_time);
     if (now >= end) return 'ended';
     if (now >= start && now < end) return 'current';
     return 'upcoming';
@@ -117,92 +107,119 @@ import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, pars
     const el = $('buildingTabs');
     const buildings = Array.from(new Set(rooms.map(r => r.building))).sort();
     el.innerHTML = `
-      <button class="chip ${building === 'all' ? 'on' : ''}" data-b="all">
-        <i class="fas fa-layer-group"></i> All blocks
-      </button>
-      ${buildings.map(b => `
-        <button class="chip ${building === b ? 'on' : ''}" data-b="${b}">
-          <i class="fas fa-building"></i> Block ${b}
-        </button>
-      `).join('')}
+      <button class="chip ${building === 'all' ? 'on' : ''}" data-b="all"><i class="fas fa-layer-group"></i> All blocks</button>
+      ${buildings.map(b => `<button class="chip ${building === b ? 'on' : ''}" data-b="${b}"><i class="fas fa-building"></i> Block ${b}</button>`).join('')}
     `;
-    el.querySelectorAll('button[data-b]').forEach(btn => {
+    el.querySelectorAll('[data-b]').forEach(btn => {
       btn.onclick = () => { building = btn.dataset.b; render(); };
     });
   }
 
   function renderLiveNow() {
     const cur = getCurrentSlot();
-    const info = $('liveInfo');
-    const countEl = $('freeNowCount');
-    const listEl = $('freeNowList');
-
+    const info = $('liveInfo'), countEl = $('freeNowCount'), listEl = $('freeNowList');
     if (!cur) {
       info.textContent = dateInput.value === todayISO() ? 'No active period' : 'Not viewing today';
       countEl.textContent = '—';
       listEl.innerHTML = '';
       return;
     }
-
     const taken = new Set(bookings.filter(b => b.slot_id === cur.slot_id).map(b => b.room_id));
     const freeRooms = rooms.filter(r => !taken.has(r.room_id));
-
     info.innerHTML = `<i class="fas fa-clock" style="margin-right:4px"></i>${escapeHtml(cur.label || cur.slot_id)} · ${cur.start_time.slice(0,5)}–${cur.end_time.slice(0,5)}`;
     countEl.textContent = freeRooms.length;
-
     if (!freeRooms.length) {
       listEl.innerHTML = '<div class="card"><div class="empty"><i class="fas fa-door-closed"></i>All rooms are booked right now</div></div>';
       return;
     }
-
     const byBuilding = new Map();
     freeRooms.forEach(r => {
       if (!byBuilding.has(r.building)) byBuilding.set(r.building, []);
       byBuilding.get(r.building).push(r);
     });
-
     listEl.innerHTML = `
       <div class="card">
-        <div class="card-title"><i class="fas fa-door-open"></i> Available now</div>
+        <div class="card-title"><i class="fas fa-door-open"></i> Available now · tap to view</div>
         ${Array.from(byBuilding.entries()).sort((a,b) => a[0].localeCompare(b[0])).map(([b, rs]) => `
           <div style="margin-bottom:14px">
             <div class="label-small" style="margin-bottom:6px"><i class="fas fa-building"></i> Block ${escapeHtml(b)}</div>
             <div class="chips">
               ${rs.sort((x,y) => x.display_name.localeCompare(y.display_name)).map(r => `
-                <span class="chip" style="cursor:default">
-                  <i class="fas fa-door-open" style="color:var(--success)"></i>
-                  ${escapeHtml(r.display_name)}
-                </span>
+                <button class="chip" data-room-detail="${escapeHtml(r.room_id)}">
+                  <i class="fas fa-door-open" style="color:var(--success)"></i>${escapeHtml(r.display_name)}
+                </button>
               `).join('')}
             </div>
           </div>
         `).join('')}
       </div>
     `;
+    document.querySelectorAll('[data-room-detail]').forEach(btn => {
+      btn.onclick = () => showRoomDetail(btn.dataset.roomDetail);
+    });
+  }
+
+  async function showRoomDetail(roomId) {
+    const room = rooms.find(r => r.room_id === roomId);
+    if (!room) return;
+    const { data: todayBookings } = await supabase.from('bookings')
+      .select('slot_id,status,type')
+      .eq('room_id', roomId)
+      .eq('book_date', dateInput.value)
+      .in('status', ['pending', 'approved']);
+    const taken = new Set((todayBookings ?? []).map(b => b.slot_id));
+    const schedule = slots.map(s => ({
+      slot: s,
+      taken: taken.has(s.slot_id),
+      status: slotStatus(s, dateInput.value),
+    }));
+    const body = `
+      <div style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:20px">
+        <div><div class="label-small">Room</div><div class="mono" style="font-weight:500">${escapeHtml(room.display_name)}</div></div>
+        <div><div class="label-small">Type</div><div>${escapeHtml(room.type)}</div></div>
+        <div><div class="label-small">Capacity</div><div>${room.capacity ?? '—'} seats</div></div>
+        <div><div class="label-small">Block / Floor</div><div>${room.building} / ${room.floor}</div></div>
+        ${room.facilities?.length ? `<div style="grid-column:1/-1"><div class="label-small">Facilities</div><div class="chips" style="margin-top:6px">${room.facilities.map(f => `<span class="badge badge-gray">${escapeHtml(f)}</span>`).join('')}</div></div>` : ''}
+      </div>
+      <div class="label-small" style="margin-bottom:8px">Today's schedule</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        ${schedule.map(s => `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--surface-hover);font-size:13px">
+            <div>
+              <span class="mono" style="font-weight:500">${escapeHtml(s.slot.label || s.slot.slot_id)}</span>
+              <span class="dim" style="font-size:11px;margin-left:8px">${s.slot.start_time.slice(0,5)}–${s.slot.end_time.slice(0,5)}</span>
+            </div>
+            <span class="badge badge-${s.taken ? 'rejected' : 'approved'}">${s.taken ? 'booked' : 'free'}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    await openModal({
+      title: `Room ${room.display_name}`,
+      sub: room.notes || undefined,
+      body,
+      actions: '<button class="btn" data-modal-action="cancel">Close</button>',
+    });
   }
 
   function render() {
     renderTabs();
     renderLiveNow();
-
     const taken = new Set(bookings.map(b => `${b.room_id}|${b.slot_id}`));
     const filtered = building === 'all' ? rooms : rooms.filter(r => r.building === building);
-
     if (!filtered.length) {
-      $('gridContainer').innerHTML = '<div class="card"><div class="empty"><i class="fas fa-door-closed"></i>No rooms in this block yet.</div></div>';
+      $('gridContainer').innerHTML = '<div class="card"><div class="empty"><i class="fas fa-door-closed"></i>No rooms in this block yet</div></div>';
       return;
     }
-
     const byFloor = new Map();
     filtered.forEach(r => {
       if (!byFloor.has(r.floor)) byFloor.set(r.floor, []);
       byFloor.get(r.floor).push(r);
     });
-    byFloor.forEach(arr => arr.sort((a, b) =>
-      (a.room_number + a.suffix).localeCompare(b.room_number + b.suffix, undefined, { numeric: true })));
+    byFloor.forEach(arr => arr.sort((a, b) => (a.room_number + a.suffix).localeCompare(b.room_number + b.suffix, undefined, { numeric: true })));
     const floors = Array.from(byFloor.entries()).sort((a, b) => a[0] - b[0]);
 
-    const html = `
+    $('gridContainer').innerHTML = `
       <div class="grid-wrap">
         <table class="vacancy-table">
           <thead>
@@ -210,12 +227,10 @@ import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, pars
               <th class="room-col">Room</th>
               ${slots.map(s => {
                 const status = slotStatus(s, dateInput.value);
-                const cls = status === 'current' ? 'slot-current' : '';
-                return `
-                  <th class="${cls}">
-                    <div>${escapeHtml(s.label ?? s.slot_id)}</div>
-                    <div style="font-size:10px;color:var(--text-muted);font-weight:400;margin-top:2px">${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)}</div>
-                  </th>`;
+                return `<th class="${status === 'current' ? 'slot-current' : ''}">
+                  <div>${escapeHtml(s.label || s.slot_id)}</div>
+                  <div style="font-size:10px;color:var(--text-muted);font-weight:400;margin-top:2px">${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)}</div>
+                </th>`;
               }).join('')}
             </tr>
           </thead>
@@ -234,7 +249,7 @@ import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, pars
                     const isPast = status === 'ended' || status === 'past-day';
                     const isCurrent = status === 'current';
                     return `<td class="slot-cell ${isCurrent ? 'cell-current-col' : ''}">
-                      <div class="${busy ? 'cell-busy' : 'cell-free'}${isPast ? ' cell-past' : ''}">${busy ? '·' : 'free'}</div>
+                      <div class="${busy ? 'cell-busy' : 'cell-free'}${isPast ? ' cell-past' : ''}" data-room-detail="${escapeHtml(r.room_id)}" style="cursor:pointer">${busy ? '·' : 'free'}</div>
                     </td>`;
                   }).join('')}
                 </tr>
@@ -244,25 +259,21 @@ import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, pars
         </table>
       </div>
     `;
-    $('gridContainer').innerHTML = html;
+    document.querySelectorAll('[data-room-detail]').forEach(el => {
+      el.onclick = () => showRoomDetail(el.dataset.roomDetail);
+    });
   }
 
   function tickClock() {
     $('liveClock').textContent = formatTime(nowDate());
     const cur = getCurrentSlot();
     const newId = cur ? cur.slot_id : null;
-    if (newId !== currentSlotId) {
-      currentSlotId = newId;
-      render();
-    }
+    if (newId !== currentSlotId) { currentSlotId = newId; render(); }
   }
   setInterval(tickClock, 1000);
   tickClock();
-
   setInterval(() => { if (!document.hidden) loadBookings(); }, 60_000);
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) loadBookings();
-  });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) loadBookings(); });
 
   await loadBookings();
 })();

@@ -4,55 +4,81 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Faculty · amnrd.scheduler</title>
-<meta name="theme-color" content="#F97316">
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+<meta name="theme-color" content="#EA580C">
 <link rel="manifest" href="/manifest.json">
-<script>
-(function(){
-  try {
-    var t = localStorage.getItem('theme');
-    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
-  } catch (e) {}
-})();
-</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div id="nav"></div>
+
 <div class="container">
   <div class="page-header">
     <div>
-      <h1 class="page-title"><i class="fas fa-gauge-high" style="color:var(--orange);margin-right:6px"></i>Faculty dashboard</h1>
-      <p class="page-subtitle">Your upcoming bookings.</p>
+      <h1 class="page-title"><i class="fas fa-gauge-high"></i> Faculty dashboard</h1>
+      <p class="page-subtitle">Your upcoming classes and quick actions.</p>
     </div>
-    <a href="faculty-makeup.html" class="btn btn-primary">
-      <i class="fas fa-plus"></i> New makeup class
-    </a>
+    <a href="faculty-makeup.html" class="btn btn-primary"><i class="fas fa-plus"></i> New makeup class</a>
   </div>
-  <div id="bookingsList" class="mt-6"></div>
+
+  <div class="stats" id="stats">
+    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
+    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
+    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
+  </div>
+
+  <h2 class="card-title mt-8" style="margin-bottom:16px"><i class="fas fa-calendar-day"></i> Upcoming bookings</h2>
+  <div id="bookingsList"></div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, todayISO, escapeHtml } from './js/core.js';
+import { requireRole, renderNav, supabase, todayISO, escapeHtml, formatRelativeTime } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['faculty', 'admin']);
   if (!auth) return;
-  renderNav(auth.profile);
+  renderNav(auth.profile, [
+    { label: 'Schedule makeup class', icon: 'fa-chalkboard-user', keywords: 'new book room', action: () => { location.href = 'faculty-makeup.html'; } },
+  ]);
+
+  const $ = id => document.getElementById(id);
 
   const { data: bookings } = await supabase
-    .from('bookings').select('*')
+    .from('bookings')
+    .select('*')
     .eq('faculty_id', auth.session.user.id)
     .gte('book_date', todayISO())
     .order('book_date', { ascending: true })
-    .limit(100);
+    .limit(50);
 
   const list = bookings ?? [];
+  const today = todayISO();
+  const upcoming = list.filter(b => b.book_date > today);
+  const todays = list.filter(b => b.book_date === today);
+  const approvedCount = list.filter(b => b.status === 'approved').length;
+  const pendingCount = list.filter(b => b.status === 'pending').length;
+
+  $('stats').innerHTML = `
+    <div class="stat"><i class="fas fa-calendar-day stat-icon"></i><div class="stat-value">${todays.length}</div><div class="stat-label">Today</div></div>
+    <div class="stat"><i class="fas fa-check stat-icon"></i><div class="stat-value">${approvedCount}</div><div class="stat-label">Approved</div></div>
+    <div class="stat"><i class="fas fa-hourglass-half stat-icon"></i><div class="stat-value">${pendingCount}</div><div class="stat-label">Pending</div></div>
+  `;
+
   if (!list.length) {
-    document.getElementById('bookingsList').innerHTML =
-      '<div class="empty"><i class="fas fa-calendar-xmark"></i>No upcoming bookings. Schedule a makeup class to get started.</div>';
+    $('bookingsList').innerHTML = `
+      <div class="card">
+        <div class="empty-action">
+          <div class="empty-action-icon"><i class="fas fa-calendar-xmark"></i></div>
+          <div class="empty-action-title">No upcoming bookings</div>
+          <div class="empty-action-sub">Schedule a makeup class and it will show up here once approved.</div>
+          <a href="faculty-makeup.html" class="btn btn-primary"><i class="fas fa-plus"></i> Schedule makeup class</a>
+        </div>
+      </div>
+    `;
     return;
   }
 
@@ -62,25 +88,29 @@ import { requireRole, renderNav, supabase, todayISO, escapeHtml } from './js/cor
     supabase.from('rooms').select('room_id,display_name').in('room_id', roomIds),
     supabase.from('time_slots').select('slot_id,label,start_time,end_time').in('slot_id', slotIds),
   ]);
-  const roomMap = new Map((rooms ?? []).map(r => [r.room_id, r.display_name]));
-  const slotMap = new Map((slots ?? []).map(s => [s.slot_id, s]));
+  const rm = new Map((rooms ?? []).map(r => [r.room_id, r.display_name]));
+  const sm = new Map((slots ?? []).map(s => [s.slot_id, s]));
 
-  document.getElementById('bookingsList').innerHTML = list.map(b => {
-    const slot = slotMap.get(b.slot_id);
+  $('bookingsList').innerHTML = list.map(b => {
+    const slot = sm.get(b.slot_id);
     return `
-      <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:8px">
-        <div>
-          <div class="mono" style="color:var(--text);font-weight:500">
-            <i class="fas fa-door-open" style="color:var(--orange);font-size:11px;margin-right:6px"></i>
-            ${escapeHtml(roomMap.get(b.room_id) ?? b.room_id)}
+      <div class="card card-hover" style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;gap:16px;align-items:center;min-width:0;flex:1">
+          <div style="width:48px;height:48px;border-radius:12px;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
+            <i class="fas fa-door-open"></i>
           </div>
-          <div style="font-size:12px;color:var(--dim);margin-top:2px">
-            <i class="fas fa-calendar-days" style="font-size:10px"></i>
-            ${b.book_date} · ${escapeHtml(slot?.label ?? b.slot_id)}
-            ${slot ? `(${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)})` : ''}
+          <div style="min-width:0">
+            <div class="mono" style="color:var(--text);font-weight:500;font-size:14px">${escapeHtml(rm.get(b.room_id) || b.room_id)}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+              <i class="fas fa-calendar-days" style="font-size:10px"></i>
+              ${b.book_date} · ${escapeHtml(slot?.label || b.slot_id)}
+              ${slot ? `(${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)})` : ''}
+            </div>
           </div>
         </div>
-        <span class="badge badge-${b.status}">${b.status}</span>
+        <span class="badge badge-${b.status}">
+          <i class="fas fa-${b.status === 'approved' ? 'check' : b.status === 'rejected' ? 'xmark' : 'clock'}"></i>${b.status}
+        </span>
       </div>
     `;
   }).join('');

@@ -4,15 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Admin · amnrd.scheduler</title>
-<script>
-(function(){
-  try {
-    var stored = localStorage.getItem('theme');
-    var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-theme', stored || (systemDark ? 'dark' : 'light'));
-  } catch (e) {}
-})();
-</script>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
 <link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,76 +20,76 @@
   <div class="page-header">
     <div>
       <h1 class="page-title"><i class="fas fa-gauge-high"></i> Dashboard</h1>
-      <p class="page-subtitle">Overview of the campus scheduler.</p>
+      <p class="page-subtitle">Live overview — updated <span id="lastUpdated">now</span></p>
     </div>
     <div class="row">
-      <a href="admin-add.html" class="btn btn-primary">
-        <i class="fas fa-bolt"></i> Quick add
-      </a>
+      <a href="admin-add.html" class="btn btn-primary"><i class="fas fa-bolt"></i> Quick add</a>
     </div>
   </div>
 
   <div class="stats" id="stats">
-    <div class="stat"><div class="skeleton" style="width:60%;height:12px;margin-bottom:12px"></div><div class="skeleton" style="width:40%;height:32px;margin-bottom:8px"></div><div class="skeleton" style="width:70%;height:10px"></div></div>
-    <div class="stat"><div class="skeleton" style="width:60%;height:12px;margin-bottom:12px"></div><div class="skeleton" style="width:40%;height:32px;margin-bottom:8px"></div><div class="skeleton" style="width:70%;height:10px"></div></div>
-    <div class="stat"><div class="skeleton" style="width:60%;height:12px;margin-bottom:12px"></div><div class="skeleton" style="width:40%;height:32px;margin-bottom:8px"></div><div class="skeleton" style="width:70%;height:10px"></div></div>
-    <div class="stat"><div class="skeleton" style="width:60%;height:12px;margin-bottom:12px"></div><div class="skeleton" style="width:40%;height:32px;margin-bottom:8px"></div><div class="skeleton" style="width:70%;height:10px"></div></div>
+    ${'<div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>'.repeat(4)}
+  </div>
+
+  <div class="grid-auto mt-6">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-chart-simple"></i> Bookings · last 7 days</div>
+      <div class="chart-bars" id="chartBars"></div>
+      <div class="dim" style="font-size:12px;text-align:center;margin-top:8px">Hover bars for exact counts</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fas fa-clock-rotate-left"></i> Recent activity</div>
+      <div class="timeline" id="timeline">
+        <div class="empty" style="padding:20px"><i class="fas fa-spinner fa-spin"></i></div>
+      </div>
+    </div>
   </div>
 
   <h2 class="card-title mt-8" style="margin-bottom:16px"><i class="fas fa-bolt"></i> Quick actions</h2>
   <div class="grid-auto">
     <a href="admin-add.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-bolt"></i></span>
-      <div class="ac-body">
-        <div class="ac-title">Quick add rooms</div>
-        <div class="ac-sub">Fast offline entry while walking floors</div>
-      </div>
+      <div class="ac-body"><div class="ac-title">Quick add rooms</div><div class="ac-sub">Fast offline entry while walking floors</div></div>
     </a>
     <a href="admin-bookings.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-calendar-check"></i></span>
-      <div class="ac-body">
-        <div class="ac-title">Review bookings</div>
-        <div class="ac-sub">Approve or reject makeup requests</div>
-      </div>
+      <div class="ac-body"><div class="ac-title">Review bookings</div><div class="ac-sub">Bulk approve or reject requests</div></div>
     </a>
     <a href="admin-rooms.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-door-open"></i></span>
-      <div class="ac-body">
-        <div class="ac-title">Manage rooms</div>
-        <div class="ac-sub">Add, edit, or export rooms</div>
-      </div>
+      <div class="ac-body"><div class="ac-title">Manage rooms</div><div class="ac-sub">Search, edit, or export rooms</div></div>
     </a>
     <a href="admin-users.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-users"></i></span>
-      <div class="ac-body">
-        <div class="ac-title">Users</div>
-        <div class="ac-sub">Roles, suspension, password resets</div>
-      </div>
+      <div class="ac-body"><div class="ac-title">Users</div><div class="ac-sub">Roles, suspension, password resets</div></div>
     </a>
     <a href="admin-settings.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-gear"></i></span>
-      <div class="ac-body">
-        <div class="ac-title">Settings</div>
-        <div class="ac-sub">Buildings, floors, types, time slots</div>
-      </div>
+      <div class="ac-body"><div class="ac-title">Settings</div><div class="ac-sub">Buildings, floors, types, time slots</div></div>
     </a>
     <a href="student.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-building"></i></span>
-      <div class="ac-body">
-        <div class="ac-title">Free rooms view</div>
-        <div class="ac-sub">See what students see, live</div>
-      </div>
+      <div class="ac-body"><div class="ac-title">Free rooms view</div><div class="ac-sub">See what students see, live</div></div>
     </a>
   </div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, todayISO, escapeHtml } from './js/core.js';
+import { requireRole, renderNav, supabase, todayISO, escapeHtml, formatRelativeTime, openCommandPalette } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
   if (!auth) return;
-  renderNav(auth.profile);
+
+  renderNav(auth.profile, [
+    { label: 'Open bookings', icon: 'fa-calendar-check', keywords: 'approve pending review', action: () => { location.href = 'admin-bookings.html'; } },
+    { label: 'Add rooms fast', icon: 'fa-bolt', keywords: 'quick add bulk', action: () => { location.href = 'admin-add.html'; } },
+    { label: 'Manage users', icon: 'fa-users', keywords: 'roles suspend', action: () => { location.href = 'admin-users.html'; } },
+    { label: 'Settings', icon: 'fa-gear', keywords: 'buildings floors types slots', action: () => { location.href = 'admin-settings.html'; } },
+  ]);
+
+  const $ = id => document.getElementById(id);
 
   const [rooms, pending, todayBookings, users, buildings] = await Promise.all([
     supabase.from('rooms').select('room_id', { count: 'exact', head: true }),
@@ -107,33 +99,71 @@ import { requireRole, renderNav, supabase, todayISO, escapeHtml } from './js/cor
     supabase.from('buildings').select('id', { count: 'exact', head: true }).eq('is_active', true),
   ]);
 
-  document.getElementById('stats').innerHTML = `
-    <a class="stat" href="admin-rooms.html">
-      <i class="fas fa-door-open stat-icon"></i>
-      <div class="stat-value">${rooms.count ?? 0}</div>
-      <div class="stat-label">Rooms</div>
-    </a>
-    <a class="stat" href="admin-bookings.html">
-      <i class="fas fa-hourglass-half stat-icon"></i>
-      <div class="stat-value">${pending.count ?? 0}</div>
-      <div class="stat-label">Pending</div>
-    </a>
-    <a class="stat" href="admin-bookings.html">
-      <i class="fas fa-calendar-day stat-icon"></i>
-      <div class="stat-value">${todayBookings.count ?? 0}</div>
-      <div class="stat-label">Today</div>
-    </a>
-    <a class="stat" href="admin-users.html">
-      <i class="fas fa-users stat-icon"></i>
-      <div class="stat-value">${users.count ?? 0}</div>
-      <div class="stat-label">Users</div>
-    </a>
-    <a class="stat" href="admin-settings.html">
-      <i class="fas fa-building stat-icon"></i>
-      <div class="stat-value">${buildings.count ?? 0}</div>
-      <div class="stat-label">Buildings</div>
-    </a>
+  $('stats').innerHTML = `
+    <a class="stat" href="admin-rooms.html"><i class="fas fa-door-open stat-icon"></i><div class="stat-value">${rooms.count ?? 0}</div><div class="stat-label">Total rooms</div></a>
+    <a class="stat" href="admin-bookings.html"><i class="fas fa-hourglass-half stat-icon"></i><div class="stat-value">${pending.count ?? 0}</div><div class="stat-label">Pending approval</div></a>
+    <a class="stat" href="admin-bookings.html"><i class="fas fa-calendar-day stat-icon"></i><div class="stat-value">${todayBookings.count ?? 0}</div><div class="stat-label">Today's bookings</div></a>
+    <a class="stat" href="admin-users.html"><i class="fas fa-users stat-icon"></i><div class="stat-value">${users.count ?? 0}</div><div class="stat-label">Total users</div></a>
   `;
+
+  // Chart
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  const { data: recent } = await supabase
+    .from('bookings')
+    .select('book_date')
+    .in('book_date', days)
+    .in('status', ['approved', 'pending']);
+  const counts = days.map(d => ({
+    date: d,
+    count: (recent ?? []).filter(r => r.book_date === d).length,
+    label: new Date(d + 'T12:00:00').toLocaleDateString([], { weekday: 'short' }),
+  }));
+  const maxCount = Math.max(...counts.map(c => c.count), 1);
+  const CHART_H = 100;
+  $('chartBars').innerHTML = counts.map(c => `
+    <div class="chart-bar-col">
+      <div class="chart-bar" style="height:${Math.round((c.count / maxCount) * CHART_H)}px" title="${c.count} bookings on ${c.date}"></div>
+      <div class="chart-bar-label">${c.label}</div>
+    </div>
+  `).join('');
+
+  // Timeline
+  const { data: logs } = await supabase
+    .from('activity_log')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(8);
+
+  if (!logs?.length) {
+    $('timeline').innerHTML = '<div class="empty" style="padding:20px"><i class="fas fa-inbox"></i>No activity yet</div>';
+  } else {
+    $('timeline').innerHTML = logs.map(l => {
+      const icon = l.action === 'auth.login' ? 'fa-right-to-bracket'
+        : l.action?.startsWith('user.') ? 'fa-user-pen'
+        : l.action?.startsWith('room.') ? 'fa-door-open'
+        : l.action?.startsWith('booking.') ? 'fa-calendar-check'
+        : 'fa-circle';
+      return `
+        <div class="timeline-item">
+          <div class="timeline-marker"><i class="fas ${icon}"></i></div>
+          <div class="timeline-content">
+            <div class="timeline-title">${escapeHtml(l.action)}${l.entity_id ? ` <span class="mono" style="color:var(--text-muted)">${escapeHtml(l.entity_id)}</span>` : ''}</div>
+            <div class="timeline-meta">${escapeHtml(l.user_email || 'system')} · ${formatRelativeTime(l.created_at)}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  $('lastUpdated').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  // Auto-refresh every 60s
+  setInterval(() => { if (!document.hidden) location.reload(); }, 60_000);
 })();
 </script>
 </body>

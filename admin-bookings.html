@@ -4,129 +4,285 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bookings · amnrd.scheduler</title>
-<meta name="theme-color" content="#F97316">
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+<meta name="theme-color" content="#EA580C">
 <link rel="manifest" href="/manifest.json">
-<script>
-(function(){
-  try {
-    var t = localStorage.getItem('theme');
-    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
-  } catch (e) {}
-})();
-</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div id="nav"></div>
-<div class="container">
-  <h1 class="page-title"><i class="fas fa-calendar-check" style="color:var(--orange);margin-right:6px"></i>Bookings</h1>
-  <p class="page-subtitle">Approve or reject pending requests.</p>
 
-  <div class="row mt-6">
-    <button class="btn active" data-filter="pending">
-      <i class="fas fa-clock"></i> pending
-    </button>
-    <button class="btn" data-filter="approved">
-      <i class="fas fa-check"></i> approved
-    </button>
-    <button class="btn" data-filter="rejected">
-      <i class="fas fa-xmark"></i> rejected
-    </button>
-    <button class="btn" data-filter="all">
-      <i class="fas fa-list"></i> all
-    </button>
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fas fa-calendar-check"></i> Bookings</h1>
+      <p class="page-subtitle">Review and approve booking requests.</p>
+    </div>
   </div>
 
-  <div class="table-wrap">
+  <div class="row" style="gap:8px">
+    <div class="chips" id="filterChips">
+      <button class="chip on" data-filter="pending"><i class="fas fa-clock"></i> Pending</button>
+      <button class="chip" data-filter="approved"><i class="fas fa-check"></i> Approved</button>
+      <button class="chip" data-filter="rejected"><i class="fas fa-xmark"></i> Rejected</button>
+      <button class="chip" data-filter="all"><i class="fas fa-list"></i> All</button>
+    </div>
+    <div class="search-wrap" style="margin-left:auto">
+      <i class="fas fa-search search-icon"></i>
+      <input class="input" id="searchInput" placeholder="Search room, date, type…">
+      <button class="search-clear" id="searchClear"><i class="fas fa-xmark"></i></button>
+    </div>
+  </div>
+
+  <div class="bulk-bar" id="bulkBar">
+    <span class="bulk-bar-count" id="bulkCount">0 selected</span>
+    <div class="bulk-bar-actions">
+      <button class="btn btn-sm" id="bulkApprove"><i class="fas fa-check"></i> Approve</button>
+      <button class="btn btn-sm" id="bulkReject"><i class="fas fa-xmark"></i> Reject</button>
+      <button class="btn btn-sm" id="bulkClear"><i class="fas fa-times"></i> Clear</button>
+    </div>
+  </div>
+
+  <div class="table-wrap user-table-desktop">
     <table>
       <thead>
         <tr>
-          <th>Date · Slot</th><th>Room</th><th>Type</th><th>Status</th>
+          <th class="checkbox-cell"><input type="checkbox" id="selectAll"></th>
+          <th>Room</th>
+          <th>Date · Slot</th>
+          <th>Type</th>
+          <th>Status</th>
           <th style="text-align:right">Actions</th>
         </tr>
       </thead>
-      <tbody id="bookingsBody"></tbody>
+      <tbody id="bookingsBody">
+        <tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</td></tr>
+      </tbody>
     </table>
   </div>
+
+  <div id="bookingsMobile" style="display:none"></div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.js';
+import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime, debounce, confirmDialog, openModal } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
   if (!auth) return;
-  renderNav(auth.profile);
+  renderNav(auth.profile, [
+    { label: 'Bulk approve pending', icon: 'fa-check-double', keywords: 'approve all', action: () => bulkAction('approved') },
+  ]);
 
+  const $ = id => document.getElementById(id);
+  let rows = [];
   let filter = 'pending';
+  let search = '';
+  let selected = new Set();
 
   async function load() {
-    let q = supabase.from('bookings').select('*').order('book_date');
+    let q = supabase.from('bookings').select('*').order('book_date', { ascending: false }).limit(200);
     if (filter !== 'all') q = q.eq('status', filter);
-    const { data: bookings } = await q;
-    const list = bookings ?? [];
+    const { data } = await q;
+    rows = data ?? [];
 
-    if (!list.length) {
-      document.getElementById('bookingsBody').innerHTML =
-        '<tr><td colspan="5" class="empty"><i class="fas fa-inbox"></i>No bookings in this view.</td></tr>';
+    const roomIds = [...new Set(rows.map(r => r.room_id))];
+    const slotIds = [...new Set(rows.map(r => r.slot_id))];
+    const [{ data: rooms }, { data: slots }] = await Promise.all([
+      roomIds.length ? supabase.from('rooms').select('room_id,display_name').in('room_id', roomIds) : Promise.resolve({ data: [] }),
+      slotIds.length ? supabase.from('time_slots').select('slot_id,label').in('slot_id', slotIds) : Promise.resolve({ data: [] }),
+    ]);
+    const rm = new Map((rooms ?? []).map(r => [r.room_id, r.display_name]));
+    const sm = new Map((slots ?? []).map(s => [s.slot_id, s.label ?? s.slot_id]));
+    rows.forEach(r => { r._room = rm.get(r.room_id) || r.room_id; r._slot = sm.get(r.slot_id) || r.slot_id; });
+
+    selected.clear();
+    updateBulkBar();
+    render();
+  }
+
+  function render() {
+    const q = search.toLowerCase();
+    const filtered = rows.filter(r =>
+      !q || r._room.toLowerCase().includes(q) || r.book_date.includes(q) || r.type.includes(q) || r._slot.toLowerCase().includes(q)
+    );
+
+    if (!filtered.length) {
+      $('bookingsBody').innerHTML = `<tr><td colspan="6" class="empty"><i class="fas fa-inbox"></i>No bookings ${filter !== 'all' ? `with status "${filter}"` : ''}</td></tr>`;
+      $('bookingsMobile').innerHTML = '<div class="empty"><i class="fas fa-inbox"></i>No bookings</div>';
       return;
     }
 
-    const roomIds = [...new Set(list.map(b => b.room_id))];
-    const slotIds = [...new Set(list.map(b => b.slot_id))];
-    const [{ data: rooms }, { data: slots }] = await Promise.all([
-      supabase.from('rooms').select('room_id,display_name').in('room_id', roomIds),
-      supabase.from('time_slots').select('slot_id,label').in('slot_id', slotIds),
-    ]);
-    const roomMap = new Map((rooms ?? []).map(r => [r.room_id, r.display_name]));
-    const slotMap = new Map((slots ?? []).map(s => [s.slot_id, s.label ?? s.slot_id]));
-
-    document.getElementById('bookingsBody').innerHTML = list.map(b => `
-      <tr>
-        <td>
-          <div style="color:var(--text)">${b.book_date}</div>
-          <div style="font-size:11px;color:var(--dim)">${escapeHtml(slotMap.get(b.slot_id) ?? b.slot_id)}</div>
+    $('bookingsBody').innerHTML = filtered.map(b => `
+      <tr data-id="${b.id}">
+        <td class="checkbox-cell">
+          <input type="checkbox" data-cb="${b.id}" ${selected.has(b.id) ? 'checked' : ''}>
         </td>
-        <td class="mono">${escapeHtml(roomMap.get(b.room_id) ?? b.room_id)}</td>
-        <td>${escapeHtml(b.type)}</td>
-        <td><span class="badge badge-${b.status}">${b.status}</span></td>
-        <td style="text-align:right">
+        <td><span class="mono" style="color:var(--text);font-weight:500">${escapeHtml(b._room)}</span></td>
+        <td>
+          <div style="color:var(--text);font-weight:500">${b.book_date}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(b._slot)}</div>
+        </td>
+        <td><span class="badge badge-gray">${escapeHtml(b.type)}</span></td>
+        <td><span class="badge badge-${b.status}"><i class="fas fa-${b.status === 'approved' ? 'check' : b.status === 'rejected' ? 'xmark' : 'clock'}"></i>${b.status}</span></td>
+        <td style="text-align:right;white-space:nowrap">
           ${b.status === 'pending' ? `
-            <button class="btn btn-sm btn-success" data-action="approve" data-id="${b.id}">
-              <i class="fas fa-check"></i> Approve
-            </button>
-            <button class="btn btn-sm btn-danger" data-action="reject" data-id="${b.id}">
-              <i class="fas fa-xmark"></i> Reject
-            </button>
+            <button class="btn btn-sm btn-success" data-action="approve" data-id="${b.id}" title="Approve"><i class="fas fa-check"></i></button>
+            <button class="btn btn-sm btn-danger" data-action="reject" data-id="${b.id}" title="Reject"><i class="fas fa-xmark"></i></button>
           ` : ''}
+          <button class="btn btn-sm" data-action="view" data-id="${b.id}" title="View details"><i class="fas fa-eye"></i></button>
         </td>
       </tr>
     `).join('');
+
+    $('bookingsMobile').innerHTML = filtered.map(b => `
+      <div class="card" style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
+          <div style="min-width:0">
+            <div class="mono" style="color:var(--text);font-weight:500;font-size:14px">${escapeHtml(b._room)}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${b.book_date} · ${escapeHtml(b._slot)}</div>
+          </div>
+          <span class="badge badge-${b.status}"><i class="fas fa-${b.status === 'approved' ? 'check' : b.status === 'rejected' ? 'xmark' : 'clock'}"></i>${b.status}</span>
+        </div>
+        <div class="chips" style="gap:6px">
+          <button class="btn btn-sm" data-action="view" data-id="${b.id}"><i class="fas fa-eye"></i> View</button>
+          ${b.status === 'pending' ? `
+            <button class="btn btn-sm btn-success" data-action="approve" data-id="${b.id}"><i class="fas fa-check"></i> Approve</button>
+            <button class="btn btn-sm btn-danger" data-action="reject" data-id="${b.id}"><i class="fas fa-xmark"></i> Reject</button>
+          ` : ''}
+        </div>
+      </div>
+    `).join('');
+
+    document.querySelectorAll('[data-cb]').forEach(cb => {
+      cb.onchange = () => {
+        if (cb.checked) selected.add(cb.dataset.cb); else selected.delete(cb.dataset.cb);
+        updateBulkBar();
+      };
+    });
+    document.querySelectorAll('[data-action]').forEach(btn => {
+      btn.onclick = () => handleAction(btn.dataset.action, btn.dataset.id);
+    });
   }
 
-  document.querySelectorAll('[data-filter]').forEach(btn => {
+  async function handleAction(action, id) {
+    if (action === 'view') {
+      const b = rows.find(r => r.id === id);
+      if (!b) return;
+      await openModal({
+        title: `Booking · ${b._room}`,
+        sub: `${b.book_date} · ${b._slot}`,
+        body: `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div><div class="label-small">Room</div><div class="mono">${escapeHtml(b._room)}</div></div>
+            <div><div class="label-small">Slot</div><div>${escapeHtml(b._slot)}</div></div>
+            <div><div class="label-small">Date</div><div>${b.book_date}</div></div>
+            <div><div class="label-small">Type</div><div>${escapeHtml(b.type)}</div></div>
+            <div><div class="label-small">Status</div><div><span class="badge badge-${b.status}">${b.status}</span></div></div>
+            <div><div class="label-small">Created</div><div>${formatRelativeTime(b.created_at)}</div></div>
+          </div>
+          ${b.reason ? `<div style="margin-top:16px"><div class="label-small">Reason</div><div style="color:var(--text-secondary)">${escapeHtml(b.reason)}</div></div>` : ''}
+        `,
+        actions: b.status === 'pending' ? `
+          <button class="btn" data-modal-action="cancel">Close</button>
+          <button class="btn btn-danger" data-modal-action="reject">Reject</button>
+          <button class="btn btn-success" data-modal-action="approve">Approve</button>
+        ` : `<button class="btn" data-modal-action="cancel">Close</button>`,
+      }).then(result => {
+        if (result === 'approve') updateBooking(id, 'approved');
+        else if (result === 'reject') updateBooking(id, 'rejected');
+      });
+      return;
+    }
+    if (action === 'approve') updateBooking(id, 'approved');
+    if (action === 'reject') updateBooking(id, 'rejected');
+  }
+
+  async function updateBooking(id, status) {
+    const { error } = await supabase.from('bookings')
+      .update({ status, approved_by: auth.session.user.id })
+      .eq('id', id);
+    if (error) { toast(error.message, 'error'); return; }
+    toast(`Booking ${status}`, 'success');
+    await load();
+  }
+
+  async function bulkAction(status) {
+    if (!selected.size) return;
+    const ids = [...selected];
+    const verb = status === 'approved' ? 'approve' : 'reject';
+    const ok = await confirmDialog({
+      title: `${verb[0].toUpperCase() + verb.slice(1)} ${ids.length} bookings?`,
+      message: `This will mark ${ids.length} booking${ids.length === 1 ? '' : 's'} as ${status}.`,
+      confirmText: status === 'approved' ? 'Approve all' : 'Reject all',
+      danger: status === 'rejected',
+    });
+    if (!ok) return;
+
+    const { error } = await supabase.from('bookings')
+      .update({ status, approved_by: auth.session.user.id })
+      .in('id', ids);
+    if (error) { toast(error.message, 'error'); return; }
+    toast(`${ids.length} booking${ids.length === 1 ? '' : 's'} ${status}`, 'success');
+    await load();
+  }
+
+  function updateBulkBar() {
+    const bar = $('bulkBar');
+    if (selected.size > 0) {
+      bar.classList.add('show');
+      $('bulkCount').textContent = `${selected.size} selected`;
+    } else {
+      bar.classList.remove('show');
+    }
+  }
+
+  $('selectAll').onchange = (e) => {
+    if (e.target.checked) {
+      rows.forEach(r => { if (r.status === 'pending') selected.add(r.id); });
+    } else {
+      selected.clear();
+    }
+    render();
+    updateBulkBar();
+  };
+
+  $('filterChips').querySelectorAll('[data-filter]').forEach(btn => {
     btn.onclick = () => {
       filter = btn.dataset.filter;
-      document.querySelectorAll('[data-filter]').forEach(b => b.classList.toggle('active', b === btn));
+      $('filterChips').querySelectorAll('[data-filter]').forEach(b => b.classList.toggle('on', b === btn));
       load();
     };
   });
 
-  document.getElementById('bookingsBody').addEventListener('click', async (e) => {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    const status = btn.dataset.action === 'approve' ? 'approved' : 'rejected';
-    const { error } = await supabase
-      .from('bookings')
-      .update({ status, approved_by: auth.session.user.id })
-      .eq('id', btn.dataset.id);
-    if (error) { toast(error.message, 'error'); return; }
-    toast(`Booking ${status}`, 'success');
-    await load();
-  });
+  $('searchInput').addEventListener('input', debounce(e => {
+    search = e.target.value.trim();
+    $('searchClear').classList.toggle('show', search.length > 0);
+    render();
+  }, 200));
+
+  $('searchClear').onclick = () => {
+    $('searchInput').value = '';
+    search = '';
+    $('searchClear').classList.remove('show');
+    render();
+  };
+
+  $('bulkApprove').onclick = () => bulkAction('approved');
+  $('bulkReject').onclick = () => bulkAction('rejected');
+  $('bulkClear').onclick = () => { selected.clear(); render(); updateBulkBar(); };
+
+  function updateMobile() {
+    const mobile = window.innerWidth <= 640;
+    document.querySelector('.user-table-desktop').style.display = mobile ? 'none' : 'block';
+    $('bookingsMobile').style.display = mobile ? 'block' : 'none';
+  }
+  window.addEventListener('resize', updateMobile);
+  updateMobile();
 
   await load();
 })();
