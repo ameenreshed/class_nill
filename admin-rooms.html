@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rooms · amnrd.scheduler</title>
+<title>Rooms · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
 <link rel="manifest" href="/manifest.json">
@@ -20,7 +20,7 @@
   <div class="page-header">
     <div>
       <h1 class="page-title"><i class="fas fa-door-open"></i> Rooms</h1>
-      <p class="page-subtitle"><span id="roomCount">0</span> rooms · click a row to edit</p>
+      <p class="page-subtitle"><span id="roomCount">0</span> rooms · click a room ID to copy</p>
     </div>
     <div class="row">
       <button class="btn" id="exportBtn"><i class="fas fa-download"></i> Export</button>
@@ -51,7 +51,7 @@
       <thead>
         <tr>
           <th class="checkbox-cell"><input type="checkbox" id="selectAll"></th>
-          <th style="cursor:pointer" data-sort="room_id">Room <i class="fas fa-sort" style="font-size:10px;opacity:.5"></i></th>
+          <th>Room</th>
           <th>Type</th>
           <th>Capacity</th>
           <th>Flags</th>
@@ -68,13 +68,13 @@
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, toast, debounce, confirmDialog, openFormModal, copyToClipboard, deriveRoomId } from './js/core.js';
+import { requireRole, renderNav, supabase, escapeHtml, toast, debounce, confirmDialog, copyToClipboard, deriveRoomId } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
   if (!auth) return;
   renderNav(auth.profile, [
-    { label: 'Add room', icon: 'fa-plus', keywords: 'new create', action: () => openAddModal() },
+    { label: 'Add room', icon: 'fa-plus', keywords: 'new create', action: () => openRoomModal(null) },
     { label: 'Export rooms JSON', icon: 'fa-download', keywords: 'backup download', action: () => exportRooms() },
   ]);
 
@@ -84,7 +84,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, debounce, confirmD
   let roomTypes = [];
   let building = 'all';
   let search = '';
-  let sortAsc = true;
   let selected = new Set();
 
   const [{ data: b }, { data: t }] = await Promise.all([
@@ -125,10 +124,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, debounce, confirmD
         (r.notes || '').toLowerCase().includes(q)
       );
     }
-    list = [...list].sort((a, b) => sortAsc
-      ? a.room_id.localeCompare(b.room_id, undefined, { numeric: true })
-      : b.room_id.localeCompare(a.room_id, undefined, { numeric: true }));
-    return list;
+    return [...list].sort((a, b) => a.room_id.localeCompare(b.room_id, undefined, { numeric: true }));
   }
 
   function render() {
@@ -139,7 +135,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, debounce, confirmD
       return;
     }
     $('roomsBody').innerHTML = list.map(r => `
-      <tr data-row="${r.room_id}">
+      <tr>
         <td class="checkbox-cell"><input type="checkbox" data-cb="${r.room_id}" ${selected.has(r.room_id) ? 'checked' : ''}></td>
         <td>
           <div class="mono" style="color:var(--text);font-weight:500;cursor:pointer" data-copy="${escapeHtml(r.room_id)}">${escapeHtml(r.display_name)}</div>
@@ -189,73 +185,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, debounce, confirmD
     });
   }
 
-  function roomFormFields(room = {}) {
-    return `
-      <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
-        <label class="field"><span>Building</span>
-          <select class="input" data-field="building">
-            ${buildings.map(x => `<option value="${escapeHtml(x.id)}" ${room.building === x.id ? 'selected' : ''}>${escapeHtml(x.name || x.id)}</option>`).join('')}
-          </select>
-        </label>
-        <label class="field"><span>Floor (1 = 1st)</span>
-          <input class="input" type="number" min="1" max="20" data-field="floor" value="${room.floor || 1}">
-        </label>
-        <label class="field"><span>Room number</span>
-          <input class="input" data-field="room_number" value="${room.room_number || '01'}">
-        </label>
-        <label class="field"><span>Suffix</span>
-          <input class="input" data-field="suffix" value="${escapeHtml(room.suffix || '')}" placeholder="A">
-        </label>
-        <label class="field"><span>Type</span>
-          <select class="input" data-field="type">
-            ${roomTypes.map(x => `<option value="${escapeHtml(x.id)}" ${room.type === x.id ? 'selected' : ''}>${escapeHtml(x.label)}</option>`).join('')}
-          </select>
-        </label>
-        <label class="field"><span>Capacity</span>
-          <input class="input" type="number" data-field="capacity" value="${room.capacity ?? 60}">
-        </label>
-      </div>
-      <label class="field"><span>Facilities (comma separated)</span>
-        <input class="input" data-field="facilities" value="${escapeHtml((room.facilities || []).join(', '))}" placeholder="projector, ac">
-      </label>
-      <label class="field"><span>Notes</span>
-        <input class="input" data-field="notes" value="${escapeHtml(room.notes || '')}">
-      </label>
-      <div style="display:flex;gap:16px;flex-wrap:wrap">
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)">
-          <input type="checkbox" data-field="bookable" ${room.bookable !== false ? 'checked' : ''}> Bookable
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)">
-          <input type="checkbox" data-field="weekend_open" ${room.weekend_open ? 'checked' : ''}> Open on weekends
-        </label>
-      </div>
-    `;
-  }
-
-  function gatherForm(dialog, existing) {
-    const d = {};
-    dialog.querySelectorAll('[data-field]').forEach(el => {
-      if (el.type === 'checkbox') d[el.dataset.field] = el.checked;
-      else d[el.dataset.field] = el.value;
-    });
-    const { room_id, display_name, floor_digit, room_number, suffix } = deriveRoomId(d.building, parseInt(d.floor, 10) || 1, d.room_number, d.suffix);
-    return {
-      room_id, display_name, floor_digit, room_number, suffix,
-      building: d.building,
-      floor: parseInt(d.floor, 10) || 1,
-      type: d.type,
-      capacity: d.capacity ? parseInt(d.capacity, 10) : null,
-      facilities: d.facilities.split(',').map(s => s.trim()).filter(Boolean),
-      notes: d.notes || null,
-      bookable: !!d.bookable,
-      weekend_open: !!d.weekend_open,
-    };
-  }
-
-  async function openAddModal() {
-    return openRoomModal(null);
-  }
-
   async function openRoomModal(room) {
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
@@ -265,7 +194,46 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, debounce, confirmD
           <div class="modal-title">${room ? `Edit ${escapeHtml(room.display_name)}` : 'Add room'}</div>
           <button class="modal-close" data-action="close"><i class="fas fa-xmark"></i></button>
         </div>
-        <div class="modal-body">${roomFormFields(room || {})}</div>
+        <div class="modal-body">
+          <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+            <label class="field"><span>Building</span>
+              <select class="input" data-field="building">
+                ${buildings.map(x => `<option value="${escapeHtml(x.id)}" ${room?.building === x.id ? 'selected' : ''}>${escapeHtml(x.name || x.id)}</option>`).join('')}
+              </select>
+            </label>
+            <label class="field"><span>Floor (1 = 1st)</span>
+              <input class="input" type="number" min="1" max="20" data-field="floor" value="${room?.floor || 1}">
+            </label>
+            <label class="field"><span>Room number</span>
+              <input class="input" data-field="room_number" value="${room?.room_number || '01'}">
+            </label>
+            <label class="field"><span>Suffix</span>
+              <input class="input" data-field="suffix" value="${escapeHtml(room?.suffix || '')}" placeholder="A">
+            </label>
+            <label class="field"><span>Type</span>
+              <select class="input" data-field="type">
+                ${roomTypes.map(x => `<option value="${escapeHtml(x.id)}" ${room?.type === x.id ? 'selected' : ''}>${escapeHtml(x.label)}</option>`).join('')}
+              </select>
+            </label>
+            <label class="field"><span>Capacity</span>
+              <input class="input" type="number" data-field="capacity" value="${room?.capacity ?? 60}">
+            </label>
+          </div>
+          <label class="field"><span>Facilities (comma separated)</span>
+            <input class="input" data-field="facilities" value="${escapeHtml((room?.facilities || []).join(', '))}" placeholder="projector, ac">
+          </label>
+          <label class="field"><span>Notes</span>
+            <input class="input" data-field="notes" value="${escapeHtml(room?.notes || '')}">
+          </label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)">
+              <input type="checkbox" data-field="bookable" ${room?.bookable !== false ? 'checked' : ''}> Bookable
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)">
+              <input type="checkbox" data-field="weekend_open" ${room?.weekend_open ? 'checked' : ''}> Open on weekends
+            </label>
+          </div>
+        </div>
         <div class="modal-footer">
           <button class="btn" data-action="cancel">Cancel</button>
           <button class="btn btn-primary" data-action="save">${room ? 'Save changes' : 'Add room'}</button>
@@ -274,21 +242,38 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, debounce, confirmD
     `;
     document.body.appendChild(dialog);
     dialog.showModal();
-    const finish = (v) => { dialog.close(); dialog.remove(); if (v) doSave(v, room); };
-    dialog.querySelector('[data-action="close"]').onclick = () => finish(null);
-    dialog.querySelector('[data-action="cancel"]').onclick = () => finish(null);
-    dialog.querySelector('[data-action="save"]').onclick = () => finish(gatherForm(dialog, room));
-    dialog.onclick = (e) => { if (e.target === dialog) finish(null); };
-    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
-  }
-
-  async function doSave(payload, existing) {
-    const { data, error } = existing
-      ? await supabase.from('rooms').update(payload).eq('room_id', existing.room_id)
-      : await supabase.from('rooms').insert(payload);
-    if (error) { toast(error.message, 'error'); return; }
-    toast(existing ? 'Room updated' : 'Room added', 'success');
-    await load();
+    const finish = async (save) => {
+      if (!save) { dialog.close(); dialog.remove(); return; }
+      const d = {};
+      dialog.querySelectorAll('[data-field]').forEach(el => {
+        d[el.dataset.field] = el.type === 'checkbox' ? el.checked : el.value;
+      });
+      const { room_id, display_name, floor_digit, room_number, suffix } = deriveRoomId(
+        d.building, parseInt(d.floor, 10) || 1, d.room_number, d.suffix);
+      const payload = {
+        room_id, display_name, floor_digit, room_number, suffix,
+        building: d.building,
+        floor: parseInt(d.floor, 10) || 1,
+        type: d.type,
+        capacity: d.capacity ? parseInt(d.capacity, 10) : null,
+        facilities: d.facilities.split(',').map(s => s.trim()).filter(Boolean),
+        notes: d.notes || null,
+        bookable: !!d.bookable,
+        weekend_open: !!d.weekend_open,
+      };
+      const { error } = room
+        ? await supabase.from('rooms').update(payload).eq('room_id', room.room_id)
+        : await supabase.from('rooms').insert(payload);
+      if (error) { toast(error.message, 'error'); return; }
+      toast(room ? 'Room updated' : 'Room added', 'success');
+      dialog.close();
+      dialog.remove();
+      await load();
+    };
+    dialog.querySelector('[data-action="close"]').onclick = () => finish(false);
+    dialog.querySelector('[data-action="cancel"]').onclick = () => finish(false);
+    dialog.querySelector('[data-action="save"]').onclick = () => finish(true);
+    dialog.onclick = (e) => { if (e.target === dialog) finish(false); };
   }
 
   async function handleAction(action, id) {
@@ -336,13 +321,13 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, debounce, confirmD
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `rooms-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `lpu-rooms-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
     toast('Downloaded', 'success');
   }
 
-  $('addBtn').onclick = () => openAddModal();
+  $('addBtn').onclick = () => openRoomModal(null);
   $('exportBtn').onclick = exportRooms;
   $('bulkDelete').onclick = bulkDelete;
   $('bulkClear').onclick = () => { selected.clear(); render(); updateBulkBar(); };
@@ -351,12 +336,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, debounce, confirmD
     else selected.clear();
     render();
     updateBulkBar();
-  };
-
-  document.querySelector('[data-sort="room_id"]').onclick = () => {
-    sortAsc = !sortAsc;
-    document.querySelector('[data-sort="room_id"]').querySelector('i').className = sortAsc ? 'fas fa-sort' : 'fas fa-sort-down';
-    render();
   };
 
   $('searchInput').addEventListener('input', debounce(e => {

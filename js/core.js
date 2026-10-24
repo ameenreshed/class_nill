@@ -4,9 +4,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export const BASE = new URL('.', location.href).href;
 
-/* ============================================================
-   SERVER TIME
-   ============================================================ */
+/* SERVER TIME */
 let serverOffsetMs = 0;
 export async function syncServerTime() {
   try {
@@ -25,9 +23,7 @@ export function todayISO() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-/* ============================================================
-   AUTH
-   ============================================================ */
+/* AUTH */
 const HB_KEY = 'lastHeartbeat';
 function maybeHeartbeat() {
   try {
@@ -76,9 +72,7 @@ export async function signOut() {
   location.href = `${BASE}login.html`;
 }
 
-/* ============================================================
-   THEME
-   ============================================================ */
+/* THEME */
 const THEME_KEY = 'theme';
 export function getCurrentTheme() { return document.documentElement.getAttribute('data-theme') || 'light'; }
 export function applyTheme(theme) {
@@ -115,9 +109,7 @@ export function initTheme() {
   else if (mq.addListener) mq.addListener(onChange);
 }
 
-/* ============================================================
-   PWA
-   ============================================================ */
+/* PWA */
 let deferredInstallPrompt = null;
 export function bootPWA() {
   if (!document.querySelector('link[rel="manifest"]')) {
@@ -142,9 +134,7 @@ export async function installPWA() {
   if (outcome === 'accepted') toast('Installed — check your home screen', 'success');
 }
 
-/* ============================================================
-   COMMAND PALETTE
-   ============================================================ */
+/* COMMAND PALETTE */
 let commandRegistry = [];
 let cmdOverlay = null, cmdInput = null, cmdList = null, cmdFocused = 0, cmdFiltered = [];
 
@@ -165,28 +155,17 @@ function buildCmdPalette() {
     <div class="cmd-panel">
       <input class="cmd-input" type="text" placeholder="Search pages and actions…" autocomplete="off" spellcheck="false">
       <div class="cmd-list"></div>
-    </div>
-  `;
+    </div>`;
   document.body.appendChild(cmdOverlay);
   cmdInput = cmdOverlay.querySelector('.cmd-input');
   cmdList = cmdOverlay.querySelector('.cmd-list');
   cmdOverlay.onclick = (e) => { if (e.target === cmdOverlay) closeCommandPalette(); };
   cmdInput.oninput = (e) => { cmdFocused = 0; renderCmdResults(e.target.value); };
   cmdInput.onkeydown = (e) => {
-    if (e.key === 'Escape') { closeCommandPalette(); }
-    else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      cmdFocused = Math.min(cmdFocused + 1, cmdFiltered.length - 1);
-      updateCmdFocus();
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      cmdFocused = Math.max(cmdFocused - 1, 0);
-      updateCmdFocus();
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      const cmd = cmdFiltered[cmdFocused];
-      if (cmd) { closeCommandPalette(); cmd.action(); }
-    }
+    if (e.key === 'Escape') closeCommandPalette();
+    else if (e.key === 'ArrowDown') { e.preventDefault(); cmdFocused = Math.min(cmdFocused + 1, cmdFiltered.length - 1); updateCmdFocus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); cmdFocused = Math.max(cmdFocused - 1, 0); updateCmdFocus(); }
+    else if (e.key === 'Enter') { e.preventDefault(); const c = cmdFiltered[cmdFocused]; if (c) { closeCommandPalette(); c.action(); } }
   };
 }
 function renderCmdResults(q) {
@@ -194,10 +173,7 @@ function renderCmdResults(q) {
   cmdFiltered = commandRegistry.filter(c =>
     !query || c.label.toLowerCase().includes(query) || (c.keywords || '').toLowerCase().includes(query));
   if (cmdFocused >= cmdFiltered.length) cmdFocused = 0;
-  if (!cmdFiltered.length) {
-    cmdList.innerHTML = `<div class="cmd-empty">No matches for "${escapeHtml(q)}"</div>`;
-    return;
-  }
+  if (!cmdFiltered.length) { cmdList.innerHTML = `<div class="cmd-empty">No matches for "${escapeHtml(q)}"</div>`; return; }
   cmdList.innerHTML = cmdFiltered.map((c, i) => `
     <div class="cmd-item ${i === cmdFocused ? 'focused' : ''}" data-idx="${i}">
       <i class="fas ${c.icon || 'fa-circle'}"></i>
@@ -206,10 +182,7 @@ function renderCmdResults(q) {
     </div>
   `).join('');
   cmdList.querySelectorAll('.cmd-item').forEach(el => {
-    el.onclick = () => {
-      const cmd = cmdFiltered[parseInt(el.dataset.idx, 10)];
-      if (cmd) { closeCommandPalette(); cmd.action(); }
-    };
+    el.onclick = () => { const c = cmdFiltered[parseInt(el.dataset.idx, 10)]; if (c) { closeCommandPalette(); c.action(); } };
   });
   updateCmdFocus();
 }
@@ -219,9 +192,7 @@ function updateCmdFocus() {
   if (f) f.scrollIntoView({ block: 'nearest' });
 }
 
-/* ============================================================
-   MODALS
-   ============================================================ */
+/* MODALS */
 export function openModal({ title, sub, body, actions, wide = false }) {
   return new Promise((resolve) => {
     const dialog = document.createElement('dialog');
@@ -237,36 +208,28 @@ export function openModal({ title, sub, body, actions, wide = false }) {
         </div>
         <div class="modal-body">${body}</div>
         ${actions ? `<div class="modal-footer">${actions}</div>` : ''}
-      </div>
-    `;
+      </div>`;
     document.body.appendChild(dialog);
     dialog.showModal();
     const finish = (v) => { dialog.close(); dialog.remove(); resolve(v); };
     dialog.querySelector('[data-action="close"]').onclick = () => finish(null);
     dialog.querySelectorAll('[data-modal-action]').forEach(btn => {
-      btn.onclick = () => {
-        const act = btn.dataset.modalAction;
-        if (act === 'cancel') finish(null);
-        else finish(act);
-      };
+      btn.onclick = () => { const a = btn.dataset.modalAction; finish(a === 'cancel' ? null : a); };
     });
     dialog.onclick = (e) => { if (e.target === dialog) finish(null); };
     dialog.addEventListener('close', () => { if (dialog.isConnected) { dialog.remove(); resolve(null); } });
   });
 }
-
 export async function confirmDialog({ title = 'Are you sure?', message = '', confirmText = 'Confirm', danger = false }) {
   const result = await openModal({
     title,
     body: `<p style="color:var(--text-secondary);line-height:1.6;margin:0">${escapeHtml(message)}</p>`,
     actions: `
       <button class="btn" data-modal-action="cancel">Cancel</button>
-      <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-modal-action="confirm">${escapeHtml(confirmText)}</button>
-    `,
+      <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-modal-action="confirm">${escapeHtml(confirmText)}</button>`,
   });
   return result === 'confirm';
 }
-
 export function openFormModal({ title, fields, saveText = 'Save', wide = false }) {
   return new Promise((resolve) => {
     const dialog = document.createElement('dialog');
@@ -275,15 +238,14 @@ export function openFormModal({ title, fields, saveText = 'Save', wide = false }
       <div class="modal-content ${wide ? 'modal-wide' : ''}">
         <div class="modal-header">
           <div class="modal-title">${escapeHtml(title)}</div>
-          <button class="modal-close" data-action="close" aria-label="Close"><i class="fas fa-xmark"></i></button>
+          <button class="modal-close" data-action="close"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="modal-body">${fields}</div>
         <div class="modal-footer">
           <button class="btn" data-action="cancel">Cancel</button>
           <button class="btn btn-primary" data-action="save">${escapeHtml(saveText)}</button>
         </div>
-      </div>
-    `;
+      </div>`;
     document.body.appendChild(dialog);
     dialog.showModal();
     const finish = (v) => { dialog.close(); dialog.remove(); resolve(v); };
@@ -291,7 +253,9 @@ export function openFormModal({ title, fields, saveText = 'Save', wide = false }
     dialog.querySelector('[data-action="cancel"]').onclick = () => finish(null);
     dialog.querySelector('[data-action="save"]').onclick = () => {
       const data = {};
-      dialog.querySelectorAll('[data-field]').forEach(el => { data[el.dataset.field] = el.value; });
+      dialog.querySelectorAll('[data-field]').forEach(el => {
+        data[el.dataset.field] = el.type === 'checkbox' ? el.checked : el.value;
+      });
       finish(data);
     };
     dialog.onclick = (e) => { if (e.target === dialog) finish(null); };
@@ -299,9 +263,7 @@ export function openFormModal({ title, fields, saveText = 'Save', wide = false }
   });
 }
 
-/* ============================================================
-   NOTIFICATIONS
-   ============================================================ */
+/* NOTIFICATIONS */
 export async function getNotifications(profile) {
   if (profile.role === 'admin') {
     const { data } = await supabase
@@ -337,13 +299,11 @@ export async function getNotifications(profile) {
   }
   return [];
 }
-
 async function updateNotifDot(profile) {
   const items = await getNotifications(profile);
   const dot = document.getElementById('notifDot');
   if (dot) dot.style.display = items.length > 0 ? 'block' : 'none';
 }
-
 async function openNotifPanel(profile) {
   const items = await getNotifications(profile);
   const panel = document.getElementById('notifPanel');
@@ -356,16 +316,13 @@ async function openNotifPanel(profile) {
           <div class="notif-title">${escapeHtml(n.title)}</div>
           <div class="notif-meta">${escapeHtml(n.meta)} · ${formatRelativeTime(n.time)}</div>
         </div>
-      </a>
-    `).join('')
+      </a>`).join('')
     : '<div class="notif-empty"><i class="fas fa-bell-slash"></i>You\'re all caught up</div>';
   panel.querySelector('.notif-list').innerHTML = body;
   panel.classList.add('open');
 }
 
-/* ============================================================
-   NAV
-   ============================================================ */
+/* NAV */
 function getNavItems(profile) {
   if (profile.role === 'admin') return [
     { href: 'admin.html',          label: 'Dashboard',  icon: 'fa-gauge-high' },
@@ -377,17 +334,16 @@ function getNavItems(profile) {
     { href: 'student.html',        label: 'Free rooms', icon: 'fa-building' },
   ];
   if (profile.role === 'faculty') return [
-    { href: 'faculty.html',        label: 'Dashboard', icon: 'fa-gauge-high' },
-    { href: 'faculty-makeup.html', label: 'Makeup',    icon: 'fa-chalkboard-user' },
+    { href: 'faculty.html',        label: 'Dashboard',  icon: 'fa-gauge-high' },
+    { href: 'faculty-makeup.html', label: 'Makeup',     icon: 'fa-chalkboard-user' },
     { href: 'student.html',        label: 'Free rooms', icon: 'fa-building' },
-    { href: 'profile.html',        label: 'Profile',   icon: 'fa-user' },
+    { href: 'profile.html',        label: 'Profile',    icon: 'fa-user' },
   ];
   return [
     { href: 'student.html', label: 'Free rooms', icon: 'fa-building' },
     { href: 'profile.html', label: 'Profile',    icon: 'fa-user' },
   ];
 }
-
 function getGlobalCommands(profile, items) {
   const cmds = items.map(l => ({
     label: l.label, icon: l.icon, keywords: l.label + ' page',
@@ -395,8 +351,8 @@ function getGlobalCommands(profile, items) {
   }));
   cmds.push(
     { label: 'My profile', icon: 'fa-user', keywords: 'account settings', action: () => { location.href = 'profile.html'; } },
-    { label: 'Toggle theme', icon: 'fa-circle-half-stroke', keywords: 'dark light mode appearance', action: () => toggleTheme() },
-    { label: 'Sign out', icon: 'fa-right-from-bracket', keywords: 'logout exit leave', action: () => signOut() },
+    { label: 'Toggle theme', icon: 'fa-circle-half-stroke', keywords: 'dark light mode', action: () => toggleTheme() },
+    { label: 'Sign out', icon: 'fa-right-from-bracket', keywords: 'logout exit', action: () => signOut() },
   );
   return cmds;
 }
@@ -420,21 +376,18 @@ export function renderNav(profile, extraCommands = []) {
   el.innerHTML = `
     <div class="nav">
       <div class="nav-inner">
-        <a href="index.html" class="nav-brand">amnrd<span class="nav-brand-dot">.</span>scheduler</a>
+        <a href="index.html" class="nav-brand">LPU<span class="nav-brand-dot">.</span>Scheduler</a>
         <div class="nav-links">
           ${items.map(l => `
             <a href="${l.href}" class="nav-link ${current === l.href ? 'active' : ''}">
               <i class="fas ${l.icon}"></i>${l.label}
-            </a>
-          `).join('')}
+            </a>`).join('')}
         </div>
         <div class="nav-actions">
           <button class="btn btn-sm" data-install-btn style="display:none" onclick="window.__installPWA && window.__installPWA()">
             <i class="fas fa-download"></i> Install
           </button>
-          <button class="nav-icon-btn" id="cmdBtn" title="Search (⌘K)" aria-label="Open command palette">
-            <i class="fas fa-search"></i>
-          </button>
+          <button class="nav-icon-btn" id="cmdBtn" title="Search (⌘K)" aria-label="Open command palette"><i class="fas fa-search"></i></button>
           <button class="nav-icon-btn nav-bell-btn" id="notifBtn" title="Notifications" aria-label="Notifications">
             <i class="fas fa-bell"></i>
             <span class="notif-badge-dot" id="notifDot" style="display:none"></span>
@@ -475,13 +428,11 @@ export function renderNav(profile, extraCommands = []) {
         ${bottomItems.map(l => `
           <a href="${l.href}" class="mobile-nav-item ${current === l.href ? 'active' : ''}">
             <i class="fas ${l.icon}"></i><span>${l.label}</span>
-          </a>
-        `).join('')}
+          </a>`).join('')}
         ${moreItems.length ? `
           <button class="mobile-nav-item" id="moreSheetBtn">
             <i class="fas fa-ellipsis"></i><span>More</span>
-          </button>
-        ` : ''}
+          </button>` : ''}
       </div>
     </nav>
 
@@ -493,15 +444,13 @@ export function renderNav(profile, extraCommands = []) {
       <button class="more-sheet-item" id="moreLogoutBtn" style="color:var(--danger)">
         <i class="fas fa-right-from-bracket" style="color:var(--danger)"></i>Sign out
       </button>
-    </div>
-  `;
+    </div>`;
 
   document.querySelectorAll('[data-theme-toggle]').forEach(btn => { btn.onclick = toggleTheme; });
   updateThemeIcons();
   window.__toggleTheme = toggleTheme;
   window.__installPWA = installPWA;
 
-  // Avatar dropdown
   const avatarBtn = document.getElementById('avatarBtn');
   const avatarMenu = document.getElementById('avatarMenu');
   if (avatarBtn && avatarMenu) {
@@ -511,27 +460,18 @@ export function renderNav(profile, extraCommands = []) {
     });
   }
 
-  // Logout
   document.getElementById('logoutBtn')?.addEventListener('click', signOut);
   document.getElementById('moreLogoutBtn')?.addEventListener('click', signOut);
-
-  // Command palette trigger
   document.getElementById('cmdBtn')?.addEventListener('click', openCommandPalette);
 
-  // Notifications
   const notifBtn = document.getElementById('notifBtn');
   const notifPanel = document.getElementById('notifPanel');
   const notifClose = document.getElementById('notifClose');
   if (notifBtn && notifPanel) {
     notifBtn.onclick = async (e) => {
       e.stopPropagation();
-      const isOpen = notifPanel.classList.contains('open');
-      if (isOpen) {
-        notifPanel.classList.remove('open');
-      } else {
-        await openNotifPanel(profile);
-        document.getElementById('avatarMenu')?.classList.remove('open');
-      }
+      if (notifPanel.classList.contains('open')) notifPanel.classList.remove('open');
+      else { await openNotifPanel(profile); document.getElementById('avatarMenu')?.classList.remove('open'); }
     };
     notifClose.onclick = () => notifPanel.classList.remove('open');
     document.addEventListener('click', (e) => {
@@ -540,7 +480,6 @@ export function renderNav(profile, extraCommands = []) {
     updateNotifDot(profile);
   }
 
-  // More sheet
   const moreBtn = document.getElementById('moreSheetBtn');
   const moreSheet = document.getElementById('moreSheet');
   const moreBackdrop = document.getElementById('moreSheetBackdrop');
@@ -551,7 +490,6 @@ export function renderNav(profile, extraCommands = []) {
 
   bootPWA();
 }
-
 function setupShortcuts() {
   if (window.__shortcutsSet) return;
   window.__shortcutsSet = true;
@@ -563,9 +501,7 @@ function setupShortcuts() {
   });
 }
 
-/* ============================================================
-   OFFLINE
-   ============================================================ */
+/* OFFLINE */
 export function isOnline() { return navigator.onLine; }
 export function onNetworkChange(cb) {
   window.addEventListener('online', () => cb(true));
@@ -611,9 +547,7 @@ export async function syncPendingBookings() {
   return { synced, failed };
 }
 
-/* ============================================================
-   HELPERS
-   ============================================================ */
+/* HELPERS */
 export function deriveRoomId(building, floor, roomNumber, suffix) {
   const floorDigit = String(floor);
   const rn = String(roomNumber).trim().padStart(2, '0');

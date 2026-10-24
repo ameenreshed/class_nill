@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Faculty · amnrd.scheduler</title>
+<title>Faculty · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
 <link rel="manifest" href="/manifest.json">
@@ -36,7 +36,7 @@
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, todayISO, escapeHtml, formatRelativeTime } from './js/core.js';
+import { requireRole, renderNav, supabase, todayISO, escapeHtml } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['faculty', 'admin']);
@@ -57,7 +57,6 @@ import { requireRole, renderNav, supabase, todayISO, escapeHtml, formatRelativeT
 
   const list = bookings ?? [];
   const today = todayISO();
-  const upcoming = list.filter(b => b.book_date > today);
   const todays = list.filter(b => b.book_date === today);
   const approvedCount = list.filter(b => b.status === 'approved').length;
   const pendingCount = list.filter(b => b.status === 'pending').length;

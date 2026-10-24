@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin · amnrd.scheduler</title>
+<title>Dashboard · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
 <link rel="manifest" href="/manifest.json">
@@ -22,14 +22,10 @@
       <h1 class="page-title"><i class="fas fa-gauge-high"></i> Dashboard</h1>
       <p class="page-subtitle">Live overview — updated <span id="lastUpdated">now</span></p>
     </div>
-    <div class="row">
-      <a href="admin-add.html" class="btn btn-primary"><i class="fas fa-bolt"></i> Quick add</a>
-    </div>
+    <a href="admin-add.html" class="btn btn-primary"><i class="fas fa-bolt"></i> Quick add</a>
   </div>
 
-  <div class="stats" id="stats">
-    ${'<div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>'.repeat(4)}
-  </div>
+  <div class="stats" id="stats"></div>
 
   <div class="grid-auto mt-6">
     <div class="card">
@@ -37,7 +33,6 @@
       <div class="chart-bars" id="chartBars"></div>
       <div class="dim" style="font-size:12px;text-align:center;margin-top:8px">Hover bars for exact counts</div>
     </div>
-
     <div class="card">
       <div class="card-title"><i class="fas fa-clock-rotate-left"></i> Recent activity</div>
       <div class="timeline" id="timeline">
@@ -76,7 +71,7 @@
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, todayISO, escapeHtml, formatRelativeTime, openCommandPalette } from './js/core.js';
+import { requireRole, renderNav, supabase, todayISO, escapeHtml, formatRelativeTime } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
@@ -91,12 +86,11 @@ import { requireRole, renderNav, supabase, todayISO, escapeHtml, formatRelativeT
 
   const $ = id => document.getElementById(id);
 
-  const [rooms, pending, todayBookings, users, buildings] = await Promise.all([
+  const [rooms, pending, todayBookings, users] = await Promise.all([
     supabase.from('rooms').select('room_id', { count: 'exact', head: true }),
     supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('book_date', todayISO()),
     supabase.from('profiles').select('id', { count: 'exact', head: true }),
-    supabase.from('buildings').select('id', { count: 'exact', head: true }).eq('is_active', true),
   ]);
 
   $('stats').innerHTML = `
@@ -106,7 +100,6 @@ import { requireRole, renderNav, supabase, todayISO, escapeHtml, formatRelativeT
     <a class="stat" href="admin-users.html"><i class="fas fa-users stat-icon"></i><div class="stat-value">${users.count ?? 0}</div><div class="stat-label">Total users</div></a>
   `;
 
-  // Chart
   const days = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
@@ -118,21 +111,20 @@ import { requireRole, renderNav, supabase, todayISO, escapeHtml, formatRelativeT
     .select('book_date')
     .in('book_date', days)
     .in('status', ['approved', 'pending']);
+
   const counts = days.map(d => ({
     date: d,
     count: (recent ?? []).filter(r => r.book_date === d).length,
     label: new Date(d + 'T12:00:00').toLocaleDateString([], { weekday: 'short' }),
   }));
   const maxCount = Math.max(...counts.map(c => c.count), 1);
-  const CHART_H = 100;
   $('chartBars').innerHTML = counts.map(c => `
     <div class="chart-bar-col">
-      <div class="chart-bar" style="height:${Math.round((c.count / maxCount) * CHART_H)}px" title="${c.count} bookings on ${c.date}"></div>
+      <div class="chart-bar" style="height:${Math.round((c.count / maxCount) * 100)}px" title="${c.count} bookings on ${c.date}"></div>
       <div class="chart-bar-label">${c.label}</div>
     </div>
   `).join('');
 
-  // Timeline
   const { data: logs } = await supabase
     .from('activity_log')
     .select('*')
@@ -161,8 +153,6 @@ import { requireRole, renderNav, supabase, todayISO, escapeHtml, formatRelativeT
   }
 
   $('lastUpdated').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  // Auto-refresh every 60s
   setInterval(() => { if (!document.hidden) location.reload(); }, 60_000);
 })();
 </script>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Settings · amnrd.scheduler</title>
+<title>Settings · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
 <link rel="manifest" href="/manifest.json">
@@ -37,16 +37,15 @@
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime,
-         openModal, openFormModal, confirmDialog } from './js/core.js';
+import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime, openFormModal, confirmDialog } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
   if (!auth) return;
   renderNav(auth.profile, [
-    { label: 'Add building', icon: 'fa-building-circle-arrow-right', keywords: 'new block', action: () => { switchTab('buildings'); setTimeout(() => addBuilding(), 300); } },
-    { label: 'Add room type', icon: 'fa-shapes', keywords: 'new category', action: () => { switchTab('types'); setTimeout(() => addType(), 300); } },
-    { label: 'Add time slot', icon: 'fa-clock', keywords: 'new period', action: () => { switchTab('slots'); setTimeout(() => addSlot(), 300); } },
+    { label: 'Add building', icon: 'fa-building-circle-arrow-right', keywords: 'new block', action: () => { switchTab('buildings'); setTimeout(addBuilding, 300); } },
+    { label: 'Add room type', icon: 'fa-shapes', keywords: 'new category', action: () => { switchTab('types'); setTimeout(addType, 300); } },
+    { label: 'Add time slot', icon: 'fa-clock', keywords: 'new period', action: () => { switchTab('slots'); setTimeout(addSlot, 300); } },
   ]);
 
   const $ = id => document.getElementById(id);
@@ -57,7 +56,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
     render();
   }
-
   document.querySelectorAll('[data-tab]').forEach(btn => {
     btn.onclick = () => switchTab(btn.dataset.tab);
   });
@@ -69,22 +67,17 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     'fa-graduation-cap', 'fa-tv', 'fa-desktop', 'fa-warehouse', 'fa-people-group',
   ];
 
-  // ============================================================
-  // BUILDINGS & FLOORS
-  // ============================================================
   async function renderBuildings() {
     const [{ data: buildings }, { data: floors }, { data: rooms }] = await Promise.all([
       supabase.from('buildings').select('*').order('sort_order').order('id'),
       supabase.from('building_floors').select('*').order('floor'),
       supabase.from('rooms').select('building,floor'),
     ]);
-
     const roomCount = new Map();
     (rooms ?? []).forEach(r => {
       const k = `${r.building}|${r.floor}`;
       roomCount.set(k, (roomCount.get(k) || 0) + 1);
     });
-
     const floorsByBuilding = new Map();
     (floors ?? []).forEach(f => {
       if (!floorsByBuilding.has(f.building_id)) floorsByBuilding.set(f.building_id, []);
@@ -100,8 +93,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
           </div>
           <button class="btn btn-primary btn-sm" id="addBuildingBtn"><i class="fas fa-plus"></i> Add building</button>
         </div>
-
-        <div id="buildingsList">
+        <div>
           ${(buildings ?? []).map(b => {
             const bFloors = floorsByBuilding.get(b.id) || [];
             return `
@@ -114,33 +106,24 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
                       <span class="badge badge-gray">${escapeHtml(b.id)}</span>
                       ${b.is_active ? '' : '<span class="badge badge-rejected"><i class="fas fa-ban"></i>inactive</span>'}
                     </div>
-                    <div class="dim" style="font-size:12px;margin-top:4px">
-                      ${bFloors.length} floor${bFloors.length === 1 ? '' : 's'} · ${b.address || 'No address'}
-                    </div>
+                    <div class="dim" style="font-size:12px;margin-top:4px">${bFloors.length} floor${bFloors.length === 1 ? '' : 's'} · ${b.address || 'No address'}</div>
                   </div>
                   <div class="chips" style="flex-shrink:0">
                     <button class="btn btn-sm" data-edit-b="${escapeHtml(b.id)}" title="Edit"><i class="fas fa-pen"></i></button>
-                    <button class="btn btn-sm ${b.is_active ? 'btn-danger' : 'btn-success'}" data-toggle-b="${escapeHtml(b.id)}" data-active="${b.is_active}" title="${b.is_active ? 'Deactivate' : 'Activate'}">
-                      <i class="fas fa-${b.is_active ? 'eye-slash' : 'eye'}"></i>
-                    </button>
+                    <button class="btn btn-sm ${b.is_active ? 'btn-danger' : 'btn-success'}" data-toggle-b="${escapeHtml(b.id)}" data-active="${b.is_active}" title="${b.is_active ? 'Deactivate' : 'Activate'}"><i class="fas fa-${b.is_active ? 'eye-slash' : 'eye'}"></i></button>
                   </div>
                 </div>
                 <div class="label-small" style="margin-bottom:8px">Floors</div>
                 <div class="chips">
                   ${bFloors.map(f => {
                     const cnt = roomCount.get(`${b.id}|${f.floor}`) || 0;
-                    return `
-                      <span class="chip" style="cursor:default">
-                        <i class="fas fa-layer-group"></i> Floor ${f.floor}
-                        <span class="dim" style="font-size:10px;margin-left:4px">${cnt} room${cnt === 1 ? '' : 's'}</span>
-                        <button data-del-floor="${escapeHtml(f.id)}" style="background:none;border:none;color:var(--danger);cursor:pointer;padding:0 0 0 6px;font-size:11px" title="Remove floor">
-                          <i class="fas fa-xmark"></i>
-                        </button>
-                      </span>`;
+                    return `<span class="chip" style="cursor:default">
+                      <i class="fas fa-layer-group"></i> Floor ${f.floor}
+                      <span class="dim" style="font-size:10px;margin-left:4px">${cnt} room${cnt === 1 ? '' : 's'}</span>
+                      <button data-del-floor="${escapeHtml(f.id)}" style="background:none;border:none;color:var(--danger);cursor:pointer;padding:0 0 0 6px;font-size:11px" title="Remove floor"><i class="fas fa-xmark"></i></button>
+                    </span>`;
                   }).join('') || '<span class="dim" style="font-size:12px">No floors yet</span>'}
-                  <button class="chip" data-add-floor="${escapeHtml(b.id)}">
-                    <i class="fas fa-plus"></i> Add floor
-                  </button>
+                  <button class="chip" data-add-floor="${escapeHtml(b.id)}"><i class="fas fa-plus"></i> Add floor</button>
                 </div>
               </div>
             `;
@@ -150,7 +133,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     `;
 
     $('addBuildingBtn').onclick = addBuilding;
-
     document.querySelectorAll('[data-edit-b]').forEach(btn => {
       btn.onclick = () => editBuilding((buildings ?? []).find(x => x.id === btn.dataset.editB));
     });
@@ -168,12 +150,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     });
     document.querySelectorAll('[data-del-floor]').forEach(btn => {
       btn.onclick = async () => {
-        const ok = await confirmDialog({
-          title: 'Remove floor?',
-          message: 'Only allowed if no rooms exist on this floor.',
-          confirmText: 'Remove',
-          danger: true,
-        });
+        const ok = await confirmDialog({ title: 'Remove floor?', message: 'Only allowed if no rooms exist on this floor.', confirmText: 'Remove', danger: true });
         if (!ok) return;
         const { error } = await supabase.from('building_floors').delete().eq('id', btn.dataset.delFloor);
         if (error) { toast('Cannot remove: rooms exist on this floor', 'error'); return; }
@@ -185,21 +162,12 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
 
   async function addBuilding() {
     const data = await openFormModal({
-      title: 'Add building',
-      saveText: 'Add building',
+      title: 'Add building', saveText: 'Add building',
       fields: `
-        <label class="field"><span>ID (e.g. 29)</span>
-          <input class="input" data-field="id" placeholder="29">
-        </label>
-        <label class="field"><span>Name</span>
-          <input class="input" data-field="name" placeholder="Block 29">
-        </label>
-        <label class="field"><span>Address (optional)</span>
-          <input class="input" data-field="address">
-        </label>
-        <label class="field"><span>Sort order</span>
-          <input class="input" data-field="sort_order" type="number" value="0">
-        </label>
+        <label class="field"><span>ID (e.g. 34)</span><input class="input" data-field="id" placeholder="34"></label>
+        <label class="field"><span>Name</span><input class="input" data-field="name" placeholder="Block 34"></label>
+        <label class="field"><span>Address (optional)</span><input class="input" data-field="address"></label>
+        <label class="field"><span>Sort order</span><input class="input" data-field="sort_order" type="number" value="0"></label>
       `,
     });
     if (!data) return;
@@ -218,18 +186,11 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
   async function editBuilding(b) {
     if (!b) return;
     const data = await openFormModal({
-      title: `Edit ${b.id}`,
-      saveText: 'Save',
+      title: `Edit ${b.id}`, saveText: 'Save',
       fields: `
-        <label class="field"><span>Name</span>
-          <input class="input" data-field="name" value="${escapeHtml(b.name || '')}">
-        </label>
-        <label class="field"><span>Address</span>
-          <input class="input" data-field="address" value="${escapeHtml(b.address || '')}">
-        </label>
-        <label class="field"><span>Sort order</span>
-          <input class="input" data-field="sort_order" type="number" value="${b.sort_order || 0}">
-        </label>
+        <label class="field"><span>Name</span><input class="input" data-field="name" value="${escapeHtml(b.name || '')}"></label>
+        <label class="field"><span>Address</span><input class="input" data-field="address" value="${escapeHtml(b.address || '')}"></label>
+        <label class="field"><span>Sort order</span><input class="input" data-field="sort_order" type="number" value="${b.sort_order || 0}"></label>
       `,
     });
     if (!data) return;
@@ -245,13 +206,8 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
 
   async function addFloor(buildingId) {
     const data = await openFormModal({
-      title: `Add floor to Block ${buildingId}`,
-      saveText: 'Add floor',
-      fields: `
-        <label class="field"><span>Floor number (1, 2, 3…)</span>
-          <input class="input" data-field="floor" type="number" min="1" max="20" value="1">
-        </label>
-      `,
+      title: `Add floor to Block ${buildingId}`, saveText: 'Add floor',
+      fields: `<label class="field"><span>Floor number (1, 2, 3…)</span><input class="input" data-field="floor" type="number" min="1" max="20" value="1"></label>`,
     });
     if (!data) return;
     const floor = parseInt(data.floor, 10);
@@ -262,9 +218,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     render();
   }
 
-  // ============================================================
-  // ROOM TYPES
-  // ============================================================
   async function renderTypes() {
     const [{ data: types }, { data: rooms }] = await Promise.all([
       supabase.from('room_types').select('*').order('sort_order').order('id'),
@@ -284,13 +237,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
         </div>
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr>
-                <th>Icon</th><th>Label</th><th>ID</th><th>Rooms</th>
-                <th>Bookable</th><th>Status</th>
-                <th style="text-align:right">Actions</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Icon</th><th>Label</th><th>ID</th><th>Rooms</th><th>Bookable</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
             <tbody>
               ${(types ?? []).map(t => `
                 <tr>
@@ -302,9 +249,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
                   <td>${t.is_active ? '<span class="badge badge-approved">active</span>' : '<span class="badge badge-rejected">hidden</span>'}</td>
                   <td style="text-align:right;white-space:nowrap">
                     <button class="btn btn-sm" data-edit-t="${escapeHtml(t.id)}" title="Edit"><i class="fas fa-pen"></i></button>
-                    <button class="btn btn-sm ${t.is_active ? 'btn-danger' : 'btn-success'}" data-toggle-t="${escapeHtml(t.id)}" data-active="${t.is_active}" title="${t.is_active ? 'Deactivate' : 'Activate'}">
-                      <i class="fas fa-${t.is_active ? 'eye-slash' : 'eye'}"></i>
-                    </button>
+                    <button class="btn btn-sm ${t.is_active ? 'btn-danger' : 'btn-success'}" data-toggle-t="${escapeHtml(t.id)}" data-active="${t.is_active}"><i class="fas fa-${t.is_active ? 'eye-slash' : 'eye'}"></i></button>
                   </td>
                 </tr>
               `).join('') || '<tr><td colspan="7" class="empty"><i class="fas fa-shapes"></i>No types configured</td></tr>'}
@@ -332,24 +277,13 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
   async function addType() {
     const iconOpts = ICON_OPTIONS.map(i => `<option value="${i}">${i.replace('fa-', '')}</option>`).join('');
     const data = await openFormModal({
-      title: 'Add room type',
-      saveText: 'Add type',
+      title: 'Add room type', saveText: 'Add type',
       fields: `
-        <label class="field"><span>Label</span>
-          <input class="input" data-field="label" placeholder="Auditorium" id="typeLabel">
-        </label>
-        <label class="field"><span>ID (slug)</span>
-          <input class="input" data-field="id" placeholder="auditorium" id="typeId">
-        </label>
-        <label class="field"><span>Icon</span>
-          <select class="input" data-field="icon">${iconOpts}</select>
-        </label>
-        <label class="field"><span>Sort order</span>
-          <input class="input" data-field="sort_order" type="number" value="0">
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)">
-          <input type="checkbox" data-field="bookable" checked> Bookable
-        </label>
+        <label class="field"><span>Label</span><input class="input" data-field="label" placeholder="Auditorium"></label>
+        <label class="field"><span>ID (slug)</span><input class="input" data-field="id" placeholder="auditorium"></label>
+        <label class="field"><span>Icon</span><select class="input" data-field="icon">${iconOpts}</select></label>
+        <label class="field"><span>Sort order</span><input class="input" data-field="sort_order" type="number" value="0"></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)"><input type="checkbox" data-field="bookable" checked> Bookable</label>
       `,
     });
     if (!data) return;
@@ -370,21 +304,12 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     if (!t) return;
     const iconOpts = ICON_OPTIONS.map(i => `<option value="${i}" ${t.icon === i ? 'selected' : ''}>${i.replace('fa-', '')}</option>`).join('');
     const data = await openFormModal({
-      title: `Edit ${t.id}`,
-      saveText: 'Save',
+      title: `Edit ${t.id}`, saveText: 'Save',
       fields: `
-        <label class="field"><span>Label</span>
-          <input class="input" data-field="label" value="${escapeHtml(t.label)}">
-        </label>
-        <label class="field"><span>Icon</span>
-          <select class="input" data-field="icon">${iconOpts}</select>
-        </label>
-        <label class="field"><span>Sort order</span>
-          <input class="input" data-field="sort_order" type="number" value="${t.sort_order || 0}">
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)">
-          <input type="checkbox" data-field="bookable" ${t.bookable ? 'checked' : ''}> Bookable
-        </label>
+        <label class="field"><span>Label</span><input class="input" data-field="label" value="${escapeHtml(t.label)}"></label>
+        <label class="field"><span>Icon</span><select class="input" data-field="icon">${iconOpts}</select></label>
+        <label class="field"><span>Sort order</span><input class="input" data-field="sort_order" type="number" value="${t.sort_order || 0}"></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)"><input type="checkbox" data-field="bookable" ${t.bookable ? 'checked' : ''}> Bookable</label>
       `,
     });
     if (!data) return;
@@ -399,9 +324,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     render();
   }
 
-  // ============================================================
-  // TIME SLOTS
-  // ============================================================
   async function renderSlots() {
     const [{ data: slots }, { data: bookings }] = await Promise.all([
       supabase.from('time_slots').select('*').order('sort_order').order('start_time'),
@@ -421,13 +343,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
         </div>
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr>
-                <th>ID</th><th>Label</th><th>Start</th><th>End</th>
-                <th>Bookings</th><th>Status</th>
-                <th style="text-align:right">Actions</th>
-              </tr>
-            </thead>
+            <thead><tr><th>ID</th><th>Label</th><th>Start</th><th>End</th><th>Bookings</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
             <tbody>
               ${(slots ?? []).map(s => `
                 <tr>
@@ -455,12 +371,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     });
     document.querySelectorAll('[data-del-s]').forEach(btn => {
       btn.onclick = async () => {
-        const ok = await confirmDialog({
-          title: 'Delete this slot?',
-          message: 'Only allowed if no bookings reference it.',
-          confirmText: 'Delete',
-          danger: true,
-        });
+        const ok = await confirmDialog({ title: 'Delete this slot?', message: 'Only allowed if no bookings reference it.', confirmText: 'Delete', danger: true });
         if (!ok) return;
         const { error } = await supabase.from('time_slots').delete().eq('slot_id', btn.dataset.delS);
         if (error) { toast('Cannot delete: bookings exist', 'error'); return; }
@@ -472,24 +383,13 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
 
   async function addSlot() {
     const data = await openFormModal({
-      title: 'Add time slot',
-      saveText: 'Add slot',
+      title: 'Add time slot', saveText: 'Add slot',
       fields: `
-        <label class="field"><span>Slot ID</span>
-          <input class="input" data-field="slot_id" placeholder="P8">
-        </label>
-        <label class="field"><span>Label</span>
-          <input class="input" data-field="label" placeholder="8th period">
-        </label>
-        <label class="field"><span>Start time</span>
-          <input class="input" data-field="start_time" type="time" value="16:00">
-        </label>
-        <label class="field"><span>End time</span>
-          <input class="input" data-field="end_time" type="time" value="16:50">
-        </label>
-        <label class="field"><span>Sort order</span>
-          <input class="input" data-field="sort_order" type="number" value="0">
-        </label>
+        <label class="field"><span>Slot ID</span><input class="input" data-field="slot_id" placeholder="P8"></label>
+        <label class="field"><span>Label</span><input class="input" data-field="label" placeholder="8th period"></label>
+        <label class="field"><span>Start time</span><input class="input" data-field="start_time" type="time" value="16:00"></label>
+        <label class="field"><span>End time</span><input class="input" data-field="end_time" type="time" value="16:50"></label>
+        <label class="field"><span>Sort order</span><input class="input" data-field="sort_order" type="number" value="0"></label>
       `,
     });
     if (!data) return;
@@ -510,21 +410,12 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
   async function editSlot(s) {
     if (!s) return;
     const data = await openFormModal({
-      title: `Edit ${s.slot_id}`,
-      saveText: 'Save',
+      title: `Edit ${s.slot_id}`, saveText: 'Save',
       fields: `
-        <label class="field"><span>Label</span>
-          <input class="input" data-field="label" value="${escapeHtml(s.label || '')}">
-        </label>
-        <label class="field"><span>Start time</span>
-          <input class="input" data-field="start_time" type="time" value="${String(s.start_time).slice(0, 5)}">
-        </label>
-        <label class="field"><span>End time</span>
-          <input class="input" data-field="end_time" type="time" value="${String(s.end_time).slice(0, 5)}">
-        </label>
-        <label class="field"><span>Sort order</span>
-          <input class="input" data-field="sort_order" type="number" value="${s.sort_order || 0}">
-        </label>
+        <label class="field"><span>Label</span><input class="input" data-field="label" value="${escapeHtml(s.label || '')}"></label>
+        <label class="field"><span>Start time</span><input class="input" data-field="start_time" type="time" value="${String(s.start_time).slice(0, 5)}"></label>
+        <label class="field"><span>End time</span><input class="input" data-field="end_time" type="time" value="${String(s.end_time).slice(0, 5)}"></label>
+        <label class="field"><span>Sort order</span><input class="input" data-field="sort_order" type="number" value="${s.sort_order || 0}"></label>
       `,
     });
     if (!data) return;
@@ -539,9 +430,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     render();
   }
 
-  // ============================================================
-  // ACTIVITY LOG
-  // ============================================================
   async function renderActivity() {
     const { data: logs } = await supabase
       .from('activity_log')
@@ -559,13 +447,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
           ${(logs ?? []).map(l => `
             <div class="timeline-item">
               <div class="timeline-marker">
-                <i class="fas ${
-                  l.action === 'auth.login' ? 'fa-right-to-bracket' :
-                  l.action?.startsWith('user.') ? 'fa-user-pen' :
-                  l.action?.startsWith('room.') ? 'fa-door-open' :
-                  l.action?.startsWith('booking.') ? 'fa-calendar-check' :
-                  'fa-circle'
-                }"></i>
+                <i class="fas ${l.action === 'auth.login' ? 'fa-right-to-bracket' : l.action?.startsWith('user.') ? 'fa-user-pen' : l.action?.startsWith('room.') ? 'fa-door-open' : l.action?.startsWith('booking.') ? 'fa-calendar-check' : 'fa-circle'}"></i>
               </div>
               <div class="timeline-content">
                 <div class="timeline-title">
@@ -581,9 +463,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     `;
   }
 
-  // ============================================================
-  // ROUTER
-  // ============================================================
   async function render() {
     if (currentTab === 'buildings') await renderBuildings();
     else if (currentTab === 'types') await renderTypes();

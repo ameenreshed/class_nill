@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bookings · amnrd.scheduler</title>
+<title>Bookings · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
 <link rel="manifest" href="/manifest.json">
@@ -59,9 +59,7 @@
           <th style="text-align:right">Actions</th>
         </tr>
       </thead>
-      <tbody id="bookingsBody">
-        <tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</td></tr>
-      </tbody>
+      <tbody id="bookingsBody"></tbody>
     </table>
   </div>
 
@@ -118,10 +116,8 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     }
 
     $('bookingsBody').innerHTML = filtered.map(b => `
-      <tr data-id="${b.id}">
-        <td class="checkbox-cell">
-          <input type="checkbox" data-cb="${b.id}" ${selected.has(b.id) ? 'checked' : ''}>
-        </td>
+      <tr>
+        <td class="checkbox-cell"><input type="checkbox" data-cb="${b.id}" ${selected.has(b.id) ? 'checked' : ''}></td>
         <td><span class="mono" style="color:var(--text);font-weight:500">${escapeHtml(b._room)}</span></td>
         <td>
           <div style="color:var(--text);font-weight:500">${b.book_date}</div>
@@ -222,7 +218,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
       danger: status === 'rejected',
     });
     if (!ok) return;
-
     const { error } = await supabase.from('bookings')
       .update({ status, approved_by: auth.session.user.id })
       .in('id', ids);
@@ -232,21 +227,17 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
   }
 
   function updateBulkBar() {
-    const bar = $('bulkBar');
     if (selected.size > 0) {
-      bar.classList.add('show');
+      $('bulkBar').classList.add('show');
       $('bulkCount').textContent = `${selected.size} selected`;
     } else {
-      bar.classList.remove('show');
+      $('bulkBar').classList.remove('show');
     }
   }
 
   $('selectAll').onchange = (e) => {
-    if (e.target.checked) {
-      rows.forEach(r => { if (r.status === 'pending') selected.add(r.id); });
-    } else {
-      selected.clear();
-    }
+    if (e.target.checked) rows.forEach(r => { if (r.status === 'pending') selected.add(r.id); });
+    else selected.clear();
     render();
     updateBulkBar();
   };

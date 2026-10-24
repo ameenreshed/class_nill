@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Quick add · amnrd.scheduler</title>
+<title>Quick add · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
 <link rel="manifest" href="/manifest.json">
@@ -23,9 +23,7 @@
       <p class="page-subtitle">Fast entry while walking. Works offline — sync when back online.</p>
     </div>
     <div class="row">
-      <span id="offlineBanner" class="badge badge-pending" style="display:none">
-        <i class="fas fa-plug-circle-xmark"></i> Offline
-      </span>
+      <span id="offlineBanner" class="badge badge-pending" style="display:none"><i class="fas fa-plug-circle-xmark"></i> Offline</span>
       <button class="btn btn-primary" id="syncBtn">
         <i class="fas fa-cloud-arrow-up"></i> Sync
         <span class="badge" id="pendingCount" style="background:rgba(255,255,255,.25);color:#fff;margin-left:2px">0</span>
@@ -37,15 +35,11 @@
     <div style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
       <div>
         <div class="label-small">Building</div>
-        <div class="chips" id="buildingChips">
-          <span class="dim" style="font-size:12px">Loading…</span>
-        </div>
+        <div class="chips" id="buildingChips"><span class="dim" style="font-size:12px">Loading…</span></div>
       </div>
       <div>
         <div class="label-small">Floor</div>
-        <div class="chips" id="floorChips">
-          <span class="dim" style="font-size:12px">Loading…</span>
-        </div>
+        <div class="chips" id="floorChips"><span class="dim" style="font-size:12px">Loading…</span></div>
       </div>
     </div>
 
@@ -54,17 +48,13 @@
       <div style="display:flex;gap:8px;align-items:stretch">
         <input class="input" id="roomInput" placeholder="07" autocomplete="off" autocapitalize="characters" autofocus style="font-size:18px;font-weight:500;text-align:center">
         <input class="input" id="suffixInput" placeholder="A" style="width:80px;text-align:center;font-size:18px">
-        <button class="btn" id="autoNextBtn" title="Suggest next room" style="min-width:44px">
-          <i class="fas fa-rotate-right"></i>
-        </button>
+        <button class="btn" id="autoNextBtn" title="Suggest next" style="min-width:44px"><i class="fas fa-rotate-right"></i></button>
       </div>
     </div>
 
     <div class="mt-6">
       <div class="label-small">Type</div>
-      <div class="chips" id="typeChips">
-        <span class="dim" style="font-size:12px">Loading…</span>
-      </div>
+      <div class="chips" id="typeChips"><span class="dim" style="font-size:12px">Loading…</span></div>
     </div>
 
     <div class="mt-6" style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
@@ -125,7 +115,7 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
   ]);
 
   const $ = id => document.getElementById(id);
-  const state = { building: null, floor: null, type: null, facilities: [], bookable: true, weekendOpen: false };
+  const state = { building: null, floor: null, type: null, facilities: [], bookable: true };
 
   const FACILITIES = ['projector', 'ac', 'fan', 'blackboard', 'whiteboard', 'computers', 'smartboard', 'wifi', 'lab_benches'];
 
@@ -147,13 +137,9 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
       floorsByBuilding.get(fl.building_id).push(fl.floor);
     });
 
-    if (buildings.length && !buildings.find(x => x.id === state.building)) {
-      state.building = buildings[0].id;
-    }
+    if (buildings.length && !buildings.find(x => x.id === state.building)) state.building = buildings[0].id;
     const availFloors = floorsByBuilding.get(state.building) || [];
-    if (availFloors.length && !availFloors.includes(state.floor)) {
-      state.floor = availFloors[0];
-    }
+    if (availFloors.length && !availFloors.includes(state.floor)) state.floor = availFloors[0];
     if (roomTypes.length && !roomTypes.find(x => x.id === state.type)) {
       state.type = roomTypes[0].id;
       state.bookable = roomTypes[0].bookable;
@@ -189,7 +175,6 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
         renderBuilding(); renderFloor(); updatePreview();
       });
   }
-
   function renderFloor() {
     const availFloors = floorsByBuilding.get(state.building) || [];
     renderChipSet($('floorChips'),
@@ -197,7 +182,6 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
       id => String(state.floor) === id,
       id => { state.floor = parseInt(id, 10); renderFloor(); updatePreview(); });
   }
-
   function renderType() {
     renderChipSet($('typeChips'), roomTypes, id => state.type === id, id => {
       state.type = id;
@@ -206,7 +190,6 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
       renderType();
     });
   }
-
   function renderFacilities() {
     renderChipSet($('facilityChips'), FACILITIES, id => state.facilities.includes(id), id => {
       if (state.facilities.includes(id)) state.facilities = state.facilities.filter(x => x !== id);
@@ -250,13 +233,11 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
     if (!rn) { toast('Enter room number', 'error'); $('roomInput').focus(); return; }
     const sfx = $('suffixInput').value.trim().toUpperCase();
     const cap = $('capacityInput').value.trim();
-    const { room_id, display_name, floor_digit, room_number } =
-      deriveRoomId(state.building, state.floor, rn, sfx);
+    const { room_id, display_name, floor_digit, room_number } = deriveRoomId(state.building, state.floor, rn, sfx);
 
     queueRoom({
       room_id, display_name,
-      building: state.building, floor: state.floor,
-      floor_digit, room_number,
+      building: state.building, floor: state.floor, floor_digit, room_number,
       suffix: sfx, type: state.type,
       capacity: (state.bookable && cap) ? parseInt(cap, 10) : null,
       bookable: state.bookable,
@@ -287,8 +268,7 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
             <div class="empty-action-title">All synced</div>
             <div class="empty-action-sub">Rooms you add will queue here until you sync.</div>
           </div>
-        </div>
-      `;
+        </div>`;
       return;
     }
 
@@ -300,24 +280,16 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
             ${escapeHtml(r.display_name)}
           </div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:3px">
-            ${escapeHtml(r.type)}${r.capacity ? ' · ' + r.capacity + ' seats' : ''}${r.bookable ? '' : ' · hidden'}
-            ${r.weekend_open ? ' · weekend' : ''}
+            ${escapeHtml(r.type)}${r.capacity ? ' · ' + r.capacity + ' seats' : ''}${r.bookable ? '' : ' · hidden'}${r.weekend_open ? ' · weekend' : ''}
           </div>
         </div>
-        <button class="btn btn-sm btn-danger" data-remove="${escapeHtml(r.room_id)}" title="Remove">
-          <i class="fas fa-trash"></i>
-        </button>
+        <button class="btn btn-sm btn-danger" data-remove="${escapeHtml(r.room_id)}" title="Remove"><i class="fas fa-trash"></i></button>
       </div>
     `).join('');
 
     $('pendingList').querySelectorAll('[data-remove]').forEach(btn => {
       btn.onclick = async () => {
-        const ok = await confirmDialog({
-          title: 'Remove from queue?',
-          message: 'This room will not be added to the database.',
-          confirmText: 'Remove',
-          danger: true,
-        });
+        const ok = await confirmDialog({ title: 'Remove from queue?', message: 'This room will not be added to the database.', confirmText: 'Remove', danger: true });
         if (!ok) return;
         removePendingRoom(btn.dataset.remove);
         refreshPendingList();
@@ -347,9 +319,7 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
 
   $('syncBtn').onclick = doSync;
 
-  function updateOnlineStatus() {
-    $('offlineBanner').style.display = isOnline() ? 'none' : 'inline-flex';
-  }
+  function updateOnlineStatus() { $('offlineBanner').style.display = isOnline() ? 'none' : 'inline-flex'; }
   onNetworkChange(updateOnlineStatus);
   updateOnlineStatus();
 

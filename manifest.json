@@ -1,21 +1,16 @@
 {
-  "name": "amnrd.scheduler",
-  "short_name": "amnrd",
-  "description": "Room & class scheduler for AMNRD",
+  "name": "LPU Scheduler",
+  "short_name": "LPU",
+  "description": "Real-time room scheduling for LPU",
   "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#FAFAF9",
-  "theme_color": "#F97316",
+  "theme_color": "#EA580C",
   "categories": ["education", "productivity"],
   "icons": [
-    {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    }
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ],
   "shortcuts": [
     { "name": "Free rooms", "url": "/student.html", "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }] },

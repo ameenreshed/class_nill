@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Makeup class · amnrd.scheduler</title>
+<title>Makeup class · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
 <link rel="manifest" href="/manifest.json">
@@ -94,7 +94,6 @@ import { requireRole, renderNav, supabase, todayISO, toast, escapeHtml,
   renderNav(auth.profile);
 
   const $ = id => document.getElementById(id);
-  let step = 1;
   let selectedRoom = null;
 
   const dateInput = $('dateInput');
@@ -112,7 +111,6 @@ import { requireRole, renderNav, supabase, todayISO, toast, escapeHtml,
     `<option value="${s.slot_id}">${escapeHtml(s.label || s.slot_id)} (${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)})</option>`
   ).join('');
 
-  // Auto-sync pending on load
   if (isOnline()) {
     const pending = getPendingBookings();
     if (pending.length) {
@@ -124,7 +122,6 @@ import { requireRole, renderNav, supabase, todayISO, toast, escapeHtml,
   }
 
   function setStep(n) {
-    step = n;
     document.querySelectorAll('[data-panel]').forEach(el => {
       el.style.display = parseInt(el.dataset.panel, 10) === n ? 'block' : 'none';
     });
@@ -164,12 +161,9 @@ import { requireRole, renderNav, supabase, todayISO, toast, escapeHtml,
 
     document.querySelectorAll('[data-room]').forEach(btn => {
       btn.onclick = () => {
-        document.querySelectorAll('[data-room]').forEach(b => b.classList.remove('on'));
+        document.querySelectorAll('[data-room]').forEach(b => { b.style.outline = ''; b.style.outlineOffset = ''; });
         btn.style.outline = '2px solid var(--brand)';
         btn.style.outlineOffset = '2px';
-        document.querySelectorAll('[data-room]').forEach(b => {
-          if (b !== btn) { b.style.outline = ''; b.style.outlineOffset = ''; }
-        });
         selectedRoom = { room_id: btn.dataset.room, name: btn.dataset.name };
         $('nextStep2').disabled = false;
       };

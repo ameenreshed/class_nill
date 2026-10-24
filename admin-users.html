@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Users · amnrd.scheduler</title>
+<title>Users · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
 <link rel="manifest" href="/manifest.json">
@@ -209,7 +209,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
       `,
     });
     if (!data) return;
-
     const patch = {
       full_name: data.full_name.trim() || null,
       department: data.department.trim() || null,
