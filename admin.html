@@ -14,6 +14,8 @@
   } catch (e) {}
 })();
 </script>
+<meta name="theme-color" content="#F97316">
+<link rel="manifest" href="/manifest.json">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -25,27 +27,22 @@
 
   <div class="stats" id="stats"></div>
 
-  <div class="mt-6" style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+  <div class="mt-6" style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
     <a href="admin-add.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-bolt"></i></span>
-      <div class="ac-body">
-        <div class="ac-title">Quick add rooms</div>
-        <div class="ac-sub">Fast offline entry while walking floors</div>
-      </div>
+      <div class="ac-body"><div class="ac-title">Quick add rooms</div><div class="ac-sub">Fast offline entry while walking</div></div>
     </a>
     <a href="admin-bookings.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-calendar-check"></i></span>
-      <div class="ac-body">
-        <div class="ac-title">Review bookings</div>
-        <div class="ac-sub">Approve or reject pending requests</div>
-      </div>
+      <div class="ac-body"><div class="ac-title">Review bookings</div><div class="ac-sub">Approve or reject requests</div></div>
     </a>
     <a href="admin-rooms.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-door-open"></i></span>
-      <div class="ac-body">
-        <div class="ac-title">Manage rooms</div>
-        <div class="ac-sub">Add, edit or remove rooms</div>
-      </div>
+      <div class="ac-body"><div class="ac-title">Manage rooms</div><div class="ac-sub">Add, edit, export rooms</div></div>
+    </a>
+    <a href="admin-settings.html" class="action-card">
+      <span class="ac-icon"><i class="fas fa-gear"></i></span>
+      <div class="ac-body"><div class="ac-title">Settings</div><div class="ac-sub">Buildings, floors, types, slots</div></div>
     </a>
   </div>
 </div>
@@ -58,34 +55,20 @@ import { requireRole, renderNav, supabase, todayISO } from './js/core.js';
   if (!auth) return;
   renderNav(auth.profile);
 
-  const [rooms, pending, todayBookings, users] = await Promise.all([
+  const [rooms, pending, todayBookings, users, buildings] = await Promise.all([
     supabase.from('rooms').select('room_id', { count: 'exact', head: true }),
     supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('book_date', todayISO()),
     supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    supabase.from('buildings').select('id', { count: 'exact', head: true }).eq('is_active', true),
   ]);
 
   document.getElementById('stats').innerHTML = `
-    <a class="stat" href="admin-rooms.html">
-      <i class="fas fa-door-open stat-icon"></i>
-      <div class="stat-value">${rooms.count ?? 0}</div>
-      <div class="stat-label">Rooms</div>
-    </a>
-    <a class="stat" href="admin-bookings.html">
-      <i class="fas fa-hourglass-half stat-icon"></i>
-      <div class="stat-value">${pending.count ?? 0}</div>
-      <div class="stat-label">Pending approvals</div>
-    </a>
-    <a class="stat" href="admin-bookings.html">
-      <i class="fas fa-calendar-day stat-icon"></i>
-      <div class="stat-value">${todayBookings.count ?? 0}</div>
-      <div class="stat-label">Today's bookings</div>
-    </a>
-    <a class="stat" href="admin-users.html">
-      <i class="fas fa-users stat-icon"></i>
-      <div class="stat-value">${users.count ?? 0}</div>
-      <div class="stat-label">Users</div>
-    </a>
+    <a class="stat" href="admin-rooms.html"><i class="fas fa-door-open stat-icon"></i><div class="stat-value">${rooms.count ?? 0}</div><div class="stat-label">Rooms</div></a>
+    <a class="stat" href="admin-bookings.html"><i class="fas fa-hourglass-half stat-icon"></i><div class="stat-value">${pending.count ?? 0}</div><div class="stat-label">Pending</div></a>
+    <a class="stat" href="admin-bookings.html"><i class="fas fa-calendar-day stat-icon"></i><div class="stat-value">${todayBookings.count ?? 0}</div><div class="stat-label">Today</div></a>
+    <a class="stat" href="admin-users.html"><i class="fas fa-users stat-icon"></i><div class="stat-value">${users.count ?? 0}</div><div class="stat-label">Users</div></a>
+    <a class="stat" href="admin-settings.html"><i class="fas fa-building stat-icon"></i><div class="stat-value">${buildings.count ?? 0}</div><div class="stat-label">Buildings</div></a>
   `;
 })();
 </script>

@@ -1,0 +1,24 @@
+{
+  "name": "amnrd.scheduler",
+  "short_name": "amnrd",
+  "description": "Room & class scheduler for AMNRD",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FAFAF9",
+  "theme_color": "#F97316",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Free rooms", "url": "/student.html", "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }] },
+    { "name": "Makeup class", "url": "/faculty-makeup.html", "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }] }
+  ]
+}

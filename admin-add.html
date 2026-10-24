@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Quick add rooms · amnrd.scheduler</title>
+<title>Quick add · amnrd.scheduler</title>
 <script>
 (function(){
   try {
@@ -14,6 +14,8 @@
   } catch (e) {}
 })();
 </script>
+<meta name="theme-color" content="#F97316">
+<link rel="manifest" href="/manifest.json">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -26,9 +28,7 @@
       <p class="page-subtitle">Fast entry while walking. Works offline — sync when back online.</p>
     </div>
     <div class="row">
-      <span id="offlineBanner" class="badge badge-pending" style="display:none">
-        <i class="fas fa-plug-circle-xmark"></i> Offline — queueing
-      </span>
+      <span id="offlineBanner" class="badge badge-pending" style="display:none"><i class="fas fa-plug-circle-xmark"></i> Offline</span>
       <button class="btn btn-primary" id="syncBtn">
         <i class="fas fa-cloud-arrow-up"></i> Sync
         <span class="badge" id="pendingCount" style="background:rgba(255,255,255,.25);color:#fff">0</span>
@@ -40,11 +40,11 @@
     <div style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
       <div>
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500;margin-bottom:8px">Building</div>
-        <div class="chips" id="buildingChips"></div>
+        <div class="chips" id="buildingChips"><span class="dim" style="font-size:12px">Loading…</span></div>
       </div>
       <div>
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500;margin-bottom:8px">Floor</div>
-        <div class="chips" id="floorChips"></div>
+        <div class="chips" id="floorChips"><span class="dim" style="font-size:12px">Loading…</span></div>
       </div>
     </div>
 
@@ -53,15 +53,13 @@
       <div style="display:flex;gap:8px;align-items:stretch">
         <input class="input" id="roomInput" placeholder="07" autocomplete="off" autocapitalize="characters" autofocus style="font-size:18px;font-weight:500;text-align:center">
         <input class="input" id="suffixInput" placeholder="A" style="width:80px;text-align:center;font-size:18px">
-        <button class="btn" id="autoNextBtn" title="Suggest next room" style="min-width:48px">
-          <i class="fas fa-rotate-right"></i>
-        </button>
+        <button class="btn" id="autoNextBtn" style="min-width:48px"><i class="fas fa-rotate-right"></i></button>
       </div>
     </div>
 
     <div class="mt-4">
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500;margin-bottom:8px">Type</div>
-      <div class="chips" id="typeChips"></div>
+      <div class="chips" id="typeChips"><span class="dim" style="font-size:12px">Loading…</span></div>
     </div>
 
     <div class="mt-4">
@@ -104,7 +102,7 @@
 <script type="module">
 import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
          queueRoom, getPendingRooms, removePendingRoom, syncPendingRooms,
-         isOnline, onNetworkChange } from './js/core.js';
+         isOnline, onNetworkChange, supabase } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
@@ -112,63 +110,92 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
   renderNav(auth.profile);
 
   const $ = id => document.getElementById(id);
-  const state = {
-    building: '27', floor: 1, type: 'lecture',
-    facilities: [], bookable: true, weekendOpen: false,
-  };
+  const state = { building: null, floor: null, type: null, facilities: [], bookable: true, weekendOpen: false };
 
-  const BUILDINGS = ['25','26','27','28'];
-  const FLOORS = [1,2,3,4,5,6];
-  const TYPES = [
-    { id:'lecture',  label:'Lecture',   bookable:true,  icon:'fa-chalkboard-user' },
-    { id:'lab',      label:'Lab',       bookable:true,  icon:'fa-flask' },
-    { id:'seminar',  label:'Seminar',   bookable:true,  icon:'fa-users-rectangle' },
-    { id:'library',  label:'Library',   bookable:true,  icon:'fa-book' },
-    { id:'staffroom',label:'Staffroom', bookable:false, icon:'fa-user-tie' },
-    { id:'hod',      label:'HOD',       bookable:false, icon:'fa-crown' },
-    { id:'office',   label:'Office',    bookable:false, icon:'fa-briefcase' },
-    { id:'store',    label:'Store',     bookable:false, icon:'fa-box' },
-    { id:'washroom', label:'Washroom',  bookable:false, icon:'fa-restroom' },
-    { id:'other',    label:'Other',     bookable:false, icon:'fa-ellipsis' },
-  ];
   const FACILITIES = ['projector','ac','fan','blackboard','whiteboard','computers','smartboard','wifi','lab_benches'];
 
-  function renderChipSet(el, items, isOn, onClick, defaultIcon) {
+  let buildings = [];
+  let floorsByBuilding = new Map();
+  let roomTypes = [];
+
+  async function loadMetadata() {
+    const [{ data: b }, { data: t }, { data: f }] = await Promise.all([
+      supabase.from('buildings').select('*').eq('is_active', true).order('sort_order').order('id'),
+      supabase.from('room_types').select('*').eq('is_active', true).order('sort_order').order('id'),
+      supabase.from('building_floors').select('*').eq('is_active', true).order('floor'),
+    ]);
+    buildings = b ?? [];
+    roomTypes = t ?? [];
+    floorsByBuilding = new Map();
+    (f ?? []).forEach(fl => {
+      if (!floorsByBuilding.has(fl.building_id)) floorsByBuilding.set(fl.building_id, []);
+      floorsByBuilding.get(fl.building_id).push(fl.floor);
+    });
+
+    if (buildings.length && !buildings.find(x => x.id === state.building)) {
+      state.building = buildings[0].id;
+    }
+    const availFloors = floorsByBuilding.get(state.building) || [];
+    if (availFloors.length && !availFloors.includes(state.floor)) {
+      state.floor = availFloors[0];
+    }
+    if (roomTypes.length && !roomTypes.find(x => x.id === state.type)) {
+      state.type = roomTypes[0].id;
+      state.bookable = roomTypes[0].bookable;
+      $('bookableCb').checked = state.bookable;
+    }
+  }
+
+  function renderChipSet(el, items, isOn, onClick) {
     el.innerHTML = items.map(item => {
-      const id    = typeof item === 'string' ? item : item.id;
+      const id = typeof item === 'string' ? item : item.id;
       const label = typeof item === 'string' ? item.replace('_',' ') : item.label;
-      const icon  = (typeof item === 'object' && item.icon) || defaultIcon || '';
+      const icon = (typeof item === 'object' && item.icon) || '';
       const iconHtml = icon ? `<i class="fas ${icon}"></i>` : '';
       return `<button class="chip ${isOn(id) ? 'on' : ''}" data-id="${id}">${iconHtml}${escapeHtml(label)}</button>`;
     }).join('');
-    el.querySelectorAll('[data-id]').forEach(btn => {
-      btn.onclick = () => onClick(btn.dataset.id);
-    });
+    el.querySelectorAll('[data-id]').forEach(btn => { btn.onclick = () => onClick(btn.dataset.id); });
   }
 
   function renderBuilding() {
-    renderChipSet($('buildingChips'), BUILDINGS, id => state.building === id,
-      id => { state.building = id; renderBuilding(); updatePreview(); },
-      'fa-building');
+    if (!buildings.length) {
+      $('buildingChips').innerHTML = '<span class="dim" style="font-size:12px">No buildings — add in Settings</span>';
+      return;
+    }
+    renderChipSet($('buildingChips'), buildings.map(b => ({ id: b.id, label: b.name || b.id, icon: 'fa-building' })),
+      id => state.building === id,
+      async id => {
+        state.building = id;
+        const availFloors = floorsByBuilding.get(id) || [];
+        state.floor = availFloors[0] ?? null;
+        renderBuilding(); renderFloor(); updatePreview();
+      });
   }
   function renderFloor() {
+    const availFloors = floorsByBuilding.get(state.building) || [];
+    if (!availFloors.length) {
+      $('floorChips').innerHTML = '<span class="dim" style="font-size:12px">No floors — add in Settings</span>';
+      return;
+    }
     renderChipSet($('floorChips'),
-      FLOORS.map(f => ({ id: f, label: f === 1 ? 'G' : f })),
-      id => state.floor === id,
-      id => { state.floor = parseInt(id); renderFloor(); updatePreview(); },
-      'fa-layer-group');
+      availFloors.map(f => ({ id: String(f), label: String(f), icon: 'fa-layer-group' })),
+      id => String(state.floor) === id,
+      id => { state.floor = parseInt(id); renderFloor(); updatePreview(); });
   }
   function renderType() {
-    renderChipSet($('typeChips'), TYPES, id => state.type === id, id => {
+    if (!roomTypes.length) {
+      $('typeChips').innerHTML = '<span class="dim" style="font-size:12px">No types — add in Settings</span>';
+      return;
+    }
+    renderChipSet($('typeChips'), roomTypes, id => state.type === id, id => {
       state.type = id;
-      const t = TYPES.find(x => x.id === id);
+      const t = roomTypes.find(x => x.id === id);
       if (t) { state.bookable = t.bookable; $('bookableCb').checked = t.bookable; }
       renderType();
     });
   }
   function renderFacilities() {
-    renderChipSet($('facilityChips'), FACILITIES,
-      id => state.facilities.includes(id),
+    renderChipSet($('facilityChips'), FACILITIES, id => state.facilities.includes(id),
       id => {
         if (state.facilities.includes(id)) state.facilities = state.facilities.filter(x => x !== id);
         else state.facilities.push(id);
@@ -177,6 +204,7 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
   }
 
   function updatePreview() {
+    if (!state.building || !state.floor) { $('previewId').textContent = '—'; return; }
     const rn = $('roomInput').value.trim() || '01';
     const sfx = $('suffixInput').value.trim();
     const { room_id, display_name } = deriveRoomId(state.building, state.floor, rn, sfx);
@@ -203,6 +231,9 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
   };
 
   function saveRoom() {
+    if (!state.building || !state.floor || !state.type) {
+      toast('Pick building, floor, and type first', 'error'); return;
+    }
     const rn = $('roomInput').value.trim();
     if (!rn) { toast('Enter room number', 'error'); $('roomInput').focus(); return; }
     const sfx = $('suffixInput').value.trim().toUpperCase();
@@ -232,12 +263,10 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
     const pending = getPendingRooms();
     $('pendingCount').textContent = pending.length;
     $('pendingListCount').textContent = `${pending.length} room${pending.length === 1 ? '' : 's'}`;
-
     if (!pending.length) {
-      $('pendingList').innerHTML = '<div class="card"><div class="empty"><i class="fas fa-check-circle"></i>No pending rooms. Start adding above.</div></div>';
+      $('pendingList').innerHTML = '<div class="card"><div class="empty"><i class="fas fa-check-circle"></i>No pending rooms.</div></div>';
       return;
     }
-
     $('pendingList').innerHTML = pending.slice().reverse().map(r => `
       <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;margin-bottom:8px">
         <div style="min-width:0">
@@ -246,15 +275,12 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
             ${escapeHtml(r.display_name)}
           </div>
           <div style="font-size:11px;color:var(--dim);margin-top:2px">
-            ${escapeHtml(r.type)}${r.capacity ? ' · ' + r.capacity + ' seats' : ''}${r.bookable ? '' : ' · hidden'}
+            ${escapeHtml(r.type)}${r.capacity ? ' · ' + r.capacity + ' seats' : ''}
           </div>
         </div>
-        <button class="btn btn-sm btn-danger" data-remove="${escapeHtml(r.room_id)}">
-          <i class="fas fa-trash"></i>
-        </button>
+        <button class="btn btn-sm btn-danger" data-remove="${escapeHtml(r.room_id)}"><i class="fas fa-trash"></i></button>
       </div>
     `).join('');
-
     $('pendingList').querySelectorAll('[data-remove]').forEach(btn => {
       btn.onclick = () => {
         removePendingRoom(btn.dataset.remove);
@@ -265,10 +291,9 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
   }
 
   $('syncBtn').onclick = async () => {
-    if (!isOnline()) { toast('You are offline. Sync when back online.', 'error'); return; }
+    if (!isOnline()) { toast('Offline. Sync when back online.', 'error'); return; }
     const pending = getPendingRooms();
     if (!pending.length) { toast('Nothing to sync', 'info'); return; }
-
     $('syncBtn').disabled = true;
     $('syncBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing…';
     try {
@@ -289,6 +314,7 @@ import { requireRole, renderNav, deriveRoomId, escapeHtml, toast,
   onNetworkChange(updateOnlineStatus);
   updateOnlineStatus();
 
+  await loadMetadata();
   if (isOnline() && getPendingRooms().length > 0) {
     try {
       const r = await syncPendingRooms();

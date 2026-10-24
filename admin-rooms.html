@@ -14,6 +14,8 @@
   } catch (e) {}
 })();
 </script>
+<meta name="theme-color" content="#F97316">
+<link rel="manifest" href="/manifest.json">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -26,81 +28,47 @@
       <p class="page-subtitle"><span id="roomCount">0</span> rooms in system.</p>
     </div>
     <div class="row">
-      <a href="admin-add.html" class="btn btn-primary">
-        <i class="fas fa-bolt"></i> Quick add
-      </a>
-      <button class="btn" id="addBtn">
-        <i class="fas fa-plus"></i> Add room
-      </button>
+      <button class="btn" id="exportBtn"><i class="fas fa-download"></i> Export</button>
+      <a href="admin-add.html" class="btn btn-primary"><i class="fas fa-bolt"></i> Quick add</a>
+      <button class="btn" id="addBtn"><i class="fas fa-plus"></i> Add room</button>
     </div>
   </div>
 
   <div class="card mt-6" id="formCard" style="display:none">
     <h2 style="font-size:14px" id="formTitle">Add room</h2>
     <div class="mt-4" style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
-      <label class="field"><span>Building</span>
-        <select class="input" id="fBuilding">
-          <option>25</option><option>26</option><option>27</option><option>28</option>
-        </select>
-      </label>
-      <label class="field"><span>Floor (1 = Ground)</span>
-        <input class="input" type="number" id="fFloor" min="1" max="10" value="1">
-      </label>
-      <label class="field"><span>Room number</span>
-        <input class="input" id="fRoomNo" value="01">
-      </label>
-      <label class="field"><span>Suffix (optional)</span>
-        <input class="input" id="fSuffix" placeholder="A">
-      </label>
-      <label class="field"><span>Type</span>
-        <select class="input" id="fType">
-          <option>lecture</option><option>lab</option><option>seminar</option>
-          <option>library</option><option>other</option>
-        </select>
-      </label>
-      <label class="field"><span>Capacity</span>
-        <input class="input" type="number" id="fCapacity" value="60">
-      </label>
-      <label class="field"><span>Facilities (comma separated)</span>
-        <input class="input" id="fFacilities" placeholder="projector, ac">
-      </label>
-      <label class="field"><span>Notes</span>
-        <input class="input" id="fNotes">
-      </label>
+      <label class="field"><span>Building</span><select class="input" id="fBuilding"></select></label>
+      <label class="field"><span>Floor (1 = 1st floor)</span><input class="input" type="number" id="fFloor" min="1" max="20" value="1"></label>
+      <label class="field"><span>Room number</span><input class="input" id="fRoomNo" value="01"></label>
+      <label class="field"><span>Suffix (optional)</span><input class="input" id="fSuffix" placeholder="A"></label>
+      <label class="field"><span>Type</span><select class="input" id="fType"></select></label>
+      <label class="field"><span>Capacity</span><input class="input" type="number" id="fCapacity" value="60"></label>
+      <label class="field"><span>Facilities (comma separated)</span><input class="input" id="fFacilities" placeholder="projector, ac"></label>
+      <label class="field"><span>Notes</span><input class="input" id="fNotes"></label>
     </div>
     <div class="row mt-2">
-      <label style="display:flex;align-items:center;gap:6px;font-size:13px">
-        <input type="checkbox" id="fBookable" checked> Bookable
-      </label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:13px">
-        <input type="checkbox" id="fWeekend"> Open on weekends
-      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="fBookable" checked> Bookable</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="fWeekend"> Open on weekends</label>
     </div>
     <div class="mt-4" style="padding:10px;border-radius:8px;background:var(--panel2);font-size:12px;color:var(--dim)">
       Preview: <span class="mono" id="previewId" style="color:var(--text)"></span>
     </div>
     <div class="row mt-4">
-      <button class="btn btn-success" id="saveBtn">
-        <i class="fas fa-check"></i> Save
-      </button>
-      <button class="btn btn-ghost" id="cancelBtn">
-        <i class="fas fa-xmark"></i> Cancel
-      </button>
+      <button class="btn btn-success" id="saveBtn"><i class="fas fa-check"></i> Save</button>
+      <button class="btn btn-ghost" id="cancelBtn"><i class="fas fa-xmark"></i> Cancel</button>
     </div>
   </div>
 
   <div class="table-wrap">
     <table>
-      <thead>
-        <tr><th>Room</th><th>Type</th><th>Capacity</th><th>Flags</th><th style="text-align:right">Actions</th></tr>
-      </thead>
+      <thead><tr><th>Room</th><th>Type</th><th>Capacity</th><th>Flags</th><th style="text-align:right">Actions</th></tr></thead>
       <tbody id="roomsBody"></tbody>
     </table>
   </div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, deriveRoomId, escapeHtml } from './js/core.js';
+import { requireRole, renderNav, supabase, deriveRoomId, escapeHtml, toast } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
@@ -109,7 +77,19 @@ import { requireRole, renderNav, supabase, deriveRoomId, escapeHtml } from './js
 
   let editingId = null;
   let rooms = [];
+  let buildings = [];
+  let roomTypes = [];
   const $ = id => document.getElementById(id);
+
+  const [{ data: b }, { data: t }] = await Promise.all([
+    supabase.from('buildings').select('*').eq('is_active', true).order('sort_order').order('id'),
+    supabase.from('room_types').select('*').eq('is_active', true).order('sort_order').order('id'),
+  ]);
+  buildings = b ?? [];
+  roomTypes = t ?? [];
+
+  $('fBuilding').innerHTML = buildings.map(x => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.name || x.id)}</option>`).join('');
+  $('fType').innerHTML = roomTypes.map(x => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.label)}</option>`).join('');
 
   function readForm() {
     const d = deriveRoomId(
@@ -136,16 +116,15 @@ import { requireRole, renderNav, supabase, deriveRoomId, escapeHtml } from './js
     $('previewId').textContent = `${room_id}  ·  ${display_name}`;
   }
 
-  ['fBuilding','fFloor','fRoomNo','fSuffix'].forEach(id =>
-    $(id).addEventListener('input', updatePreview));
+  ['fBuilding','fFloor','fRoomNo','fSuffix'].forEach(id => $(id).addEventListener('input', updatePreview));
 
   function resetForm() {
     editingId = null;
-    $('fBuilding').value = '27';
+    if (buildings.length) $('fBuilding').value = buildings[0].id;
     $('fFloor').value = 1;
     $('fRoomNo').value = '01';
     $('fSuffix').value = '';
-    $('fType').value = 'lecture';
+    if (roomTypes.length) $('fType').value = roomTypes[0].id;
     $('fCapacity').value = '60';
     $('fFacilities').value = '';
     $('fNotes').value = '';
@@ -162,6 +141,7 @@ import { requireRole, renderNav, supabase, deriveRoomId, escapeHtml } from './js
     const { data } = await supabase.from('rooms').select('*').order('room_id');
     rooms = data ?? [];
     $('roomCount').textContent = rooms.length;
+    const typeLabel = new Map(roomTypes.map(t => [t.id, t.label]));
     $('roomsBody').innerHTML = rooms.length
       ? rooms.map(r => `
         <tr>
@@ -169,27 +149,19 @@ import { requireRole, renderNav, supabase, deriveRoomId, escapeHtml } from './js
             <div class="mono" style="color:var(--text)">${escapeHtml(r.display_name)}</div>
             <div style="font-size:11px;color:var(--dim);margin-top:2px">Block ${r.building} · Floor ${r.floor}</div>
           </td>
-          <td>${escapeHtml(r.type)}</td>
+          <td>${escapeHtml(typeLabel.get(r.type) || r.type)}</td>
           <td>${r.capacity ?? '—'}</td>
           <td>
-            ${r.bookable
-              ? '<span class="badge badge-approved"><i class="fas fa-check"></i>bookable</span>'
-              : '<span class="badge badge-gray"><i class="fas fa-eye-slash"></i>hidden</span>'}
-            ${r.weekend_open
-              ? '<span class="badge badge-student" style="margin-left:4px"><i class="fas fa-calendar-week"></i>weekend</span>'
-              : ''}
+            ${r.bookable ? '<span class="badge badge-approved"><i class="fas fa-check"></i>bookable</span>' : '<span class="badge badge-gray"><i class="fas fa-eye-slash"></i>hidden</span>'}
+            ${r.weekend_open ? '<span class="badge badge-student" style="margin-left:4px"><i class="fas fa-calendar-week"></i>weekend</span>' : ''}
           </td>
           <td style="text-align:right">
-            <button class="btn btn-sm" data-action="edit" data-id="${escapeHtml(r.room_id)}">
-              <i class="fas fa-pen"></i> Edit
-            </button>
-            <button class="btn btn-sm btn-danger" data-action="delete" data-id="${escapeHtml(r.room_id)}">
-              <i class="fas fa-trash"></i>
-            </button>
+            <button class="btn btn-sm" data-action="edit" data-id="${escapeHtml(r.room_id)}"><i class="fas fa-pen"></i></button>
+            <button class="btn btn-sm btn-danger" data-action="delete" data-id="${escapeHtml(r.room_id)}"><i class="fas fa-trash"></i></button>
           </td>
         </tr>
       `).join('')
-      : '<tr><td colspan="5" class="empty"><i class="fas fa-door-closed"></i>No rooms yet. Add one above.</td></tr>';
+      : '<tr><td colspan="5" class="empty"><i class="fas fa-door-closed"></i>No rooms yet.</td></tr>';
   }
 
   $('roomsBody').addEventListener('click', async (e) => {
@@ -220,7 +192,8 @@ import { requireRole, renderNav, supabase, deriveRoomId, escapeHtml } from './js
     if (action === 'delete') {
       if (!confirm(`Delete ${id}?`)) return;
       const { error } = await supabase.from('rooms').delete().eq('room_id', id);
-      if (error) { alert(error.message); return; }
+      if (error) { toast(error.message, 'error'); return; }
+      toast('Deleted', 'success');
       await load();
     }
   });
@@ -228,15 +201,25 @@ import { requireRole, renderNav, supabase, deriveRoomId, escapeHtml } from './js
   $('saveBtn').onclick = async () => {
     const payload = readForm();
     let error;
-    if (editingId) {
-      ({ error } = await supabase.from('rooms').update(payload).eq('room_id', editingId));
-    } else {
-      ({ error } = await supabase.from('rooms').insert(payload));
-    }
-    if (error) { alert(error.message); return; }
+    if (editingId) ({ error } = await supabase.from('rooms').update(payload).eq('room_id', editingId));
+    else ({ error } = await supabase.from('rooms').insert(payload));
+    if (error) { toast(error.message, 'error'); return; }
+    toast(editingId ? 'Updated' : 'Added', 'success');
     $('formCard').style.display = 'none';
     editingId = null;
     await load();
+  };
+
+  $('exportBtn').onclick = () => {
+    const data = JSON.stringify(rooms, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rooms-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Downloaded', 'success');
   };
 
   resetForm();

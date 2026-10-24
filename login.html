@@ -14,6 +14,8 @@
   } catch (e) {}
 })();
 </script>
+<meta name="theme-color" content="#F97316">
+<link rel="manifest" href="/manifest.json">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -28,56 +30,51 @@
         <span>Email</span>
         <input class="input" type="email" id="email" placeholder="you@amnrd.com" autocomplete="email">
       </label>
-
       <label class="field">
         <span>Password</span>
         <div class="pwd-wrap">
           <input class="input" type="password" id="password" placeholder="••••••••" autocomplete="current-password">
-          <button type="button" class="pwd-toggle" id="pwdToggle" aria-label="Show password">
-            <i class="fas fa-eye"></i>
-          </button>
+          <button type="button" class="pwd-toggle" id="pwdToggle"><i class="fas fa-eye"></i></button>
         </div>
       </label>
-
-      <button class="btn btn-primary btn-block" id="loginBtn" style="padding:12px">
-        <i class="fas fa-right-to-bracket"></i> Sign in
-      </button>
+      <button class="btn btn-primary btn-block" id="loginBtn" style="padding:12px"><i class="fas fa-right-to-bracket"></i> Sign in</button>
     </div>
 
     <div id="errorMsg" class="login-error"></div>
 
     <div class="login-divider">OR</div>
 
-    <button class="login-oauth" id="githubBtn">
-      <i class="fab fa-github"></i> Continue with GitHub
-    </button>
-
-    <button class="btn btn-block" id="magicBtn" style="margin-top:8px">
-      <i class="fas fa-wand-magic-sparkles"></i> Send magic link instead
-    </button>
+    <button class="login-oauth" id="githubBtn"><i class="fab fa-github"></i> Continue with GitHub</button>
+    <button class="btn btn-block" id="magicBtn" style="margin-top:8px"><i class="fas fa-wand-magic-sparkles"></i> Send magic link instead</button>
 
     <div id="sentMsg" style="display:none" class="login-success">
-      <i class="fas fa-circle-check"></i> Magic link sent. Check your inbox and click the link.
+      <i class="fas fa-circle-check"></i> Magic link sent. Check your inbox.
     </div>
 
-    <p class="login-hint">
-      New accounts start as <strong>student</strong>. Ask an admin to upgrade your role.
-    </p>
+    <p class="login-hint">New accounts start as <strong>student</strong>. Ask an admin to upgrade your role.</p>
   </div>
 </div>
 
 <script type="module">
-import { supabase } from './js/core.js';
+import { supabase, bootPWA } from './js/core.js';
+
+bootPWA();
 
 const $ = id => document.getElementById(id);
 const redirectTo = new URL('index.html', location.href).href;
 
+(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+    location.href = `./${profile?.role ?? 'student'}.html`;
+  }
+})();
+
 $('pwdToggle').onclick = () => {
   const pwd = $('password');
   pwd.type = pwd.type === 'password' ? 'text' : 'password';
-  $('pwdToggle').innerHTML = pwd.type === 'password'
-    ? '<i class="fas fa-eye"></i>'
-    : '<i class="fas fa-eye-slash"></i>';
+  $('pwdToggle').innerHTML = pwd.type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
 };
 
 $('loginBtn').onclick = async () => {
@@ -85,19 +82,15 @@ $('loginBtn').onclick = async () => {
   const password = $('password').value;
   const errEl = $('errorMsg');
   errEl.style.display = 'none';
-
   if (!email || !password) {
     errEl.innerHTML = '<i class="fas fa-circle-exclamation"></i> Enter email and password';
     errEl.style.display = 'block';
     return;
   }
-
   const btn = $('loginBtn');
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
-
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-
   if (error) {
     errEl.innerHTML = `<i class="fas fa-circle-exclamation"></i> ${error.message}`;
     errEl.style.display = 'block';
@@ -105,18 +98,14 @@ $('loginBtn').onclick = async () => {
     btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
     return;
   }
-
   const { data: { session } } = await supabase.auth.getSession();
-  const { data: profile } = await supabase
-    .from('profiles').select('role').eq('id', session.user.id).single();
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
   location.href = `./${profile?.role ?? 'student'}.html`;
 };
 
-['email', 'password'].forEach(id => {
-  $(id).addEventListener('keydown', e => {
-    if (e.key === 'Enter') $('loginBtn').click();
-  });
-});
+['email', 'password'].forEach(id => $(id).addEventListener('keydown', e => {
+  if (e.key === 'Enter') $('loginBtn').click();
+}));
 
 $('githubBtn').onclick = async () => {
   await supabase.auth.signInWithOAuth({ provider: 'github', options: { redirectTo } });
@@ -128,9 +117,7 @@ $('magicBtn').onclick = async () => {
   const btn = $('magicBtn');
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
-  const { error } = await supabase.auth.signInWithOtp({
-    email, options: { emailRedirectTo: redirectTo },
-  });
+  const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
   if (error) {
     $('errorMsg').innerHTML = `<i class="fas fa-circle-exclamation"></i> ${error.message}`;
     $('errorMsg').style.display = 'block';

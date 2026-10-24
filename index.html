@@ -14,7 +14,8 @@
   } catch (e) {}
 })();
 </script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<meta name="theme-color" content="#F97316">
+<link rel="manifest" href="/manifest.json">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -25,14 +26,14 @@
   </div>
 </div>
 <script type="module">
-import { supabase, BASE } from './js/core.js';
+import { supabase, BASE, bootPWA } from './js/core.js';
+bootPWA();
 
 (async () => {
-  await new Promise(r => setTimeout(r, 200));
+  await new Promise(r => setTimeout(r, 150));
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) { location.href = `${BASE}login.html`; return; }
-  const { data: profile } = await supabase
-    .from('profiles').select('role').eq('id', session.user.id).single();
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
   location.href = `${BASE}${profile?.role ?? 'student'}.html`;
 })();
 </script>
