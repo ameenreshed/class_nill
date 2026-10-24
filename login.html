@@ -32,7 +32,6 @@
 
   <main class="auth-form-panel">
     <div class="auth-form-wrap">
-
       <div class="auth-mobile-brand">
         <div class="auth-mobile-brand-icon"><i class="fas fa-calendar-check"></i></div>
         <div>LPU<span style="color:var(--brand)">.</span>Scheduler</div>
@@ -53,9 +52,7 @@
           <span>Password</span>
           <div class="pwd-wrap">
             <input class="input" type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
-            <button type="button" class="pwd-toggle" id="pwdToggle" aria-label="Show password">
-              <i class="fas fa-eye"></i>
-            </button>
+            <button type="button" class="pwd-toggle" id="pwdToggle" aria-label="Show password"><i class="fas fa-eye"></i></button>
           </div>
         </label>
 
@@ -67,10 +64,7 @@
       <div id="errorMsg" class="login-error"></div>
       <div id="infoMsg" class="login-info" style="display:none"></div>
 
-      <p class="auth-hint">
-        Forgot your password? Contact your department administrator.
-      </p>
-
+      <p class="auth-hint">Forgot your password? Contact your department administrator.</p>
     </div>
   </main>
 </div>
@@ -88,7 +82,6 @@ if (new URLSearchParams(location.search).get('reset') === 'success') {
   $('infoMsg').style.display = 'flex';
   history.replaceState({}, '', 'login.html');
 }
-
 if (new URLSearchParams(location.search).get('err') === 'suspended') {
   showError('Your account has been suspended. Contact an administrator.');
   history.replaceState({}, '', 'login.html');
@@ -108,10 +101,7 @@ function showError(msg) {
   el.innerHTML = `<i class="fas fa-circle-exclamation"></i><div>${msg}</div>`;
   el.classList.add('show');
 }
-function clearError() {
-  $('errorMsg').classList.remove('show');
-  $('infoMsg').style.display = 'none';
-}
+function clearError() { $('errorMsg').classList.remove('show'); $('infoMsg').style.display = 'none'; }
 
 $('pwdToggle').onclick = () => {
   const pwd = $('password');
@@ -126,7 +116,6 @@ $('loginForm').onsubmit = async (e) => {
   const email = $('email').value.trim();
   const password = $('password').value;
   clearError();
-
   if (!email || !password) { showError('Enter your ID and password'); return; }
 
   const btn = $('loginBtn');
@@ -134,7 +123,6 @@ $('loginForm').onsubmit = async (e) => {
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-
   if (error) {
     showError(error.message);
     btn.disabled = false;
@@ -144,7 +132,6 @@ $('loginForm').onsubmit = async (e) => {
 
   const { data: { session } } = await supabase.auth.getSession();
   const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', session.user.id).single();
-
   if (profile?.is_active === false) {
     await supabase.auth.signOut();
     showError('Your account has been suspended. Contact an administrator.');
@@ -154,7 +141,6 @@ $('loginForm').onsubmit = async (e) => {
   }
 
   try { await supabase.rpc('log_login', { p_user_agent: navigator.userAgent }); } catch {}
-
   location.href = `./${profile?.role ?? 'student'}.html`;
 };
 </script>

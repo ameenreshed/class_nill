@@ -4,7 +4,6 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export const BASE = new URL('.', location.href).href;
 
-/* SERVER TIME */
 let serverOffsetMs = 0;
 export async function syncServerTime() {
   try {
@@ -23,7 +22,6 @@ export function todayISO() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-/* AUTH */
 const HB_KEY = 'lastHeartbeat';
 function maybeHeartbeat() {
   try {
@@ -72,7 +70,6 @@ export async function signOut() {
   location.href = `${BASE}login.html`;
 }
 
-/* THEME */
 const THEME_KEY = 'theme';
 export function getCurrentTheme() { return document.documentElement.getAttribute('data-theme') || 'light'; }
 export function applyTheme(theme) {
@@ -109,7 +106,6 @@ export function initTheme() {
   else if (mq.addListener) mq.addListener(onChange);
 }
 
-/* PWA */
 let deferredInstallPrompt = null;
 export function bootPWA() {
   if (!document.querySelector('link[rel="manifest"]')) {
@@ -134,7 +130,6 @@ export async function installPWA() {
   if (outcome === 'accepted') toast('Installed — check your home screen', 'success');
 }
 
-/* COMMAND PALETTE */
 let commandRegistry = [];
 let cmdOverlay = null, cmdInput = null, cmdList = null, cmdFocused = 0, cmdFiltered = [];
 
@@ -147,7 +142,6 @@ export function openCommandPalette() {
   setTimeout(() => cmdInput.focus(), 60);
 }
 export function closeCommandPalette() { if (cmdOverlay) cmdOverlay.classList.remove('open'); }
-
 function buildCmdPalette() {
   cmdOverlay = document.createElement('div');
   cmdOverlay.className = 'cmd-overlay';
@@ -178,9 +172,7 @@ function renderCmdResults(q) {
     <div class="cmd-item ${i === cmdFocused ? 'focused' : ''}" data-idx="${i}">
       <i class="fas ${c.icon || 'fa-circle'}"></i>
       <span>${escapeHtml(c.label)}</span>
-      ${c.shortcut ? `<span class="cmd-shortcut">${escapeHtml(c.shortcut)}</span>` : ''}
-    </div>
-  `).join('');
+    </div>`).join('');
   cmdList.querySelectorAll('.cmd-item').forEach(el => {
     el.onclick = () => { const c = cmdFiltered[parseInt(el.dataset.idx, 10)]; if (c) { closeCommandPalette(); c.action(); } };
   });
@@ -192,7 +184,6 @@ function updateCmdFocus() {
   if (f) f.scrollIntoView({ block: 'nearest' });
 }
 
-/* MODALS */
 export function openModal({ title, sub, body, actions, wide = false }) {
   return new Promise((resolve) => {
     const dialog = document.createElement('dialog');
@@ -263,38 +254,27 @@ export function openFormModal({ title, fields, saveText = 'Save', wide = false }
   });
 }
 
-/* NOTIFICATIONS */
 export async function getNotifications(profile) {
   if (profile.role === 'admin') {
-    const { data } = await supabase
-      .from('bookings')
-      .select('id,book_date,slot_id,room_id,created_at,type')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-      .limit(10);
+    const { data } = await supabase.from('bookings').select('id,book_date,slot_id,room_id,created_at,type')
+      .eq('status', 'pending').order('created_at', { ascending: false }).limit(10);
     return (data ?? []).map(b => ({
       icon: 'fa-hourglass-half', iconType: 'warning',
       title: `Pending: ${b.room_id} · ${b.type}`,
       meta: `${b.book_date} · ${b.slot_id}`,
-      time: b.created_at,
-      href: 'admin-bookings.html',
+      time: b.created_at, href: 'admin-bookings.html',
     }));
   }
   if (profile.role === 'faculty') {
-    const { data } = await supabase
-      .from('bookings')
-      .select('id,book_date,slot_id,room_id,status,created_at')
-      .eq('faculty_id', profile.id)
-      .in('status', ['approved', 'rejected'])
-      .order('created_at', { ascending: false })
-      .limit(10);
+    const { data } = await supabase.from('bookings').select('id,book_date,slot_id,room_id,status,created_at')
+      .eq('faculty_id', profile.id).in('status', ['approved', 'rejected'])
+      .order('created_at', { ascending: false }).limit(10);
     return (data ?? []).map(b => ({
       icon: b.status === 'approved' ? 'fa-circle-check' : 'fa-circle-xmark',
       iconType: b.status === 'approved' ? 'success' : 'danger',
       title: `Booking ${b.status}: ${b.room_id}`,
       meta: `${b.book_date} · ${b.slot_id}`,
-      time: b.created_at,
-      href: 'faculty.html',
+      time: b.created_at, href: 'faculty.html',
     }));
   }
   return [];
@@ -322,26 +302,25 @@ async function openNotifPanel(profile) {
   panel.classList.add('open');
 }
 
-/* NAV */
 function getNavItems(profile) {
   if (profile.role === 'admin') return [
-    { href: 'admin.html',          label: 'Dashboard',  icon: 'fa-gauge-high' },
-    { href: 'admin-add.html',      label: 'Quick add',  icon: 'fa-bolt' },
-    { href: 'admin-rooms.html',    label: 'Rooms',      icon: 'fa-door-open' },
-    { href: 'admin-bookings.html', label: 'Bookings',   icon: 'fa-calendar-check' },
-    { href: 'admin-users.html',    label: 'Users',      icon: 'fa-users' },
-    { href: 'admin-settings.html', label: 'Settings',   icon: 'fa-gear' },
-    { href: 'student.html',        label: 'Free rooms', icon: 'fa-building' },
+    { href: 'admin.html', label: 'Dashboard', icon: 'fa-gauge-high' },
+    { href: 'admin-add.html', label: 'Quick add', icon: 'fa-bolt' },
+    { href: 'admin-rooms.html', label: 'Rooms', icon: 'fa-door-open' },
+    { href: 'admin-bookings.html', label: 'Bookings', icon: 'fa-calendar-check' },
+    { href: 'admin-users.html', label: 'Users', icon: 'fa-users' },
+    { href: 'admin-settings.html', label: 'Settings', icon: 'fa-gear' },
+    { href: 'student.html', label: 'Free rooms', icon: 'fa-building' },
   ];
   if (profile.role === 'faculty') return [
-    { href: 'faculty.html',        label: 'Dashboard',  icon: 'fa-gauge-high' },
-    { href: 'faculty-makeup.html', label: 'Makeup',     icon: 'fa-chalkboard-user' },
-    { href: 'student.html',        label: 'Free rooms', icon: 'fa-building' },
-    { href: 'profile.html',        label: 'Profile',    icon: 'fa-user' },
+    { href: 'faculty.html', label: 'Dashboard', icon: 'fa-gauge-high' },
+    { href: 'faculty-makeup.html', label: 'Makeup', icon: 'fa-chalkboard-user' },
+    { href: 'student.html', label: 'Free rooms', icon: 'fa-building' },
+    { href: 'profile.html', label: 'Profile', icon: 'fa-user' },
   ];
   return [
     { href: 'student.html', label: 'Free rooms', icon: 'fa-building' },
-    { href: 'profile.html', label: 'Profile',    icon: 'fa-user' },
+    { href: 'profile.html', label: 'Profile', icon: 'fa-user' },
   ];
 }
 function getGlobalCommands(profile, items) {
@@ -501,7 +480,6 @@ function setupShortcuts() {
   });
 }
 
-/* OFFLINE */
 export function isOnline() { return navigator.onLine; }
 export function onNetworkChange(cb) {
   window.addEventListener('online', () => cb(true));
@@ -547,7 +525,6 @@ export async function syncPendingBookings() {
   return { synced, failed };
 }
 
-/* HELPERS */
 export function deriveRoomId(building, floor, roomNumber, suffix) {
   const floorDigit = String(floor);
   const rn = String(roomNumber).trim().padStart(2, '0');

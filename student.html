@@ -15,7 +15,6 @@
 </head>
 <body>
 <div id="nav"></div>
-
 <div class="container">
   <div class="page-header">
     <div>
@@ -30,12 +29,7 @@
 
   <div class="fix-note">
     <i class="fas fa-circle-info"></i>
-    <div>
-      <strong>What's new:</strong> every cell now shows <em>why</em> a room isn't free.
-      <strong>Free</strong> = truly available (no class, no makeup, no event).
-      <strong>Makeup</strong> = someone has already booked that room for a makeup class.
-      No more booking a room that was "free" in the timetable but already taken by another faculty.
-    </div>
+    <div><strong>What's new:</strong> every cell now shows <em>why</em> a room isn't free. <strong>Free</strong> = truly available (no class, no makeup, no event). <strong>Makeup</strong> = someone has already booked that room for a makeup class. No more booking a room that was "free" in the timetable but already taken by another faculty.</div>
   </div>
 
   <div class="free-legend">
@@ -53,26 +47,15 @@
         <div id="liveInfo" style="font-size:var(--text-sm);color:var(--text-muted);margin-top:4px">—</div>
       </div>
       <div style="display:flex;gap:24px;text-align:right;flex-wrap:wrap">
-        <div>
-          <div class="label-small">Free now</div>
-          <div id="freeNowCount" style="font-size:32px;font-weight:600;color:var(--success);line-height:1;letter-spacing:-0.03em;margin-top:4px">—</div>
-        </div>
-        <div>
-          <div class="label-small">Booked now</div>
-          <div id="bookedNowCount" style="font-size:32px;font-weight:600;color:var(--warning);line-height:1;letter-spacing:-0.03em;margin-top:4px">—</div>
-        </div>
+        <div><div class="label-small">Free now</div><div id="freeNowCount" style="font-size:32px;font-weight:600;color:var(--success);line-height:1;letter-spacing:-0.03em;margin-top:4px">—</div></div>
+        <div><div class="label-small">Booked now</div><div id="bookedNowCount" style="font-size:32px;font-weight:600;color:var(--warning);line-height:1;letter-spacing:-0.03em;margin-top:4px">—</div></div>
       </div>
     </div>
   </div>
 
   <div id="freeNowList" class="mt-4"></div>
-
   <div class="grid-toolbar" id="buildingTabs"></div>
-  <div id="gridContainer">
-    <div class="card" style="padding:32px">
-      <div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading rooms…</div>
-    </div>
-  </div>
+  <div id="gridContainer"><div class="card" style="padding:32px"><div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading rooms…</div></div></div>
 </div>
 
 <script type="module">
@@ -100,8 +83,7 @@ import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, pars
   slots = slotData ?? [];
 
   async function loadBookings() {
-    const { data } = await supabase
-      .from('bookings')
+    const { data } = await supabase.from('bookings')
       .select('room_id,slot_id,type,status')
       .eq('book_date', dateInput.value)
       .in('status', ['pending', 'approved']);
@@ -114,9 +96,7 @@ import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, pars
 
   function bookingsMapForDate() {
     const m = new Map();
-    bookings.forEach(b => {
-      m.set(`${b.room_id}|${b.slot_id}`, { type: b.type, status: b.status });
-    });
+    bookings.forEach(b => { m.set(`${b.room_id}|${b.slot_id}`, { type: b.type, status: b.status }); });
     return m;
   }
 
@@ -143,12 +123,12 @@ import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, pars
     const entry = bmap.get(`${roomId}|${slotId}`);
     if (!entry) return { state: 'free', label: 'Free' };
     switch (entry.type) {
-      case 'regular':     return { state: 'class',  label: 'Class' };
-      case 'makeup':      return { state: 'makeup', label: 'Makeup' };
-      case 'exam':        return { state: 'exam',   label: 'Exam' };
-      case 'event':       return { state: 'exam',   label: 'Event' };
-      case 'maintenance': return { state: 'maint',  label: 'Maint' };
-      default:            return { state: 'exam',   label: 'Booked' };
+      case 'regular': return { state: 'class', label: 'Class' };
+      case 'makeup': return { state: 'makeup', label: 'Makeup' };
+      case 'exam': return { state: 'exam', label: 'Exam' };
+      case 'event': return { state: 'exam', label: 'Event' };
+      case 'maintenance': return { state: 'maint', label: 'Maint' };
+      default: return { state: 'exam', label: 'Booked' };
     }
   }
 
@@ -159,9 +139,7 @@ import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, pars
       <button class="chip ${building === 'all' ? 'on' : ''}" data-b="all"><i class="fas fa-layer-group"></i> All blocks</button>
       ${buildings.map(b => `<button class="chip ${building === b ? 'on' : ''}" data-b="${b}"><i class="fas fa-building"></i> Block ${b}</button>`).join('')}
     `;
-    el.querySelectorAll('[data-b]').forEach(btn => {
-      btn.onclick = () => { building = btn.dataset.b; render(); };
-    });
+    el.querySelectorAll('[data-b]').forEach(btn => { btn.onclick = () => { building = btn.dataset.b; render(); }; });
   }
 
   function renderLiveNow() {
@@ -169,28 +147,21 @@ import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, pars
     const info = $('liveInfo'), freeCountEl = $('freeNowCount'), bookedCountEl = $('bookedNowCount'), listEl = $('freeNowList');
     if (!cur) {
       info.textContent = dateInput.value === todayISO() ? 'No active period' : 'Not viewing today';
-      freeCountEl.textContent = '—';
-      bookedCountEl.textContent = '—';
-      listEl.innerHTML = '';
+      freeCountEl.textContent = '—'; bookedCountEl.textContent = '—'; listEl.innerHTML = '';
       return;
     }
     const bmap = bookingsMapForDate();
     const free = rooms.filter(r => !bmap.has(`${r.room_id}|${cur.slot_id}`));
     const occupied = rooms.filter(r => bmap.has(`${r.room_id}|${cur.slot_id}`));
-
     info.innerHTML = `<i class="fas fa-clock" style="margin-right:4px"></i>${escapeHtml(cur.label || cur.slot_id)} · ${cur.start_time.slice(0,5)}–${cur.end_time.slice(0,5)}`;
     freeCountEl.textContent = free.length;
     bookedCountEl.textContent = occupied.length;
-
     if (!free.length) {
       listEl.innerHTML = '<div class="card"><div class="empty"><i class="fas fa-door-closed"></i>All rooms are booked right now</div></div>';
       return;
     }
     const byBuilding = new Map();
-    free.forEach(r => {
-      if (!byBuilding.has(r.building)) byBuilding.set(r.building, []);
-      byBuilding.get(r.building).push(r);
-    });
+    free.forEach(r => { if (!byBuilding.has(r.building)) byBuilding.set(r.building, []); byBuilding.get(r.building).push(r); });
     listEl.innerHTML = `
       <div class="card">
         <div class="card-title"><i class="fas fa-door-open"></i> Available now · tap to inspect</div>
@@ -198,19 +169,11 @@ import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, pars
           <div style="margin-bottom:14px">
             <div class="label-small" style="margin-bottom:6px"><i class="fas fa-building"></i> Block ${escapeHtml(b)}</div>
             <div class="chips">
-              ${rs.sort((x,y) => x.display_name.localeCompare(y.display_name)).map(r => `
-                <button class="chip" data-room-detail="${escapeHtml(r.room_id)}">
-                  <i class="fas fa-door-open" style="color:var(--success)"></i>${escapeHtml(r.display_name)}
-                </button>
-              `).join('')}
+              ${rs.sort((x,y) => x.display_name.localeCompare(y.display_name)).map(r => `<button class="chip" data-room-detail="${escapeHtml(r.room_id)}"><i class="fas fa-door-open" style="color:var(--success)"></i>${escapeHtml(r.display_name)}</button>`).join('')}
             </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-    document.querySelectorAll('[data-room-detail]').forEach(btn => {
-      btn.onclick = () => showRoomDetail(btn.dataset.roomDetail);
-    });
+          </div>`).join('')}
+      </div>`;
+    document.querySelectorAll('[data-room-detail]').forEach(btn => { btn.onclick = () => showRoomDetail(btn.dataset.roomDetail); });
   }
 
   async function showRoomDetail(roomId) {
@@ -229,50 +192,26 @@ import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, pars
       <div style="display:flex;flex-direction:column;gap:4px">
         ${slots.map(s => {
           const cell = classifyCell(roomId, s.slot_id, bmap);
-          const badgeCls = cell.state === 'free' ? 'approved'
-                         : cell.state === 'class' ? 'admin'
-                         : cell.state === 'makeup' ? 'pending'
-                         : 'rejected';
-          return `
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--surface-hover);font-size:13px">
-              <div>
-                <span class="mono" style="font-weight:500">${escapeHtml(s.label || s.slot_id)}</span>
-                <span class="dim" style="font-size:11px;margin-left:8px">${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)}</span>
-              </div>
-              <span class="badge badge-${badgeCls}">${cell.label}</span>
-            </div>
-          `;
+          const badgeCls = cell.state === 'free' ? 'approved' : cell.state === 'class' ? 'admin' : cell.state === 'makeup' ? 'pending' : 'rejected';
+          return `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--surface-hover);font-size:13px">
+            <div><span class="mono" style="font-weight:500">${escapeHtml(s.label || s.slot_id)}</span><span class="dim" style="font-size:11px;margin-left:8px">${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)}</span></div>
+            <span class="badge badge-${badgeCls}">${cell.label}</span>
+          </div>`;
         }).join('')}
-      </div>
-    `;
-    await openModal({
-      title: `Room ${room.display_name}`,
-      sub: room.notes || undefined,
-      body,
-      actions: '<button class="btn" data-modal-action="cancel">Close</button>',
-    });
+      </div>`;
+    await openModal({ title: `Room ${room.display_name}`, sub: room.notes || undefined, body, actions: '<button class="btn" data-modal-action="cancel">Close</button>' });
   }
 
   function render() {
     renderTabs();
     renderLiveNow();
-
     const bmap = bookingsMapForDate();
     const filtered = building === 'all' ? rooms : rooms.filter(r => r.building === building);
-
-    if (!filtered.length) {
-      $('gridContainer').innerHTML = '<div class="card"><div class="empty"><i class="fas fa-door-closed"></i>No rooms in this block yet</div></div>';
-      return;
-    }
-
+    if (!filtered.length) { $('gridContainer').innerHTML = '<div class="card"><div class="empty"><i class="fas fa-door-closed"></i>No rooms in this block yet</div></div>'; return; }
     const byFloor = new Map();
-    filtered.forEach(r => {
-      if (!byFloor.has(r.floor)) byFloor.set(r.floor, []);
-      byFloor.get(r.floor).push(r);
-    });
+    filtered.forEach(r => { if (!byFloor.has(r.floor)) byFloor.set(r.floor, []); byFloor.get(r.floor).push(r); });
     byFloor.forEach(arr => arr.sort((a, b) => (a.room_number + a.suffix).localeCompare(b.room_number + b.suffix, undefined, { numeric: true })));
     const floors = Array.from(byFloor.entries()).sort((a, b) => a[0] - b[0]);
-
     $('gridContainer').innerHTML = `
       <div class="grid-wrap">
         <table class="vacancy-table">
@@ -281,10 +220,7 @@ import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, pars
               <th class="room-col">Room</th>
               ${slots.map(s => {
                 const status = slotStatus(s, dateInput.value);
-                return `<th class="${status === 'current' ? 'slot-current' : ''}">
-                  <div>${escapeHtml(s.label || s.slot_id)}</div>
-                  <div style="font-size:10px;color:var(--text-muted);font-weight:400;margin-top:2px">${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)}</div>
-                </th>`;
+                return `<th class="${status === 'current' ? 'slot-current' : ''}"><div>${escapeHtml(s.label || s.slot_id)}</div><div style="font-size:10px;color:var(--text-muted);font-weight:400;margin-top:2px">${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)}</div></th>`;
               }).join('')}
             </tr>
           </thead>
@@ -302,20 +238,14 @@ import { requireRole, renderNav, supabase, escapeHtml, nowDate, formatTime, pars
                     const status = slotStatus(s, dateInput.value);
                     const isPast = status === 'ended' || status === 'past-day';
                     const isCurrent = status === 'current';
-                    return `<td class="slot-cell ${isCurrent ? 'cell-current-col' : ''}">
-                      <div class="cell-${cell.state}${isPast ? ' cell-past' : ''}" data-room-detail="${escapeHtml(r.room_id)}" style="cursor:pointer" title="${cell.label}">${cell.label}</div>
-                    </td>`;
+                    return `<td class="slot-cell ${isCurrent ? 'cell-current-col' : ''}"><div class="cell-${cell.state}${isPast ? ' cell-past' : ''}" data-room-detail="${escapeHtml(r.room_id)}" style="cursor:pointer" title="${cell.label}">${cell.label}</div></td>`;
                   }).join('')}
-                </tr>
-              `).join('')}
+                </tr>`).join('')}
             `).join('')}
           </tbody>
         </table>
-      </div>
-    `;
-    document.querySelectorAll('[data-room-detail]').forEach(el => {
-      el.onclick = () => showRoomDetail(el.dataset.roomDetail);
-    });
+      </div>`;
+    document.querySelectorAll('[data-room-detail]').forEach(el => { el.onclick = () => showRoomDetail(el.dataset.roomDetail); });
   }
 
   function tickClock() {

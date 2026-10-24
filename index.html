@@ -19,19 +19,14 @@
     <div style="width:56px;height:56px;border-radius:14px;background:var(--brand);color:var(--brand-contrast);display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px">
       <i class="fas fa-calendar-check"></i>
     </div>
-    <h1 style="font-size:24px;font-weight:600;letter-spacing:-0.025em;margin-bottom:4px">
-      LPU<span style="color:var(--brand)">.</span>Scheduler
-    </h1>
-    <p style="color:var(--text-muted);font-size:14px;margin-bottom:24px">
-      <i class="fas fa-spinner fa-spin"></i> Loading your dashboard…
-    </p>
+    <h1 style="font-size:24px;font-weight:600;letter-spacing:-0.025em;margin-bottom:4px">LPU<span style="color:var(--brand)">.</span>Scheduler</h1>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:24px"><i class="fas fa-spinner fa-spin"></i> Loading your dashboard…</p>
   </div>
 </div>
 <script type="module">
 import { supabase, BASE, bootPWA, initTheme } from './js/core.js';
 initTheme();
 bootPWA();
-
 (async () => {
   await new Promise(r => setTimeout(r, 150));
   const { data: { session } } = await supabase.auth.getSession();
