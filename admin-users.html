@@ -107,7 +107,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime } f
   let search = '';
   let editingUserId = null;
 
-  // ---- Load ----
   async function load() {
     const { data } = await supabase
       .from('profiles')
@@ -155,13 +154,11 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime } f
     const filtered = getFiltered();
 
     if (!filtered.length) {
-      const empty = '<tr><td colspan="6" class="empty"><i class="fas fa-user-slash"></i>No users match</td></tr>';
-      $('usersBody').innerHTML = empty;
+      $('usersBody').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-user-slash"></i>No users match</td></tr>';
       $('usersMobile').innerHTML = '<div class="empty"><i class="fas fa-user-slash"></i>No users match</div>';
       return;
     }
 
-    // Desktop table
     $('usersBody').innerHTML = filtered.map(u => {
       const initial = ((u.full_name || u.email || '?').trim()[0] || '?').toUpperCase();
       const isSusp = u.is_active === false;
@@ -196,7 +193,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime } f
       `;
     }).join('');
 
-    // Mobile cards
     $('usersMobile').innerHTML = filtered.map(u => {
       const initial = ((u.full_name || u.email || '?').trim()[0] || '?').toUpperCase();
       const isSusp = u.is_active === false;
@@ -243,7 +239,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime } f
     if (action === 'activity') return showActivity(user);
   }
 
-  // ---- Edit ----
   function openEdit(user) {
     editingUserId = user.id;
     $('editTitle').textContent = `Edit: ${user.email}`;
@@ -283,7 +278,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime } f
       patch.suspended_reason = newActive ? null : 'Suspended by admin';
     }
 
-    // Prevent admin from demoting/suspending themselves
     if (user.id === auth.profile.id) {
       if (patch.role !== 'admin') { toast('You cannot change your own role', 'error'); return; }
       if (patch.is_active === false) { toast('You cannot suspend yourself', 'error'); return; }
@@ -306,7 +300,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime } f
     await load();
   };
 
-  // ---- Suspend/activate ----
   async function toggleSuspend(user) {
     const isSusp = user.is_active === false;
     if (user.id === auth.profile.id) { toast('You cannot suspend yourself', 'error'); return; }
@@ -334,17 +327,15 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime } f
     await load();
   }
 
-  // ---- Reset password ----
   async function resetPassword(user) {
     if (!confirm(`Send a password reset email to ${user.email}?\n\nThey will receive a link to set a new password.`)) return;
     const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: `${location.origin}/login.html`,
+      redirectTo: `${location.origin}/reset-password.html`,
     });
     if (error) { toast(error.message, 'error'); return; }
-    toast('Reset email sent', 'success');
+    toast('✓ Reset email sent — check inbox', 'success');
   }
 
-  // ---- Activity per user ----
   async function showActivity(user) {
     const { data: logs } = await supabase
       .from('activity_log')
@@ -382,7 +373,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime } f
       `
       : '<div class="card mt-4"><div class="empty" style="padding:20px"><i class="fas fa-inbox"></i>No activity for this user</div></div>';
 
-    // Remove old activity panel if present
     const existing = document.getElementById('activityPanel');
     if (existing) existing.remove();
 
@@ -395,7 +385,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime } f
     div.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  // ---- Filters ----
   document.querySelectorAll('#filterChips [data-filter]').forEach(btn => {
     btn.onclick = () => {
       filter = btn.dataset.filter;
@@ -409,7 +398,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime } f
     render();
   });
 
-  // ---- Mobile detection ----
   function updateMobileView() {
     const mobile = window.innerWidth <= 640;
     document.querySelector('.user-table-desktop').style.display = mobile ? 'none' : 'block';
