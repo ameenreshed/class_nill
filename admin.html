@@ -20,19 +20,61 @@
   <div class="page-header">
     <div>
       <h1 class="page-title"><i class="fas fa-gauge-high"></i> Dashboard</h1>
-      <p class="page-subtitle">Live overview — updated <span id="lastUpdated">now</span></p>
+      <p class="page-subtitle">
+        Welcome back, <strong id="welcomeName" style="color:var(--text)">…</strong>
+        · <span id="lastUpdated">just now</span>
+      </p>
     </div>
-    <a href="admin-add.html" class="btn btn-primary"><i class="fas fa-bolt"></i> Quick add</a>
+    <div class="row">
+      <button class="btn" id="refreshBtn">
+        <i class="fas fa-rotate-right"></i> Refresh
+      </button>
+      <a href="admin-add.html" class="btn btn-primary">
+        <i class="fas fa-bolt"></i> Quick add
+      </a>
+    </div>
   </div>
 
-  <div class="stats" id="stats"></div>
+  <div class="stats" id="stats">
+    <div class="stat">
+      <div class="skeleton" style="height:20px;width:40%;margin-bottom:12px;border-radius:6px"></div>
+      <div class="skeleton" style="height:32px;width:50%;margin-bottom:8px;border-radius:6px"></div>
+      <div class="skeleton" style="height:10px;width:70%;border-radius:4px"></div>
+    </div>
+    <div class="stat">
+      <div class="skeleton" style="height:20px;width:40%;margin-bottom:12px;border-radius:6px"></div>
+      <div class="skeleton" style="height:32px;width:50%;margin-bottom:8px;border-radius:6px"></div>
+      <div class="skeleton" style="height:10px;width:70%;border-radius:4px"></div>
+    </div>
+    <div class="stat">
+      <div class="skeleton" style="height:20px;width:40%;margin-bottom:12px;border-radius:6px"></div>
+      <div class="skeleton" style="height:32px;width:50%;margin-bottom:8px;border-radius:6px"></div>
+      <div class="skeleton" style="height:10px;width:70%;border-radius:4px"></div>
+    </div>
+    <div class="stat">
+      <div class="skeleton" style="height:20px;width:40%;margin-bottom:12px;border-radius:6px"></div>
+      <div class="skeleton" style="height:32px;width:50%;margin-bottom:8px;border-radius:6px"></div>
+      <div class="skeleton" style="height:10px;width:70%;border-radius:4px"></div>
+    </div>
+    <div class="stat">
+      <div class="skeleton" style="height:20px;width:40%;margin-bottom:12px;border-radius:6px"></div>
+      <div class="skeleton" style="height:32px;width:50%;margin-bottom:8px;border-radius:6px"></div>
+      <div class="skeleton" style="height:10px;width:70%;border-radius:4px"></div>
+    </div>
+  </div>
 
   <div class="grid-auto mt-6">
     <div class="card">
       <div class="card-title"><i class="fas fa-chart-simple"></i> Bookings · last 7 days</div>
       <div class="chart-bars" id="chartBars"></div>
-      <div class="dim" style="font-size:12px;text-align:center;margin-top:8px">Hover bars for exact counts</div>
+      <div id="chartEmpty" style="display:none">
+        <div class="empty" style="padding:32px 16px">
+          <i class="fas fa-chart-simple"></i>
+          No bookings in the last 7 days
+        </div>
+      </div>
     </div>
+
     <div class="card">
       <div class="card-title"><i class="fas fa-clock-rotate-left"></i> Recent activity</div>
       <div class="timeline" id="timeline">
@@ -45,33 +87,51 @@
   <div class="grid-auto">
     <a href="admin-add.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-bolt"></i></span>
-      <div class="ac-body"><div class="ac-title">Quick add rooms</div><div class="ac-sub">Fast offline entry while walking floors</div></div>
+      <div class="ac-body">
+        <div class="ac-title">Quick add rooms</div>
+        <div class="ac-sub">Fast offline entry while walking floors</div>
+      </div>
     </a>
     <a href="admin-bookings.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-calendar-check"></i></span>
-      <div class="ac-body"><div class="ac-title">Review bookings</div><div class="ac-sub">Bulk approve or reject requests</div></div>
+      <div class="ac-body">
+        <div class="ac-title">Review bookings</div>
+        <div class="ac-sub">Bulk approve or reject requests</div>
+      </div>
     </a>
     <a href="admin-rooms.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-door-open"></i></span>
-      <div class="ac-body"><div class="ac-title">Manage rooms</div><div class="ac-sub">Search, edit, or export rooms</div></div>
+      <div class="ac-body">
+        <div class="ac-title">Manage rooms</div>
+        <div class="ac-sub">Search, edit, or export rooms</div>
+      </div>
     </a>
     <a href="admin-users.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-users"></i></span>
-      <div class="ac-body"><div class="ac-title">Users</div><div class="ac-sub">Roles, suspension, password resets</div></div>
+      <div class="ac-body">
+        <div class="ac-title">Users</div>
+        <div class="ac-sub">Roles, suspension, password resets</div>
+      </div>
     </a>
     <a href="admin-settings.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-gear"></i></span>
-      <div class="ac-body"><div class="ac-title">Settings</div><div class="ac-sub">Buildings, floors, types, time slots</div></div>
+      <div class="ac-body">
+        <div class="ac-title">Settings</div>
+        <div class="ac-sub">Buildings, floors, types, time slots</div>
+      </div>
     </a>
     <a href="student.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-building"></i></span>
-      <div class="ac-body"><div class="ac-title">Free rooms view</div><div class="ac-sub">See what students see, live</div></div>
+      <div class="ac-body">
+        <div class="ac-title">Free rooms view</div>
+        <div class="ac-sub">See what students see, live</div>
+      </div>
     </a>
   </div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, todayISO, escapeHtml, formatRelativeTime } from './js/core.js';
+import { requireRole, renderNav, supabase, todayISO, escapeHtml, formatRelativeTime, nowDate, toast } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
@@ -86,74 +146,203 @@ import { requireRole, renderNav, supabase, todayISO, escapeHtml, formatRelativeT
 
   const $ = id => document.getElementById(id);
 
-  const [rooms, pending, todayBookings, users] = await Promise.all([
-    supabase.from('rooms').select('room_id', { count: 'exact', head: true }),
-    supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('book_date', todayISO()),
-    supabase.from('profiles').select('id', { count: 'exact', head: true }),
-  ]);
+  // Welcome message
+  const displayName = auth.profile.full_name || (auth.profile.email || '').split('@')[0] || 'Admin';
+  $('welcomeName').textContent = displayName;
 
-  $('stats').innerHTML = `
-    <a class="stat" href="admin-rooms.html"><i class="fas fa-door-open stat-icon"></i><div class="stat-value">${rooms.count ?? 0}</div><div class="stat-label">Total rooms</div></a>
-    <a class="stat" href="admin-bookings.html"><i class="fas fa-hourglass-half stat-icon"></i><div class="stat-value">${pending.count ?? 0}</div><div class="stat-label">Pending approval</div></a>
-    <a class="stat" href="admin-bookings.html"><i class="fas fa-calendar-day stat-icon"></i><div class="stat-value">${todayBookings.count ?? 0}</div><div class="stat-label">Today's bookings</div></a>
-    <a class="stat" href="admin-users.html"><i class="fas fa-users stat-icon"></i><div class="stat-value">${users.count ?? 0}</div><div class="stat-label">Total users</div></a>
-  `;
-
-  const days = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    days.push(d.toISOString().slice(0, 10));
+  // Local date helper (avoids UTC drift)
+  function localDateStr(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
-  const { data: recent } = await supabase
-    .from('bookings')
-    .select('book_date')
-    .in('book_date', days)
-    .in('status', ['approved', 'pending']);
 
-  const counts = days.map(d => ({
-    date: d,
-    count: (recent ?? []).filter(r => r.book_date === d).length,
-    label: new Date(d + 'T12:00:00').toLocaleDateString([], { weekday: 'short' }),
-  }));
-  const maxCount = Math.max(...counts.map(c => c.count), 1);
-  $('chartBars').innerHTML = counts.map(c => `
-    <div class="chart-bar-col">
-      <div class="chart-bar" style="height:${Math.round((c.count / maxCount) * 100)}px" title="${c.count} bookings on ${c.date}"></div>
-      <div class="chart-bar-label">${c.label}</div>
-    </div>
-  `).join('');
+  async function getFreeRightNow() {
+    try {
+      const now = nowDate();
+      const nowTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:00`;
+      const { data: slots } = await supabase
+        .from('time_slots')
+        .select('slot_id,start_time,end_time')
+        .eq('is_active', true);
+      if (!slots?.length) return null;
 
-  const { data: logs } = await supabase
-    .from('activity_log')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(8);
+      const currentSlot = slots.find(s => nowTime >= s.start_time && nowTime < s.end_time);
+      if (!currentSlot) return null;
 
-  if (!logs?.length) {
-    $('timeline').innerHTML = '<div class="empty" style="padding:20px"><i class="fas fa-inbox"></i>No activity yet</div>';
-  } else {
+      const [{ count: totalRooms }, { count: occupied }] = await Promise.all([
+        supabase.from('rooms').select('room_id', { count: 'exact', head: true }).eq('bookable', true),
+        supabase.from('bookings').select('id', { count: 'exact', head: true })
+          .eq('book_date', todayISO())
+          .eq('slot_id', currentSlot.slot_id)
+          .in('status', ['pending', 'approved']),
+      ]);
+
+      return {
+        free: (totalRooms ?? 0) - (occupied ?? 0),
+        total: totalRooms ?? 0,
+        slot: currentSlot.slot_id,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async function loadStats() {
+    const [rooms, pending, todayBookings, users, freeNow] = await Promise.all([
+      supabase.from('rooms').select('room_id', { count: 'exact', head: true }),
+      supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('book_date', todayISO()),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }),
+      getFreeRightNow(),
+    ]);
+
+    const freeNowValue = freeNow ? freeNow.free : '—';
+    const freeNowColor = freeNow
+      ? (freeNow.free > 0 ? 'var(--success)' : 'var(--danger)')
+      : 'var(--text-muted)';
+    const freeNowSub = freeNow
+      ? `out of ${freeNow.total} rooms · ${freeNow.slot}`
+      : 'No active period';
+
+    $('stats').innerHTML = `
+      <a class="stat" href="admin-rooms.html">
+        <i class="fas fa-door-open stat-icon"></i>
+        <div class="stat-value">${rooms.count ?? 0}</div>
+        <div class="stat-label">Total rooms</div>
+      </a>
+      <a class="stat" href="admin-bookings.html">
+        <i class="fas fa-hourglass-half stat-icon"></i>
+        <div class="stat-value">${pending.count ?? 0}</div>
+        <div class="stat-label">Pending approval</div>
+      </a>
+      <a class="stat" href="admin-bookings.html">
+        <i class="fas fa-calendar-day stat-icon"></i>
+        <div class="stat-value">${todayBookings.count ?? 0}</div>
+        <div class="stat-label">Today's bookings</div>
+      </a>
+      <a class="stat" href="student.html">
+        <i class="fas fa-door-open stat-icon" style="color:${freeNowColor}"></i>
+        <div class="stat-value" style="color:${freeNowColor}">${freeNowValue}</div>
+        <div class="stat-label">Free right now</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${freeNowSub}</div>
+      </a>
+      <a class="stat" href="admin-users.html">
+        <i class="fas fa-users stat-icon"></i>
+        <div class="stat-value">${users.count ?? 0}</div>
+        <div class="stat-label">Total users</div>
+      </a>
+    `;
+  }
+
+  async function loadChart() {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push(localDateStr(d));
+    }
+
+    const { data: recent } = await supabase
+      .from('bookings')
+      .select('book_date')
+      .in('book_date', days)
+      .in('status', ['approved', 'pending']);
+
+    const counts = days.map(d => ({
+      date: d,
+      count: (recent ?? []).filter(r => r.book_date === d).length,
+      label: new Date(d + 'T12:00:00').toLocaleDateString([], { weekday: 'short' }),
+    }));
+
+    const maxCount = Math.max(...counts.map(c => c.count), 1);
+    const totalBookings = counts.reduce((s, c) => s + c.count, 0);
+
+    if (totalBookings === 0) {
+      $('chartBars').style.display = 'none';
+      $('chartEmpty').style.display = 'block';
+      return;
+    }
+
+    $('chartBars').style.display = 'flex';
+    $('chartEmpty').style.display = 'none';
+
+    $('chartBars').innerHTML = counts.map(c => {
+      const height = Math.max(4, Math.round((c.count / maxCount) * 110));
+      return `
+        <div class="chart-bar-col">
+          <div class="chart-bar" style="height:${height}px" title="${c.count} booking${c.count === 1 ? '' : 's'} on ${c.label}, ${c.date}"></div>
+          <div class="chart-bar-label">${c.label}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function loadTimeline() {
+    const { data: logs } = await supabase
+      .from('activity_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(8);
+
+    if (!logs?.length) {
+      $('timeline').innerHTML = `
+        <div class="empty" style="padding:32px 16px">
+          <i class="fas fa-inbox"></i>
+          No activity yet
+        </div>
+      `;
+      return;
+    }
+
     $('timeline').innerHTML = logs.map(l => {
       const icon = l.action === 'auth.login' ? 'fa-right-to-bracket'
         : l.action?.startsWith('user.') ? 'fa-user-pen'
         : l.action?.startsWith('room.') ? 'fa-door-open'
         : l.action?.startsWith('booking.') ? 'fa-calendar-check'
         : 'fa-circle';
+      const email = l.user_email || 'system';
       return `
         <div class="timeline-item">
           <div class="timeline-marker"><i class="fas ${icon}"></i></div>
           <div class="timeline-content">
-            <div class="timeline-title">${escapeHtml(l.action)}${l.entity_id ? ` <span class="mono" style="color:var(--text-muted)">${escapeHtml(l.entity_id)}</span>` : ''}</div>
-            <div class="timeline-meta">${escapeHtml(l.user_email || 'system')} · ${formatRelativeTime(l.created_at)}</div>
+            <div class="timeline-title">
+              ${escapeHtml(l.action)}
+              ${l.entity_id ? `<span class="mono" style="color:var(--text-muted);margin-left:4px">${escapeHtml(l.entity_id)}</span>` : ''}
+            </div>
+            <div class="timeline-meta">${escapeHtml(email)} · ${formatRelativeTime(l.created_at)}</div>
           </div>
         </div>
       `;
     }).join('');
   }
 
-  $('lastUpdated').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  setInterval(() => { if (!document.hidden) location.reload(); }, 60_000);
+  async function loadAll(showToast = false) {
+    try {
+      await Promise.all([loadStats(), loadChart(), loadTimeline()]);
+      $('lastUpdated').textContent = 'updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (showToast) toast('Refreshed', 'success');
+    } catch (e) {
+      if (showToast) toast('Refresh failed: ' + e.message, 'error');
+    }
+  }
+
+  $('refreshBtn').onclick = async () => {
+    const btn = $('refreshBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing…';
+    await loadAll(true);
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-rotate-right"></i> Refresh';
+  };
+
+  await loadAll();
+
+  // Auto-refresh every 60s (in place, no page reload)
+  setInterval(() => { if (!document.hidden) loadAll(); }, 60_000);
+
+  // Refresh when tab becomes visible again
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) loadAll();
+  });
 })();
 </script>
 </body>
