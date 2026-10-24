@@ -7,80 +7,130 @@
 <script>
 (function(){
   try {
-    var t = localStorage.getItem('theme');
-    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
-  } catch (e) {}
+    var stored = localStorage.getItem('theme');
+    var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var theme = stored || (systemDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
 })();
 </script>
-<meta name="theme-color" content="#F97316">
+<meta name="theme-color" content="#EA580C">
 <link rel="manifest" href="/manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div class="login-wrap">
-  <div class="login-card">
-    <h1>amnrd<span style="color:var(--orange)">.</span>scheduler</h1>
-    <p class="sub">Room & class scheduler — sign in to continue</p>
 
-    <div style="margin-top:24px">
-      <label class="field">
-        <span>Email</span>
-        <input class="input" type="email" id="email" placeholder="you@amnrd.com" autocomplete="email">
-      </label>
-      <label class="field" style="margin-bottom:6px">
-        <span>Password</span>
-        <div class="pwd-wrap">
-          <input class="input" type="password" id="password" placeholder="••••••••" autocomplete="current-password">
-          <button type="button" class="pwd-toggle" id="pwdToggle"><i class="fas fa-eye"></i></button>
-        </div>
-      </label>
-      <div style="text-align:right;margin-bottom:16px">
-        <a href="reset-password.html" style="font-size:12px;color:var(--orange);font-weight:500">
-          Forgot password?
-        </a>
+<div class="auth-shell">
+  <aside class="auth-brand-panel">
+    <div class="auth-brand-content">
+      <div class="auth-brand-mark">
+        <i class="fas fa-calendar-check"></i>
       </div>
-      <button class="btn btn-primary btn-block" id="loginBtn" style="padding:12px"><i class="fas fa-right-to-bracket"></i> Sign in</button>
+      <h1 class="auth-brand-title">amnrd<span>.</span>scheduler</h1>
+      <p class="auth-brand-tagline">Room scheduling, reimagined for AMNRD campus.</p>
+      <ul class="auth-features">
+        <li><i class="fas fa-check"></i> Live vacancy grid</li>
+        <li><i class="fas fa-check"></i> Offline room entry</li>
+        <li><i class="fas fa-check"></i> Conflict-free makeup classes</li>
+      </ul>
     </div>
+    <div class="auth-brand-footer">Built for AMNRD · class.amnrd.com</div>
+  </aside>
 
-    <div id="errorMsg" class="login-error"></div>
-    <div id="infoMsg" style="display:none" class="login-success"></div>
+  <main class="auth-form-panel">
+    <div class="auth-form-wrap">
 
-    <div class="login-divider">OR</div>
+      <div class="auth-mobile-brand">
+        <div class="auth-mobile-brand-icon"><i class="fas fa-calendar-check"></i></div>
+        <div>amnrd<span style="color:var(--brand)">.</span>scheduler</div>
+      </div>
 
-    <button class="login-oauth" id="githubBtn"><i class="fab fa-github"></i> Continue with GitHub</button>
-    <button class="btn btn-block" id="magicBtn" style="margin-top:8px"><i class="fas fa-wand-magic-sparkles"></i> Send magic link instead</button>
+      <div class="auth-form-header">
+        <h2 class="auth-form-title">Welcome back</h2>
+        <p class="auth-form-sub">Sign in to continue to your dashboard.</p>
+      </div>
 
-    <div id="sentMsg" style="display:none" class="login-success">
-      <i class="fas fa-circle-check"></i> Magic link sent. Check your inbox.
+      <form id="loginForm" autocomplete="on">
+        <label class="field">
+          <span>Email</span>
+          <input class="input" type="email" id="email" placeholder="you@amnrd.com" autocomplete="email" required>
+        </label>
+
+        <label class="field" style="margin-bottom:6px">
+          <span>Password</span>
+          <div class="pwd-wrap">
+            <input class="input" type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
+            <button type="button" class="pwd-toggle" id="pwdToggle" aria-label="Show password">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </label>
+
+        <div style="text-align:right;margin-bottom:16px">
+          <a href="reset-password.html" style="font-size:var(--text-sm);font-weight:500">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="loginBtn" style="min-height:44px">
+          <i class="fas fa-right-to-bracket"></i> Sign in
+        </button>
+      </form>
+
+      <div id="errorMsg" class="login-error"></div>
+      <div id="infoMsg" class="login-info" style="display:none"></div>
+
+      <div class="auth-divider">or continue with</div>
+
+      <button class="btn btn-block" id="githubBtn" style="min-height:44px">
+        <i class="fab fa-github"></i> GitHub
+      </button>
+
+      <button class="btn btn-ghost btn-block" id="magicBtn" style="margin-top:8px;min-height:44px">
+        <i class="fas fa-wand-magic-sparkles"></i> Email me a magic link
+      </button>
+
+      <div id="sentMsg" class="login-success" style="display:none">
+        <i class="fas fa-circle-check"></i>
+        <div>Magic link sent. Check your inbox and click the link.</div>
+      </div>
+
+      <p class="auth-hint">
+        New accounts start as <strong>student</strong>.<br>
+        Ask an administrator to upgrade your role.
+      </p>
+
     </div>
-
-    <p class="login-hint">New accounts start as <strong>student</strong>. Ask an admin to upgrade your role.</p>
-  </div>
+  </main>
 </div>
 
 <script type="module">
-import { supabase, bootPWA } from './js/core.js';
+import { supabase, bootPWA, initTheme } from './js/core.js';
 
+initTheme();
 bootPWA();
 
 const $ = id => document.getElementById(id);
 const redirectTo = new URL('index.html', location.href).href;
 
+// Post-reset success
 if (new URLSearchParams(location.search).get('reset') === 'success') {
-  $('infoMsg').innerHTML = '<i class="fas fa-circle-check"></i> Password updated. Sign in with your new password.';
-  $('infoMsg').style.display = 'block';
+  $('infoMsg').innerHTML = '<i class="fas fa-circle-check"></i><div>Password updated. Sign in with your new password.</div>';
+  $('infoMsg').style.display = 'flex';
   history.replaceState({}, '', 'login.html');
 }
 
+// Suspended redirect
 if (new URLSearchParams(location.search).get('err') === 'suspended') {
-  $('errorMsg').innerHTML = '<i class="fas fa-circle-exclamation"></i> Your account has been suspended. Contact an administrator.';
-  $('errorMsg').style.display = 'block';
+  showError('Your account has been suspended. Contact an administrator.');
   history.replaceState({}, '', 'login.html');
 }
 
+// Auto-redirect if signed in
 (async () => {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
@@ -93,23 +143,34 @@ if (new URLSearchParams(location.search).get('err') === 'suspended') {
   }
 })();
 
+function showError(msg) {
+  const el = $('errorMsg');
+  el.innerHTML = `<i class="fas fa-circle-exclamation"></i><div>${msg}</div>`;
+  el.classList.add('show');
+}
+function clearError() {
+  $('errorMsg').classList.remove('show');
+  $('infoMsg').style.display = 'none';
+}
+
 $('pwdToggle').onclick = () => {
   const pwd = $('password');
-  pwd.type = pwd.type === 'password' ? 'text' : 'password';
-  $('pwdToggle').innerHTML = pwd.type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+  const isPwd = pwd.type === 'password';
+  pwd.type = isPwd ? 'text' : 'password';
+  $('pwdToggle').innerHTML = isPwd
+    ? '<i class="fas fa-eye-slash"></i>'
+    : '<i class="fas fa-eye"></i>';
+  $('pwdToggle').setAttribute('aria-label', isPwd ? 'Hide password' : 'Show password');
 };
 
-$('loginBtn').onclick = async () => {
+$('loginForm').onsubmit = async (e) => {
+  e.preventDefault();
   const email = $('email').value.trim();
   const password = $('password').value;
-  const errEl = $('errorMsg');
-  const infoEl = $('infoMsg');
-  errEl.style.display = 'none';
-  infoEl.style.display = 'none';
+  clearError();
 
   if (!email || !password) {
-    errEl.innerHTML = '<i class="fas fa-circle-exclamation"></i> Enter email and password';
-    errEl.style.display = 'block';
+    showError('Enter email and password');
     return;
   }
 
@@ -120,8 +181,7 @@ $('loginBtn').onclick = async () => {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    errEl.innerHTML = `<i class="fas fa-circle-exclamation"></i> ${error.message}`;
-    errEl.style.display = 'block';
+    showError(error.message);
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
     return;
@@ -132,8 +192,7 @@ $('loginBtn').onclick = async () => {
 
   if (profile?.is_active === false) {
     await supabase.auth.signOut();
-    errEl.innerHTML = '<i class="fas fa-circle-exclamation"></i> Your account has been suspended. Contact an administrator.';
-    errEl.style.display = 'block';
+    showError('Your account has been suspended. Contact an administrator.');
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
     return;
@@ -144,28 +203,29 @@ $('loginBtn').onclick = async () => {
   location.href = `./${profile?.role ?? 'student'}.html`;
 };
 
-['email', 'password'].forEach(id => $(id).addEventListener('keydown', e => {
-  if (e.key === 'Enter') $('loginBtn').click();
-}));
-
 $('githubBtn').onclick = async () => {
   await supabase.auth.signInWithOAuth({ provider: 'github', options: { redirectTo } });
 };
 
 $('magicBtn').onclick = async () => {
   const email = $('email').value.trim();
-  if (!email) { $('email').focus(); return; }
+  if (!email) {
+    showError('Enter your email address first');
+    $('email').focus();
+    return;
+  }
   const btn = $('magicBtn');
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
+
   const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
+
   if (error) {
-    $('errorMsg').innerHTML = `<i class="fas fa-circle-exclamation"></i> ${error.message}`;
-    $('errorMsg').style.display = 'block';
+    showError(error.message);
     btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> Send magic link instead';
+    btn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> Email me a magic link';
   } else {
-    $('sentMsg').style.display = 'block';
+    $('sentMsg').style.display = 'flex';
     btn.style.display = 'none';
   }
 };

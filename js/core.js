@@ -29,7 +29,7 @@ export function todayISO() {
 }
 
 /* ============================================================
-   HEARTBEAT (throttled — once per 15 min per tab)
+   HEARTBEAT
    ============================================================ */
 const HB_KEY = 'lastHeartbeat';
 const HB_INTERVAL = 15 * 60 * 1000;
@@ -45,7 +45,7 @@ function maybeHeartbeat() {
 }
 
 /* ============================================================
-   AUTH + IDLE
+   AUTH
    ============================================================ */
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 let lastActivity = Date.now();
@@ -97,24 +97,63 @@ export async function signOut() {
 /* ============================================================
    THEME
    ============================================================ */
-export function toggleTheme() {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  if (isDark) {
-    document.documentElement.removeAttribute('data-theme');
-    try { localStorage.setItem('theme', 'light'); } catch {}
-  } else {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    try { localStorage.setItem('theme', 'dark'); } catch {}
-  }
-  updateThemeIcon();
+const THEME_KEY = 'theme';
+
+export function getCurrentTheme() {
+  return document.documentElement.getAttribute('data-theme') || 'light';
 }
 
-function updateThemeIcon() {
-  const btn = document.getElementById('themeBtn');
-  if (!btn) return;
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
-  btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+export function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  updateThemeIcons();
+}
+
+export function setTheme(theme, persist = true) {
+  applyTheme(theme);
+  if (persist) {
+    try { localStorage.setItem(THEME_KEY, theme); } catch {}
+  }
+}
+
+export function toggleTheme() {
+  const current = getCurrentTheme();
+  const next = current === 'dark' ? 'light' : 'dark';
+  setTheme(next, true);
+}
+
+function updateThemeIcons() {
+  const isDark = getCurrentTheme() === 'dark';
+  document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+    btn.innerHTML = isDark
+      ? '<i class="fas fa-sun"></i>'
+      : '<i class="fas fa-moon"></i>';
+    btn.setAttribute('title', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    btn.setAttribute('aria-label', btn.getAttribute('title'));
+  });
+  // Update avatar menu theme item if present
+  const menuTheme = document.querySelector('[data-theme-menu-item]');
+  if (menuTheme) {
+    menuTheme.innerHTML = isDark
+      ? '<i class="fas fa-sun"></i> Light mode'
+      : '<i class="fas fa-moon"></i> Dark mode';
+  }
+}
+
+export function initTheme() {
+  const stored = localStorage.getItem(THEME_KEY);
+  const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = stored || (systemDark ? 'dark' : 'light');
+  applyTheme(theme);
+
+  // Listen for system preference changes (only if user hasn't overridden)
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const onChange = (e) => {
+    if (!localStorage.getItem(THEME_KEY)) {
+      applyTheme(e.matches ? 'dark' : 'light');
+    }
+  };
+  if (mq.addEventListener) mq.addEventListener('change', onChange);
+  else if (mq.addListener) mq.addListener(onChange);
 }
 
 /* ============================================================
@@ -135,8 +174,9 @@ export function bootPWA() {
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredInstallPrompt = e;
-    const btn = document.getElementById('installBtn');
-    if (btn) btn.style.display = 'inline-flex';
+    document.querySelectorAll('[data-install-btn]').forEach(btn => {
+      btn.style.display = 'inline-flex';
+    });
   });
 }
 
@@ -145,77 +185,196 @@ export async function installPWA() {
   deferredInstallPrompt.prompt();
   const { outcome } = await deferredInstallPrompt.userChoice;
   deferredInstallPrompt = null;
-  const btn = document.getElementById('installBtn');
-  if (btn) btn.style.display = 'none';
+  document.querySelectorAll('[data-install-btn]').forEach(btn => {
+    btn.style.display = 'none';
+  });
   if (outcome === 'accepted') toast('Installed — check your home screen', 'success');
 }
 
 /* ============================================================
-   NAV
+   NAV DATA
    ============================================================ */
-export function renderNav(profile) {
-  const el = document.getElementById('nav');
-  if (!el || !profile) return;
-
-  const links = [];
+function getNavItems(profile) {
   if (profile.role === 'admin') {
-    links.push(
+    return [
       { href: 'admin.html',          label: 'Dashboard',  icon: 'fa-gauge-high' },
       { href: 'admin-add.html',      label: 'Quick add',  icon: 'fa-bolt' },
       { href: 'admin-rooms.html',    label: 'Rooms',      icon: 'fa-door-open' },
       { href: 'admin-bookings.html', label: 'Bookings',   icon: 'fa-calendar-check' },
       { href: 'admin-users.html',    label: 'Users',      icon: 'fa-users' },
       { href: 'admin-settings.html', label: 'Settings',   icon: 'fa-gear' },
-      { href: 'student.html',        label: 'Free rooms', icon: 'fa-building' }
-    );
-  } else if (profile.role === 'faculty') {
-    links.push(
-      { href: 'faculty.html',        label: 'Dashboard',    icon: 'fa-gauge-high' },
-      { href: 'faculty-makeup.html', label: 'Makeup class', icon: 'fa-chalkboard-user' },
-      { href: 'student.html',        label: 'Free rooms',   icon: 'fa-building' }
-    );
-  } else {
-    links.push({ href: 'student.html', label: 'Free rooms', icon: 'fa-building' });
+      { href: 'student.html',        label: 'Free rooms', icon: 'fa-building' },
+    ];
   }
+  if (profile.role === 'faculty') {
+    return [
+      { href: 'faculty.html',        label: 'Dashboard',    icon: 'fa-gauge-high' },
+      { href: 'faculty-makeup.html', label: 'Makeup',       icon: 'fa-chalkboard-user' },
+      { href: 'student.html',        label: 'Free rooms',   icon: 'fa-building' },
+      { href: 'profile.html',        label: 'Profile',      icon: 'fa-user' },
+    ];
+  }
+  return [
+    { href: 'student.html', label: 'Free rooms', icon: 'fa-building' },
+    { href: 'profile.html', label: 'Profile',    icon: 'fa-user' },
+  ];
+}
 
-  const initial = ((profile.full_name || profile.email || '?').trim()[0] || '?').toUpperCase();
+/* ============================================================
+   NAV RENDER
+   ============================================================ */
+export function renderNav(profile) {
+  const el = document.getElementById('nav');
+  if (!el || !profile) return;
+
+  initTheme();
+
+  const items = getNavItems(profile);
   const current = location.pathname.split('/').pop() || 'index.html';
-  const roleIcon = profile.role === 'admin' ? 'shield-halved' : profile.role === 'faculty' ? 'chalkboard-user' : 'graduation-cap';
+  const initial = ((profile.full_name || profile.email || '?').trim()[0] || '?').toUpperCase();
+  const roleIcon = profile.role === 'admin' ? 'shield-halved'
+                 : profile.role === 'faculty' ? 'chalkboard-user'
+                 : 'graduation-cap';
 
-  el.innerHTML = `
-    <nav class="nav">
-      <a class="nav-brand" href="index.html">amnrd<span>.</span>scheduler</a>
-      <div class="nav-links">
-        ${links.map(l => `
-          <a href="${l.href}" class="nav-link ${current === l.href ? 'active' : ''}">
-            <i class="fas ${l.icon}"></i>${l.label}
-          </a>`).join('')}
+  // Mobile bottom nav: up to 4 items, then More if needed
+  const bottomItems = items.slice(0, 4);
+  const moreItems = items.slice(4);
+  const hasMore = moreItems.length > 0;
+
+  const navHTML = `
+    <div class="nav">
+      <div class="nav-inner">
+        <a href="index.html" class="nav-brand">amnrd<span class="nav-brand-dot">.</span>scheduler</a>
+
+        <div class="nav-links">
+          ${items.map(l => `
+            <a href="${l.href}" class="nav-link ${current === l.href ? 'active' : ''}">
+              <i class="fas ${l.icon}"></i>${l.label}
+            </a>
+          `).join('')}
+        </div>
+
+        <div class="nav-actions">
+          <button class="btn btn-sm" data-install-btn style="display:none" onclick="window.__installPWA && window.__installPWA()">
+            <i class="fas fa-download"></i> Install
+          </button>
+          <button class="nav-icon-btn" data-theme-toggle aria-label="Toggle theme"></button>
+          <button class="nav-avatar-btn" id="avatarBtn" aria-label="Account menu">
+            <span class="avatar-sm">${escapeHtml(initial)}</span>
+          </button>
+        </div>
       </div>
-      <div class="nav-right">
-        <button class="btn btn-sm" id="installBtn" style="display:none">
-          <i class="fas fa-download"></i> Install
-        </button>
-        <a class="nav-avatar-btn" href="profile.html" title="Profile — ${escapeHtml(profile.email)}">
-          <span class="avatar-sm">${escapeHtml(initial)}</span>
+
+      <div class="avatar-menu" id="avatarMenu">
+        <div class="avatar-menu-header">
+          <div class="avatar-menu-name">${escapeHtml(profile.full_name || profile.email)}</div>
+          <div class="avatar-menu-email">${escapeHtml(profile.email)}</div>
+          <div class="avatar-menu-role">
+            <span class="badge badge-${profile.role}">
+              <i class="fas fa-${roleIcon}"></i>${profile.role}
+            </span>
+          </div>
+        </div>
+        <div class="avatar-menu-divider"></div>
+        <a href="profile.html" class="avatar-menu-item">
+          <i class="fas fa-user"></i> Profile
         </a>
-        <span class="badge badge-${profile.role}" title="${profile.role}">
-          <i class="fas fa-${roleIcon}"></i>
-        </span>
-        <button class="nav-icon-btn" id="themeBtn" aria-label="Toggle theme"></button>
-        <button class="nav-logout" id="logoutBtn">
-          <i class="fas fa-right-from-bracket"></i><span>Sign out</span>
+        <button class="avatar-menu-item" data-theme-menu-item onclick="window.__toggleTheme && window.__toggleTheme()"></button>
+        ${profile.role === 'admin' ? `
+          <a href="admin-users.html" class="avatar-menu-item">
+            <i class="fas fa-users"></i> Manage users
+          </a>
+          <a href="admin-settings.html" class="avatar-menu-item">
+            <i class="fas fa-gear"></i> Settings
+          </a>
+        ` : ''}
+        <div class="avatar-menu-divider"></div>
+        <button class="avatar-menu-item avatar-menu-danger" id="logoutBtn">
+          <i class="fas fa-right-from-bracket"></i> Sign out
         </button>
+      </div>
+    </div>
+
+    <nav class="mobile-bottom-nav">
+      <div class="mobile-bottom-nav-items">
+        ${bottomItems.map(l => `
+          <a href="${l.href}" class="mobile-nav-item ${current === l.href ? 'active' : ''}">
+            <i class="fas ${l.icon}"></i>
+            <span>${l.label}</span>
+          </a>
+        `).join('')}
+        ${hasMore ? `
+          <button class="mobile-nav-item" id="moreSheetBtn">
+            <i class="fas fa-ellipsis"></i>
+            <span>More</span>
+          </button>
+        ` : ''}
       </div>
     </nav>
+
+    <div class="more-sheet-backdrop" id="moreSheetBackdrop"></div>
+    <div class="more-sheet" id="moreSheet">
+      <div class="more-sheet-handle"></div>
+      ${moreItems.map(l => `
+        <a href="${l.href}" class="more-sheet-item">
+          <i class="fas ${l.icon}"></i>${l.label}
+        </a>
+      `).join('')}
+      <a href="profile.html" class="more-sheet-item">
+        <i class="fas fa-user"></i>Profile
+      </a>
+      <button class="more-sheet-item" id="moreLogoutBtn" style="color:var(--danger)">
+        <i class="fas fa-right-from-bracket" style="color:var(--danger)"></i>Sign out
+      </button>
+    </div>
   `;
-  document.getElementById('logoutBtn').onclick = signOut;
-  const themeBtn = document.getElementById('themeBtn');
-  if (themeBtn) { updateThemeIcon(); themeBtn.onclick = toggleTheme; }
-  const installBtn = document.getElementById('installBtn');
-  if (installBtn && deferredInstallPrompt) {
-    installBtn.style.display = 'inline-flex';
-    installBtn.onclick = installPWA;
+
+  el.innerHTML = navHTML;
+
+  // Wire theme toggle
+  document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+    btn.onclick = toggleTheme;
+  });
+  updateThemeIcons();
+
+  // Wire avatar dropdown
+  const avatarBtn = document.getElementById('avatarBtn');
+  const avatarMenu = document.getElementById('avatarMenu');
+  if (avatarBtn && avatarMenu) {
+    avatarBtn.onclick = (e) => {
+      e.stopPropagation();
+      avatarMenu.classList.toggle('open');
+    };
+    document.addEventListener('click', (e) => {
+      if (!avatarMenu.contains(e.target) && !avatarBtn.contains(e.target)) {
+        avatarMenu.classList.remove('open');
+      }
+    });
   }
+
+  // Wire logout
+  document.getElementById('logoutBtn')?.addEventListener('click', signOut);
+  document.getElementById('moreLogoutBtn')?.addEventListener('click', signOut);
+
+  // Wire more sheet
+  const moreBtn = document.getElementById('moreSheetBtn');
+  const moreSheet = document.getElementById('moreSheet');
+  const moreBackdrop = document.getElementById('moreSheetBackdrop');
+  if (moreBtn && moreSheet) {
+    moreBtn.onclick = () => {
+      moreBackdrop.classList.add('open');
+      moreSheet.classList.add('open');
+    };
+    moreBackdrop.onclick = () => {
+      moreBackdrop.classList.remove('open');
+      moreSheet.classList.remove('open');
+    };
+  }
+
+  // Expose globally
+  window.__toggleTheme = toggleTheme;
+  window.__installPWA = installPWA;
+
   bootPWA();
 }
 
@@ -223,7 +382,6 @@ export function renderNav(profile) {
    OFFLINE
    ============================================================ */
 export function isOnline() { return navigator.onLine; }
-
 export function onNetworkChange(cb) {
   window.addEventListener('online', () => cb(true));
   window.addEventListener('offline', () => cb(false));
@@ -281,7 +439,7 @@ export async function syncPendingBookings() {
    ============================================================ */
 export function deriveRoomId(building, floor, roomNumber, suffix) {
   const floorDigit = String(floor);
-  const rn  = String(roomNumber).trim().padStart(2, '0');
+  const rn = String(roomNumber).trim().padStart(2, '0');
   const sfx = String(suffix || '').trim().toUpperCase();
   const room_id = `${building}-${floorDigit}${rn}${sfx}`;
   const display_name = `${building}-${floorDigit}${rn}${sfx ? ' ' + sfx : ''}`;
@@ -295,7 +453,11 @@ export function escapeHtml(s) {
 
 export function toast(msg, kind = 'info') {
   let el = document.querySelector('.toast');
-  if (!el) { el = document.createElement('div'); el.className = 'toast'; document.body.appendChild(el); }
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'toast';
+    document.body.appendChild(el);
+  }
   el.className = `toast toast-${kind} show`;
   el.textContent = msg;
   clearTimeout(el._t);
@@ -313,5 +475,7 @@ export function parseTimeOnDate(dateStr, timeStr) {
 export function formatDateTime(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
-  return d.toLocaleDateString() + ' · ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+    + ' · '
+    + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }

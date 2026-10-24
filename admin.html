@@ -7,48 +7,92 @@
 <script>
 (function(){
   try {
-    var t = localStorage.getItem('theme');
-    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
+    var stored = localStorage.getItem('theme');
+    var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', stored || (systemDark ? 'dark' : 'light'));
   } catch (e) {}
 })();
 </script>
-<meta name="theme-color" content="#F97316">
+<meta name="theme-color" content="#EA580C">
 <link rel="manifest" href="/manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div id="nav"></div>
+
 <div class="container">
-  <h1 class="page-title"><i class="fas fa-gauge-high" style="color:var(--orange);margin-right:6px"></i>Admin dashboard</h1>
-  <p class="page-subtitle">Overview of the scheduler.</p>
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fas fa-gauge-high"></i> Dashboard</h1>
+      <p class="page-subtitle">Overview of the campus scheduler.</p>
+    </div>
+    <div class="row">
+      <a href="admin-add.html" class="btn btn-primary">
+        <i class="fas fa-bolt"></i> Quick add
+      </a>
+    </div>
+  </div>
 
-  <div class="stats" id="stats"></div>
+  <div class="stats" id="stats">
+    <div class="stat"><div class="skeleton" style="width:60%;height:12px;margin-bottom:12px"></div><div class="skeleton" style="width:40%;height:32px;margin-bottom:8px"></div><div class="skeleton" style="width:70%;height:10px"></div></div>
+    <div class="stat"><div class="skeleton" style="width:60%;height:12px;margin-bottom:12px"></div><div class="skeleton" style="width:40%;height:32px;margin-bottom:8px"></div><div class="skeleton" style="width:70%;height:10px"></div></div>
+    <div class="stat"><div class="skeleton" style="width:60%;height:12px;margin-bottom:12px"></div><div class="skeleton" style="width:40%;height:32px;margin-bottom:8px"></div><div class="skeleton" style="width:70%;height:10px"></div></div>
+    <div class="stat"><div class="skeleton" style="width:60%;height:12px;margin-bottom:12px"></div><div class="skeleton" style="width:40%;height:32px;margin-bottom:8px"></div><div class="skeleton" style="width:70%;height:10px"></div></div>
+  </div>
 
-  <div class="mt-6" style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+  <h2 class="card-title mt-8" style="margin-bottom:16px"><i class="fas fa-bolt"></i> Quick actions</h2>
+  <div class="grid-auto">
     <a href="admin-add.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-bolt"></i></span>
-      <div class="ac-body"><div class="ac-title">Quick add rooms</div><div class="ac-sub">Fast offline entry while walking</div></div>
+      <div class="ac-body">
+        <div class="ac-title">Quick add rooms</div>
+        <div class="ac-sub">Fast offline entry while walking floors</div>
+      </div>
     </a>
     <a href="admin-bookings.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-calendar-check"></i></span>
-      <div class="ac-body"><div class="ac-title">Review bookings</div><div class="ac-sub">Approve or reject requests</div></div>
+      <div class="ac-body">
+        <div class="ac-title">Review bookings</div>
+        <div class="ac-sub">Approve or reject makeup requests</div>
+      </div>
     </a>
     <a href="admin-rooms.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-door-open"></i></span>
-      <div class="ac-body"><div class="ac-title">Manage rooms</div><div class="ac-sub">Add, edit, export rooms</div></div>
+      <div class="ac-body">
+        <div class="ac-title">Manage rooms</div>
+        <div class="ac-sub">Add, edit, or export rooms</div>
+      </div>
+    </a>
+    <a href="admin-users.html" class="action-card">
+      <span class="ac-icon"><i class="fas fa-users"></i></span>
+      <div class="ac-body">
+        <div class="ac-title">Users</div>
+        <div class="ac-sub">Roles, suspension, password resets</div>
+      </div>
     </a>
     <a href="admin-settings.html" class="action-card">
       <span class="ac-icon"><i class="fas fa-gear"></i></span>
-      <div class="ac-body"><div class="ac-title">Settings</div><div class="ac-sub">Buildings, floors, types, slots</div></div>
+      <div class="ac-body">
+        <div class="ac-title">Settings</div>
+        <div class="ac-sub">Buildings, floors, types, time slots</div>
+      </div>
+    </a>
+    <a href="student.html" class="action-card">
+      <span class="ac-icon"><i class="fas fa-building"></i></span>
+      <div class="ac-body">
+        <div class="ac-title">Free rooms view</div>
+        <div class="ac-sub">See what students see, live</div>
+      </div>
     </a>
   </div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, todayISO } from './js/core.js';
+import { requireRole, renderNav, supabase, todayISO, escapeHtml } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
@@ -64,11 +108,31 @@ import { requireRole, renderNav, supabase, todayISO } from './js/core.js';
   ]);
 
   document.getElementById('stats').innerHTML = `
-    <a class="stat" href="admin-rooms.html"><i class="fas fa-door-open stat-icon"></i><div class="stat-value">${rooms.count ?? 0}</div><div class="stat-label">Rooms</div></a>
-    <a class="stat" href="admin-bookings.html"><i class="fas fa-hourglass-half stat-icon"></i><div class="stat-value">${pending.count ?? 0}</div><div class="stat-label">Pending</div></a>
-    <a class="stat" href="admin-bookings.html"><i class="fas fa-calendar-day stat-icon"></i><div class="stat-value">${todayBookings.count ?? 0}</div><div class="stat-label">Today</div></a>
-    <a class="stat" href="admin-users.html"><i class="fas fa-users stat-icon"></i><div class="stat-value">${users.count ?? 0}</div><div class="stat-label">Users</div></a>
-    <a class="stat" href="admin-settings.html"><i class="fas fa-building stat-icon"></i><div class="stat-value">${buildings.count ?? 0}</div><div class="stat-label">Buildings</div></a>
+    <a class="stat" href="admin-rooms.html">
+      <i class="fas fa-door-open stat-icon"></i>
+      <div class="stat-value">${rooms.count ?? 0}</div>
+      <div class="stat-label">Rooms</div>
+    </a>
+    <a class="stat" href="admin-bookings.html">
+      <i class="fas fa-hourglass-half stat-icon"></i>
+      <div class="stat-value">${pending.count ?? 0}</div>
+      <div class="stat-label">Pending</div>
+    </a>
+    <a class="stat" href="admin-bookings.html">
+      <i class="fas fa-calendar-day stat-icon"></i>
+      <div class="stat-value">${todayBookings.count ?? 0}</div>
+      <div class="stat-label">Today</div>
+    </a>
+    <a class="stat" href="admin-users.html">
+      <i class="fas fa-users stat-icon"></i>
+      <div class="stat-value">${users.count ?? 0}</div>
+      <div class="stat-label">Users</div>
+    </a>
+    <a class="stat" href="admin-settings.html">
+      <i class="fas fa-building stat-icon"></i>
+      <div class="stat-value">${buildings.count ?? 0}</div>
+      <div class="stat-label">Buildings</div>
+    </a>
   `;
 })();
 </script>
