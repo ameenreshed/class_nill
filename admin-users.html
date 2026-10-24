@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Users · amnrd.scheduler</title>
-<meta name="theme-color" content="#F97316">
-<link rel="manifest" href="/manifest.json">
 <script>
 (function(){
   try {
@@ -16,6 +14,8 @@
   } catch (e) {}
 })();
 </script>
+<meta name="theme-color" content="#F97316">
+<link rel="manifest" href="/manifest.json">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -23,77 +23,401 @@
 <div id="nav"></div>
 <div class="container">
   <h1 class="page-title"><i class="fas fa-users" style="color:var(--orange);margin-right:6px"></i>Users</h1>
-  <p class="page-subtitle">Change roles below — takes effect immediately.</p>
+  <p class="page-subtitle">Manage roles, permissions and access.</p>
 
-  <input class="input mt-6" id="searchInput" placeholder="Search by name or email…">
+  <div class="stats" id="stats"></div>
 
-  <div class="table-wrap">
+  <div class="row mt-6" style="gap:8px">
+    <div class="chips" id="filterChips">
+      <button class="chip on" data-filter="all">All</button>
+      <button class="chip" data-filter="admin">Admins</button>
+      <button class="chip" data-filter="faculty">Faculty</button>
+      <button class="chip" data-filter="student">Students</button>
+      <button class="chip" data-filter="active">Active</button>
+      <button class="chip" data-filter="suspended">Suspended</button>
+    </div>
+    <input class="input" id="searchInput" placeholder="Search name or email…" style="max-width:280px;margin-left:auto">
+  </div>
+
+  <div class="card mt-6" id="editCard" style="display:none">
+    <h2 style="font-size:14px" id="editTitle">Edit user</h2>
+    <div class="mt-4" style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+      <label class="field"><span>Full name</span>
+        <input class="input" id="eName">
+      </label>
+      <label class="field"><span>Email (read-only)</span>
+        <input class="input" id="eEmail" disabled>
+      </label>
+      <label class="field"><span>Department</span>
+        <input class="input" id="eDept">
+      </label>
+      <label class="field"><span>Phone</span>
+        <input class="input" id="ePhone" type="tel">
+      </label>
+      <label class="field"><span>Role</span>
+        <select class="input" id="eRole">
+          <option value="student">student</option>
+          <option value="faculty">faculty</option>
+          <option value="admin">admin</option>
+        </select>
+      </label>
+      <label class="field"><span>Status</span>
+        <select class="input" id="eStatus">
+          <option value="true">Active</option>
+          <option value="false">Suspended</option>
+        </select>
+      </label>
+    </div>
+    <div class="row mt-2">
+      <button class="btn btn-success" id="saveUserBtn"><i class="fas fa-check"></i> Save changes</button>
+      <button class="btn btn-ghost" id="cancelEditBtn"><i class="fas fa-xmark"></i> Cancel</button>
+    </div>
+  </div>
+
+  <div class="table-wrap user-table-desktop">
     <table>
       <thead>
-        <tr><th>User</th><th>Role</th><th>Department</th></tr>
+        <tr>
+          <th>User</th>
+          <th>Role</th>
+          <th>Department</th>
+          <th>Status</th>
+          <th>Last active</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
       </thead>
       <tbody id="usersBody"></tbody>
     </table>
   </div>
+
+  <div id="usersMobile" style="display:none"></div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.js';
+import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
   if (!auth) return;
   renderNav(auth.profile);
 
+  const $ = id => document.getElementById(id);
   let users = [];
+  let filter = 'all';
+  let search = '';
+  let editingUserId = null;
 
+  // ---- Load ----
   async function load() {
     const { data } = await supabase
-      .from('profiles').select('*').order('created_at', { ascending: false });
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
     users = data ?? [];
     render();
+    renderStats();
   }
 
-  function render() {
-    const q = document.getElementById('searchInput').value.toLowerCase();
-    const filtered = users.filter(u =>
-      !q ||
-      u.email.toLowerCase().includes(q) ||
-      (u.full_name || '').toLowerCase().includes(q)
-    );
+  function renderStats() {
+    const total = users.length;
+    const admins = users.filter(u => u.role === 'admin').length;
+    const faculty = users.filter(u => u.role === 'faculty').length;
+    const students = users.filter(u => u.role === 'student').length;
+    const suspended = users.filter(u => u.is_active === false).length;
 
-    document.getElementById('usersBody').innerHTML = filtered.length
-      ? filtered.map(u => `
-        <tr>
-          <td>
-            <div style="color:var(--text)">${escapeHtml(u.full_name || u.email)}</div>
-            <div style="font-size:11px;color:var(--dim)">${escapeHtml(u.email)}</div>
-          </td>
-          <td>
-            <select class="input" data-user="${escapeHtml(u.id)}" style="padding:4px 8px;width:auto">
-              <option value="admin"   ${u.role === 'admin'   ? 'selected' : ''}>admin</option>
-              <option value="faculty" ${u.role === 'faculty' ? 'selected' : ''}>faculty</option>
-              <option value="student" ${u.role === 'student' ? 'selected' : ''}>student</option>
-            </select>
-          </td>
-          <td class="muted">${escapeHtml(u.department || '—')}</td>
-        </tr>
-      `).join('')
-      : '<tr><td colspan="3" class="empty"><i class="fas fa-user-slash"></i>No users matched.</td></tr>';
+    $('stats').innerHTML = `
+      <div class="stat"><i class="fas fa-users stat-icon"></i><div class="stat-value">${total}</div><div class="stat-label">Total users</div></div>
+      <div class="stat"><i class="fas fa-shield-halved stat-icon"></i><div class="stat-value">${admins}</div><div class="stat-label">Admins</div></div>
+      <div class="stat"><i class="fas fa-chalkboard-user stat-icon"></i><div class="stat-value">${faculty}</div><div class="stat-label">Faculty</div></div>
+      <div class="stat"><i class="fas fa-graduation-cap stat-icon"></i><div class="stat-value">${students}</div><div class="stat-label">Students</div></div>
+      <div class="stat"><i class="fas fa-ban stat-icon"></i><div class="stat-value">${suspended}</div><div class="stat-label">Suspended</div></div>
+    `;
+  }
 
-    document.querySelectorAll('[data-user]').forEach(sel => {
-      sel.onchange = async () => {
-        const { error } = await supabase
-          .from('profiles').update({ role: sel.value }).eq('id', sel.dataset.user);
-        if (error) { toast(error.message, 'error'); return; }
-        toast(`Role updated → ${sel.value}`, 'success');
-        const u = users.find(x => x.id === sel.dataset.user);
-        if (u) u.role = sel.value;
-      };
+  function getFiltered() {
+    return users.filter(u => {
+      if (filter === 'admin' || filter === 'faculty' || filter === 'student') {
+        if (u.role !== filter) return false;
+      } else if (filter === 'active') {
+        if (u.is_active === false) return false;
+      } else if (filter === 'suspended') {
+        if (u.is_active !== false) return false;
+      }
+      if (search) {
+        const q = search.toLowerCase();
+        if (!u.email.toLowerCase().includes(q) && !(u.full_name || '').toLowerCase().includes(q)) return false;
+      }
+      return true;
     });
   }
 
-  document.getElementById('searchInput').oninput = render;
+  function render() {
+    const filtered = getFiltered();
+
+    if (!filtered.length) {
+      const empty = '<tr><td colspan="6" class="empty"><i class="fas fa-user-slash"></i>No users match</td></tr>';
+      $('usersBody').innerHTML = empty;
+      $('usersMobile').innerHTML = '<div class="empty"><i class="fas fa-user-slash"></i>No users match</div>';
+      return;
+    }
+
+    // Desktop table
+    $('usersBody').innerHTML = filtered.map(u => {
+      const initial = ((u.full_name || u.email || '?').trim()[0] || '?').toUpperCase();
+      const isSusp = u.is_active === false;
+      return `
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="avatar-sm">${escapeHtml(initial)}</span>
+              <div style="min-width:0">
+                <div style="color:var(--text);font-weight:500">${escapeHtml(u.full_name || u.email)}</div>
+                <div style="font-size:11px;color:var(--dim)">${escapeHtml(u.email)}</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="badge badge-${u.role}"><i class="fas fa-${u.role === 'admin' ? 'shield-halved' : u.role === 'faculty' ? 'chalkboard-user' : 'graduation-cap'}"></i>${u.role}</span></td>
+          <td class="dim">${escapeHtml(u.department || '—')}</td>
+          <td>
+            ${isSusp
+              ? '<span class="badge badge-suspended"><i class="fas fa-ban"></i>suspended</span>'
+              : '<span class="badge badge-approved"><i class="fas fa-check"></i>active</span>'}
+          </td>
+          <td class="dim" style="font-size:11px">${formatDateTime(u.last_active_at)}</td>
+          <td style="text-align:right;white-space:nowrap">
+            <button class="btn btn-sm" data-action="edit" data-id="${escapeHtml(u.id)}" title="Edit"><i class="fas fa-pen"></i></button>
+            <button class="btn btn-sm ${isSusp ? 'btn-success' : 'btn-danger'}" data-action="toggle" data-id="${escapeHtml(u.id)}" title="${isSusp ? 'Reactivate' : 'Suspend'}">
+              <i class="fas fa-${isSusp ? 'play' : 'ban'}"></i>
+            </button>
+            <button class="btn btn-sm" data-action="reset" data-id="${escapeHtml(u.id)}" title="Send password reset"><i class="fas fa-key"></i></button>
+            <button class="btn btn-sm" data-action="activity" data-id="${escapeHtml(u.id)}" title="View activity"><i class="fas fa-history"></i></button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // Mobile cards
+    $('usersMobile').innerHTML = filtered.map(u => {
+      const initial = ((u.full_name || u.email || '?').trim()[0] || '?').toUpperCase();
+      const isSusp = u.is_active === false;
+      return `
+        <div class="user-card-mobile">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <span class="avatar-sm">${escapeHtml(initial)}</span>
+            <div style="min-width:0;flex:1">
+              <div style="color:var(--text);font-weight:500">${escapeHtml(u.full_name || u.email)}</div>
+              <div style="font-size:11px;color:var(--dim)">${escapeHtml(u.email)}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+            <span class="badge badge-${u.role}"><i class="fas fa-${u.role === 'admin' ? 'shield-halved' : u.role === 'faculty' ? 'chalkboard-user' : 'graduation-cap'}"></i>${u.role}</span>
+            ${isSusp
+              ? '<span class="badge badge-suspended"><i class="fas fa-ban"></i>suspended</span>'
+              : '<span class="badge badge-approved"><i class="fas fa-check"></i>active</span>'}
+            ${u.department ? `<span class="badge badge-gray">${escapeHtml(u.department)}</span>` : ''}
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-sm" data-action="edit" data-id="${escapeHtml(u.id)}"><i class="fas fa-pen"></i> Edit</button>
+            <button class="btn btn-sm ${isSusp ? 'btn-success' : 'btn-danger'}" data-action="toggle" data-id="${escapeHtml(u.id)}">
+              <i class="fas fa-${isSusp ? 'play' : 'ban'}"></i> ${isSusp ? 'Activate' : 'Suspend'}
+            </button>
+            <button class="btn btn-sm" data-action="reset" data-id="${escapeHtml(u.id)}"><i class="fas fa-key"></i></button>
+            <button class="btn btn-sm" data-action="activity" data-id="${escapeHtml(u.id)}"><i class="fas fa-history"></i></button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.querySelectorAll('[data-action]').forEach(btn => {
+      btn.onclick = () => handleAction(btn.dataset.action, btn.dataset.id);
+    });
+  }
+
+  async function handleAction(action, userId) {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+
+    if (action === 'edit') return openEdit(user);
+    if (action === 'toggle') return toggleSuspend(user);
+    if (action === 'reset') return resetPassword(user);
+    if (action === 'activity') return showActivity(user);
+  }
+
+  // ---- Edit ----
+  function openEdit(user) {
+    editingUserId = user.id;
+    $('editTitle').textContent = `Edit: ${user.email}`;
+    $('eName').value = user.full_name || '';
+    $('eEmail').value = user.email;
+    $('eDept').value = user.department || '';
+    $('ePhone').value = user.phone || '';
+    $('eRole').value = user.role;
+    $('eStatus').value = user.is_active === false ? 'false' : 'true';
+    $('editCard').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  $('cancelEditBtn').onclick = () => {
+    $('editCard').style.display = 'none';
+    editingUserId = null;
+  };
+
+  $('saveUserBtn').onclick = async () => {
+    if (!editingUserId) return;
+    const user = users.find(u => u.id === editingUserId);
+    if (!user) return;
+
+    const patch = {
+      full_name: $('eName').value.trim() || null,
+      department: $('eDept').value.trim() || null,
+      phone: $('ePhone').value.trim() || null,
+      role: $('eRole').value,
+    };
+
+    const newActive = $('eStatus').value === 'true';
+    const wasActive = user.is_active !== false;
+
+    if (newActive !== wasActive) {
+      patch.is_active = newActive;
+      patch.suspended_at = newActive ? null : new Date().toISOString();
+      patch.suspended_reason = newActive ? null : 'Suspended by admin';
+    }
+
+    // Prevent admin from demoting/suspending themselves
+    if (user.id === auth.profile.id) {
+      if (patch.role !== 'admin') { toast('You cannot change your own role', 'error'); return; }
+      if (patch.is_active === false) { toast('You cannot suspend yourself', 'error'); return; }
+    }
+
+    const btn = $('saveUserBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+
+    const { error } = await supabase.from('profiles').update(patch).eq('id', editingUserId);
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check"></i> Save changes';
+
+    if (error) { toast(error.message, 'error'); return; }
+
+    toast('User updated', 'success');
+    $('editCard').style.display = 'none';
+    editingUserId = null;
+    await load();
+  };
+
+  // ---- Suspend/activate ----
+  async function toggleSuspend(user) {
+    const isSusp = user.is_active === false;
+    if (user.id === auth.profile.id) { toast('You cannot suspend yourself', 'error'); return; }
+
+    if (isSusp) {
+      if (!confirm(`Reactivate ${user.email}?`)) return;
+      const { error } = await supabase.from('profiles').update({
+        is_active: true,
+        suspended_at: null,
+        suspended_reason: null,
+      }).eq('id', user.id);
+      if (error) { toast(error.message, 'error'); return; }
+      toast('User reactivated', 'success');
+    } else {
+      const reason = prompt(`Suspend ${user.email}?\n\nReason (optional):`, '');
+      if (reason === null) return;
+      const { error } = await supabase.from('profiles').update({
+        is_active: false,
+        suspended_at: new Date().toISOString(),
+        suspended_reason: reason || 'Suspended by admin',
+      }).eq('id', user.id);
+      if (error) { toast(error.message, 'error'); return; }
+      toast('User suspended', 'success');
+    }
+    await load();
+  }
+
+  // ---- Reset password ----
+  async function resetPassword(user) {
+    if (!confirm(`Send a password reset email to ${user.email}?\n\nThey will receive a link to set a new password.`)) return;
+    const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+      redirectTo: `${location.origin}/login.html`,
+    });
+    if (error) { toast(error.message, 'error'); return; }
+    toast('Reset email sent', 'success');
+  }
+
+  // ---- Activity per user ----
+  async function showActivity(user) {
+    const { data: logs } = await supabase
+      .from('activity_log')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    const html = logs?.length
+      ? `
+        <div class="card mt-4">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3 style="font-size:14px">Activity: ${escapeHtml(user.full_name || user.email)}</h3>
+            <button class="btn btn-sm btn-ghost" id="closeActivityBtn"><i class="fas fa-xmark"></i></button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            ${logs.map(l => `
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 12px;border-radius:6px;background:var(--panel2);font-size:12px">
+                <div style="display:flex;align-items:center;gap:8px;min-width:0">
+                  <i class="fas ${
+                    l.action === 'auth.login' ? 'fa-right-to-bracket' :
+                    l.action?.startsWith('user.') ? 'fa-user-pen' :
+                    l.action?.startsWith('room.') ? 'fa-door-open' :
+                    l.action?.startsWith('booking.') ? 'fa-calendar-check' :
+                    'fa-circle'
+                  }" style="color:var(--orange);font-size:11px"></i>
+                  <span class="mono" style="color:var(--text)">${escapeHtml(l.action)}</span>
+                  ${l.entity_id ? `<span class="dim">· ${escapeHtml(l.entity_id)}</span>` : ''}
+                </div>
+                <span class="dim" style="font-size:11px;white-space:nowrap">${new Date(l.created_at).toLocaleString()}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `
+      : '<div class="card mt-4"><div class="empty" style="padding:20px"><i class="fas fa-inbox"></i>No activity for this user</div></div>';
+
+    // Remove old activity panel if present
+    const existing = document.getElementById('activityPanel');
+    if (existing) existing.remove();
+
+    const div = document.createElement('div');
+    div.id = 'activityPanel';
+    div.innerHTML = html;
+    $('editCard').parentNode.insertBefore(div, $('editCard').nextSibling);
+
+    document.getElementById('closeActivityBtn').onclick = () => div.remove();
+    div.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ---- Filters ----
+  document.querySelectorAll('#filterChips [data-filter]').forEach(btn => {
+    btn.onclick = () => {
+      filter = btn.dataset.filter;
+      document.querySelectorAll('#filterChips [data-filter]').forEach(b => b.classList.toggle('on', b === btn));
+      render();
+    };
+  });
+
+  $('searchInput').addEventListener('input', e => {
+    search = e.target.value.trim();
+    render();
+  });
+
+  // ---- Mobile detection ----
+  function updateMobileView() {
+    const mobile = window.innerWidth <= 640;
+    document.querySelector('.user-table-desktop').style.display = mobile ? 'none' : 'block';
+    $('usersMobile').style.display = mobile ? 'block' : 'none';
+  }
+  window.addEventListener('resize', updateMobileView);
+  updateMobileView();
+
   await load();
 })();
 </script>

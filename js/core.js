@@ -5,7 +5,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export const BASE = new URL('.', location.href).href;
 
 /* ============================================================
-   SERVER TIME (NTP-equivalent)
+   SERVER TIME
    ============================================================ */
 let serverOffsetMs = 0;
 
@@ -29,7 +29,23 @@ export function todayISO() {
 }
 
 /* ============================================================
-   AUTH + IDLE TIMEOUT
+   HEARTBEAT (throttled — once per 15 min per tab)
+   ============================================================ */
+const HB_KEY = 'lastHeartbeat';
+const HB_INTERVAL = 15 * 60 * 1000;
+
+function maybeHeartbeat() {
+  try {
+    const last = parseInt(sessionStorage.getItem(HB_KEY) || '0', 10);
+    if (Date.now() - last > HB_INTERVAL) {
+      sessionStorage.setItem(HB_KEY, String(Date.now()));
+      supabase.rpc('heartbeat').then(() => {}).catch(() => {});
+    }
+  } catch {}
+}
+
+/* ============================================================
+   AUTH + IDLE
    ============================================================ */
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 let lastActivity = Date.now();
@@ -56,12 +72,19 @@ export async function requireRole(allowed) {
     .from('profiles').select('*').eq('id', session.user.id).single();
   if (!profile) { location.href = `${BASE}login.html`; return null; }
 
+  if (profile.is_active === false) {
+    try { await supabase.auth.signOut(); } catch {}
+    location.href = `${BASE}login.html?err=suspended`;
+    return null;
+  }
+
   if (allowed && !allowed.includes(profile.role)) {
     location.href = `${BASE}${profile.role}.html`;
     return null;
   }
 
   syncServerTime();
+  maybeHeartbeat();
   startIdleTimer();
   return { session, profile };
 }
@@ -155,7 +178,10 @@ export function renderNav(profile) {
     links.push({ href: 'student.html', label: 'Free rooms', icon: 'fa-building' });
   }
 
+  const initial = ((profile.full_name || profile.email || '?').trim()[0] || '?').toUpperCase();
   const current = location.pathname.split('/').pop() || 'index.html';
+  const roleIcon = profile.role === 'admin' ? 'shield-halved' : profile.role === 'faculty' ? 'chalkboard-user' : 'graduation-cap';
+
   el.innerHTML = `
     <nav class="nav">
       <a class="nav-brand" href="index.html">amnrd<span>.</span>scheduler</a>
@@ -169,9 +195,11 @@ export function renderNav(profile) {
         <button class="btn btn-sm" id="installBtn" style="display:none">
           <i class="fas fa-download"></i> Install
         </button>
-        <span class="nav-email">${escapeHtml(profile.email)}</span>
-        <span class="badge badge-${profile.role}">
-          <i class="fas fa-${profile.role === 'admin' ? 'shield-halved' : profile.role === 'faculty' ? 'chalkboard-user' : 'graduation-cap'}"></i>${profile.role}
+        <a class="nav-avatar-btn" href="profile.html" title="Profile — ${escapeHtml(profile.email)}">
+          <span class="avatar-sm">${escapeHtml(initial)}</span>
+        </a>
+        <span class="badge badge-${profile.role}" title="${profile.role}">
+          <i class="fas fa-${roleIcon}"></i>
         </span>
         <button class="nav-icon-btn" id="themeBtn" aria-label="Toggle theme"></button>
         <button class="nav-logout" id="logoutBtn">
@@ -280,4 +308,10 @@ export function formatTime(d) {
 
 export function parseTimeOnDate(dateStr, timeStr) {
   return new Date(`${dateStr}T${String(timeStr).slice(0,8)}`);
+}
+
+export function formatDateTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString() + ' · ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }

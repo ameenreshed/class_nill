@@ -63,10 +63,22 @@ bootPWA();
 const $ = id => document.getElementById(id);
 const redirectTo = new URL('index.html', location.href).href;
 
+// Show suspended message if redirected here
+const urlErr = new URLSearchParams(location.search).get('err');
+if (urlErr === 'suspended') {
+  $('errorMsg').innerHTML = '<i class="fas fa-circle-exclamation"></i> Your account has been suspended. Contact an administrator.';
+  $('errorMsg').style.display = 'block';
+}
+
+// Auto-redirect if already signed in
 (async () => {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+    const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', session.user.id).single();
+    if (profile?.is_active === false) {
+      await supabase.auth.signOut();
+      return;
+    }
     location.href = `./${profile?.role ?? 'student'}.html`;
   }
 })();
@@ -82,15 +94,19 @@ $('loginBtn').onclick = async () => {
   const password = $('password').value;
   const errEl = $('errorMsg');
   errEl.style.display = 'none';
+
   if (!email || !password) {
     errEl.innerHTML = '<i class="fas fa-circle-exclamation"></i> Enter email and password';
     errEl.style.display = 'block';
     return;
   }
+
   const btn = $('loginBtn');
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
+
   const { error } = await supabase.auth.signInWithPassword({ email, password });
+
   if (error) {
     errEl.innerHTML = `<i class="fas fa-circle-exclamation"></i> ${error.message}`;
     errEl.style.display = 'block';
@@ -98,8 +114,22 @@ $('loginBtn').onclick = async () => {
     btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
     return;
   }
+
   const { data: { session } } = await supabase.auth.getSession();
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+  const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', session.user.id).single();
+
+  if (profile?.is_active === false) {
+    await supabase.auth.signOut();
+    errEl.innerHTML = '<i class="fas fa-circle-exclamation"></i> Your account has been suspended. Contact an administrator.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
+    return;
+  }
+
+  // Log this login
+  try { await supabase.rpc('log_login', { p_user_agent: navigator.userAgent }); } catch {}
+
   location.href = `./${profile?.role ?? 'student'}.html`;
 };
 
