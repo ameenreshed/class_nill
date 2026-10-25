@@ -9,12 +9,19 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/admin.css">
+<style>
+.pw-hint{font-size:11px;color:var(--text-muted);margin-top:4px}
+.section-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;background:var(--brand-soft);color:var(--brand-text);font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace}
+.modal-split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.modal-split{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 <div id="nav"></div>
 <div class="container">
   <div class="page-header">
-    <div><h1 class="page-title"><i class="fas fa-users"></i> Users</h1><p class="page-subtitle">Manage roles, sections, and access for all accounts.</p></div>
+    <div><h1 class="page-title"><i class="fas fa-users"></i> Users</h1><p class="page-subtitle">Create, edit, suspend, reset passwords. Full user management.</p></div>
+    <button class="btn btn-primary" id="addBtn"><i class="fas fa-user-plus"></i> Add user</button>
   </div>
   <div class="admin-tabs">
     <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-chalkboard-user"></i> Faculty</a>
@@ -28,94 +35,355 @@
     <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
     <a href="admin-users.html" class="admin-tab active"><i class="fas fa-users"></i> Users</a>
   </div>
+
   <div class="stats" id="stats"></div>
-  <div class="row" style="margin-bottom:16px">
-    <div class="chips" id="filters">
-      <button class="chip on" data-f="all">All</button>
-      <button class="chip" data-f="admin">Admins</button>
-      <button class="chip" data-f="faculty">Faculty</button>
-      <button class="chip" data-f="student">Students</button>
-      <button class="chip" data-f="suspended">Suspended</button>
+
+  <div class="row" style="margin-bottom:16px;gap:8px">
+    <div class="chips" id="roleFilter">
+      <button class="chip on" data-r="all">All roles</button>
+      <button class="chip" data-r="admin">Admins</button>
+      <button class="chip" data-r="faculty">Faculty</button>
+      <button class="chip" data-r="student">Students</button>
+      <button class="chip" data-r="suspended">Suspended</button>
     </div>
-    <div class="search-wrap" style="margin-left:auto;max-width:360px"><i class="fas fa-search search-icon"></i><input class="input" id="search" placeholder="Search name or email…"></div>
+    <select class="input" id="secFilter" style="max-width:220px"><option value="">All batches</option></select>
+    <div class="search-wrap" style="margin-left:auto;max-width:360px">
+      <i class="fas fa-search search-icon"></i>
+      <input class="input" id="search" placeholder="Search name or email…">
+    </div>
   </div>
-  <div class="table-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Section</th><th>Department</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead><tbody id="body"></tbody></table></div>
+
+  <div class="table-wrap"><table>
+    <thead><tr>
+      <th>User</th><th>Role</th><th>Batch</th><th>Department</th><th>Status</th><th style="text-align:right">Actions</th>
+    </tr></thead>
+    <tbody id="body"></tbody>
+  </table></div>
 </div>
+
 <script type="module">
 import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.js';
+
 (async () => {
-  const auth = await requireRole(['admin']); if (!auth) return;
+  const auth = await requireRole(['admin']);
+  if (!auth) return;
   renderNav(auth.profile);
+
   const $ = id => document.getElementById(id);
-  let users = [], sections = [], filter = 'all', search = '';
+  let users = [], sections = [], roleFilter = 'all', secFilter = '', search = '';
 
   async function load() {
     const [{ data: u }, { data: s }] = await Promise.all([
       supabase.from('profiles').select('*').order('created_at', { ascending: false }),
       supabase.from('sections').select('*').order('section_id'),
     ]);
-    users = u ?? []; sections = s ?? [];
-    renderStats(); render();
+    users = u ?? [];
+    sections = s ?? [];
+    $('secFilter').innerHTML = `<option value="">All batches</option>${sections.map(x => `<option value="${escapeHtml(x.section_id)}" ${secFilter === x.section_id ? 'selected' : ''}>${escapeHtml(x.section_id)}</option>`).join('')}`;
+    renderStats();
+    render();
   }
 
   function renderStats() {
+    const total = users.length;
     const admins = users.filter(u => u.role === 'admin').length;
     const fac = users.filter(u => u.role === 'faculty').length;
     const stu = users.filter(u => u.role === 'student').length;
     const susp = users.filter(u => u.is_active === false).length;
-    $('stats').innerHTML = `<div class="stat"><i class="fas fa-users stat-icon"></i><div class="stat-value">${users.length}</div><div class="stat-label">Total</div></div><div class="stat"><i class="fas fa-shield-halved stat-icon"></i><div class="stat-value">${admins}</div><div class="stat-label">Admins</div></div><div class="stat"><i class="fas fa-chalkboard-user stat-icon"></i><div class="stat-value">${fac}</div><div class="stat-label">Faculty</div></div><div class="stat"><i class="fas fa-graduation-cap stat-icon"></i><div class="stat-value">${stu}</div><div class="stat-label">Students</div></div><div class="stat"><i class="fas fa-ban stat-icon"></i><div class="stat-value">${susp}</div><div class="stat-label">Suspended</div></div>`;
+    $('stats').innerHTML = `
+      <div class="stat"><i class="fas fa-users stat-icon"></i><div class="stat-value">${total}</div><div class="stat-label">Total</div></div>
+      <div class="stat"><i class="fas fa-shield-halved stat-icon"></i><div class="stat-value">${admins}</div><div class="stat-label">Admins</div></div>
+      <div class="stat"><i class="fas fa-chalkboard-user stat-icon"></i><div class="stat-value">${fac}</div><div class="stat-label">Faculty</div></div>
+      <div class="stat"><i class="fas fa-graduation-cap stat-icon"></i><div class="stat-value">${stu}</div><div class="stat-label">Students</div></div>
+      <div class="stat"><i class="fas fa-ban stat-icon"></i><div class="stat-value">${susp}</div><div class="stat-label">Suspended</div></div>`;
+  }
+
+  function filtered() {
+    let list = users;
+    if (roleFilter === 'admin' || roleFilter === 'faculty' || roleFilter === 'student') list = list.filter(u => u.role === roleFilter);
+    else if (roleFilter === 'suspended') list = list.filter(u => u.is_active === false);
+    if (secFilter) list = list.filter(u => u.section_id === secFilter);
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(u => (u.email || '').toLowerCase().includes(q) || (u.full_name || '').toLowerCase().includes(q));
+    }
+    return list;
   }
 
   function render() {
-    let list = users;
-    if (filter === 'admin' || filter === 'faculty' || filter === 'student') list = list.filter(u => u.role === filter);
-    else if (filter === 'suspended') list = list.filter(u => u.is_active === false);
-    if (search) { const q = search.toLowerCase(); list = list.filter(u => (u.email || '').toLowerCase().includes(q) || (u.full_name || '').toLowerCase().includes(q)); }
-    if (!list.length) { $('body').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-user-slash"></i>No users match</td></tr>'; return; }
+    const list = filtered();
+    if (!list.length) {
+      $('body').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-user-slash"></i>No users match your filters</td></tr>';
+      return;
+    }
     $('body').innerHTML = list.map(u => {
       const init = ((u.full_name || u.email || '?').trim()[0] || '?').toUpperCase();
       const roleIcon = u.role === 'admin' ? 'shield-halved' : u.role === 'faculty' ? 'chalkboard-user' : 'graduation-cap';
       const susp = u.is_active === false;
+      const isMe = u.id === auth.profile.id;
       return `<tr>
-        <td><div style="display:flex;align-items:center;gap:10px"><span class="avatar-sm">${escapeHtml(init)}</span><div><div style="color:var(--text);font-weight:500">${escapeHtml(u.full_name || u.email)}</div><div style="font-size:11px;color:var(--text-muted)">${escapeHtml(u.email)}</div></div></div></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="avatar-sm">${escapeHtml(init)}</span>
+            <div>
+              <div style="color:var(--text);font-weight:500">${escapeHtml(u.full_name || u.email)}${isMe ? ' <span class="badge badge-admin" style="font-size:9px;padding:1px 5px">you</span>' : ''}</div>
+              <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(u.email)}</div>
+            </div>
+          </div>
+        </td>
         <td><span class="badge badge-${u.role}"><i class="fas fa-${roleIcon}"></i>${u.role}</span></td>
-        <td class="mono" style="font-size:11px">${escapeHtml(u.section_id || '—')}</td>
+        <td>${u.section_id ? `<span class="section-pill">${escapeHtml(u.section_id)}</span>` : '<span class="dim">—</span>'}</td>
         <td class="dim">${escapeHtml(u.department || '—')}</td>
-        <td>${susp ? '<span class="badge badge-rejected">suspended</span>' : '<span class="badge badge-approved">active</span>'}</td>
-        <td style="text-align:right;white-space:nowrap"><button class="btn btn-sm" data-edit="${u.id}"><i class="fas fa-pen"></i></button><button class="btn btn-sm ${susp ? 'btn-success' : 'btn-danger'}" data-toggle="${u.id}" data-active="${!susp}"><i class="fas fa-${susp ? 'play' : 'ban'}"></i></button></td>
+        <td>${susp ? '<span class="badge badge-rejected"><i class="fas fa-ban"></i>suspended</span>' : '<span class="badge badge-approved"><i class="fas fa-check"></i>active</span>'}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <button class="btn btn-sm" data-edit="${u.id}" title="Edit"><i class="fas fa-pen"></i></button>
+          <button class="btn btn-sm" data-reset="${u.id}" title="Reset password"><i class="fas fa-key"></i></button>
+          ${!isMe ? `<button class="btn btn-sm ${susp ? 'btn-success' : 'btn-danger'}" data-toggle="${u.id}" data-active="${!susp}" title="${susp ? 'Activate' : 'Suspend'}"><i class="fas fa-${susp ? 'play' : 'ban'}"></i></button>` : ''}
+          ${!isMe ? `<button class="btn btn-sm btn-danger" data-del="${u.id}" title="Delete account"><i class="fas fa-trash"></i></button>` : ''}
+        </td>
       </tr>`;
     }).join('');
-    document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => edit(b.dataset.edit));
+
+    document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openEdit(b.dataset.edit));
+    document.querySelectorAll('[data-reset]').forEach(b => b.onclick = () => openResetPassword(b.dataset.reset));
     document.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => toggle(b.dataset.toggle, b.dataset.active === 'true'));
+    document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => del(b.dataset.del));
   }
 
-  function edit(id) {
-    const u = users.find(x => x.id === id); if (!u) return;
+  /* ============ ADD USER ============ */
+  $('addBtn').onclick = () => {
     const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
-    dialog.innerHTML = `<div class="modal-content"><div class="modal-header"><div class="modal-title">Edit ${escapeHtml(u.email)}</div><button class="modal-close" data-close><i class="fas fa-xmark"></i></button></div><div class="modal-body"><label class="field"><span>Full name</span><input class="input" data-field="full_name" value="${escapeHtml(u.full_name || '')}"></label><label class="field"><span>Department</span><input class="input" data-field="department" value="${escapeHtml(u.department || '')}"></label><label class="field"><span>Phone</span><input class="input" data-field="phone" value="${escapeHtml(u.phone || '')}"></label><label class="field"><span>Role</span><select class="input" data-field="role"><option value="student" ${u.role === 'student' ? 'selected' : ''}>student</option><option value="faculty" ${u.role === 'faculty' ? 'selected' : ''}>faculty</option><option value="admin" ${u.role === 'admin' ? 'selected' : ''}>admin</option></select></label><label class="field"><span>Batch / Section</span><select class="input" data-field="section_id"><option value="">— none —</option>${sections.map(s => `<option value="${escapeHtml(s.section_id)}" ${u.section_id === s.section_id ? 'selected' : ''}>${escapeHtml(s.section_id)} — ${escapeHtml(s.name)}</option>`).join('')}</select></label></div><div class="modal-footer"><button class="btn" data-close>Cancel</button><button class="btn btn-primary" data-save>Save</button></div></div>`;
+    dialog.innerHTML = `<div class="modal-content modal-wide">
+      <div class="modal-header">
+        <div><div class="modal-title">Add new user</div><div class="modal-sub">Create a login account for a faculty, student, or admin.</div></div>
+        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+          <label class="field"><span>Full name *</span><input class="input" data-field="full_name" placeholder="Jane Doe" autofocus></label>
+          <label class="field"><span>Email *</span><input class="input" type="email" data-field="email" placeholder="jane@lpu.in"></label>
+          <label class="field"><span>Password *</span><input class="input" type="text" data-field="password" placeholder="Min 6 characters" value="${Math.random().toString(36).slice(-8)}"><div class="pw-hint">Visible so you can share it. User can change it later.</div></label>
+          <label class="field"><span>Phone</span><input class="input" data-field="phone" placeholder="+91 ..."></label>
+          <label class="field"><span>Role *</span>
+            <select class="input" data-field="role" id="roleSelect">
+              <option value="student">student</option>
+              <option value="faculty">faculty</option>
+              <option value="admin">admin</option>
+            </select>
+          </label>
+          <label class="field"><span>Department</span><input class="input" data-field="department" placeholder="CSE"></label>
+          <label class="field" id="sectionField" style="grid-column:1/-1"><span>Batch / Section (for students)</span>
+            <select class="input" data-field="section_id">
+              <option value="">— none —</option>
+              ${sections.map(s => `<option value="${escapeHtml(s.section_id)}">${escapeHtml(s.section_id)} — ${escapeHtml(s.name)}</option>`).join('')}
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-primary" data-save><i class="fas fa-user-plus"></i> Create user</button>
+      </div>
+    </div>`;
     document.body.appendChild(dialog); dialog.showModal();
+
+    const roleSel = dialog.querySelector('#roleSelect');
+    const secField = dialog.querySelector('#sectionField');
+    roleSel.onchange = () => { secField.style.display = roleSel.value === 'student' ? 'block' : 'none'; };
+
     dialog.querySelector('[data-save]').onclick = async () => {
       const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
-      if (id === auth.profile.id && get('role') !== 'admin') return toast('You cannot demote yourself', 'error');
-      const { error } = await supabase.from('profiles').update({ full_name: get('full_name') || null, department: get('department') || null, phone: get('phone') || null, role: get('role'), section_id: get('section_id') || null }).eq('id', id);
-      if (error) return toast(error.message, 'error');
-      toast('Saved', 'success'); dialog.close(); dialog.remove(); await load();
+      if (!get('full_name')) return toast('Full name required', 'error');
+      if (!get('email')) return toast('Email required', 'error');
+      if (get('password').length < 6) return toast('Password must be 6+ characters', 'error');
+
+      const btn = dialog.querySelector('[data-save]');
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
+
+      const { data, error } = await supabase.rpc('admin_create_user', {
+        p_email: get('email'),
+        p_password: get('password'),
+        p_full_name: get('full_name'),
+        p_role: get('role'),
+        p_department: get('department') || null,
+        p_section_id: get('role') === 'student' && get('section_id') ? get('section_id') : null,
+        p_phone: get('phone') || null,
+      });
+
+      if (error) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus"></i> Create user'; return toast(error.message, 'error'); }
+      if (data?.error) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus"></i> Create user'; return toast(data.error, 'error'); }
+
+      toast('User created successfully', 'success');
+      dialog.close(); dialog.remove();
+      await load();
     };
+
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+  };
+
+  /* ============ EDIT USER ============ */
+  function openEdit(id) {
+    const u = users.find(x => x.id === id);
+    if (!u) return;
+    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content modal-wide">
+      <div class="modal-header">
+        <div><div class="modal-title">Edit ${escapeHtml(u.email)}</div><div class="modal-sub">Update profile details, role, and batch.</div></div>
+        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+          <label class="field"><span>Full name</span><input class="input" data-field="full_name" value="${escapeHtml(u.full_name || '')}"></label>
+          <label class="field"><span>Email</span><input class="input" value="${escapeHtml(u.email)}" disabled><div class="pw-hint">Contact developer to change</div></label>
+          <label class="field"><span>Phone</span><input class="input" data-field="phone" value="${escapeHtml(u.phone || '')}"></label>
+          <label class="field"><span>Department</span><input class="input" data-field="department" value="${escapeHtml(u.department || '')}"></label>
+          <label class="field"><span>Role</span>
+            <select class="input" data-field="role" id="eRole">
+              <option value="student" ${u.role === 'student' ? 'selected' : ''}>student</option>
+              <option value="faculty" ${u.role === 'faculty' ? 'selected' : ''}>faculty</option>
+              <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>admin</option>
+            </select>
+          </label>
+          <label class="field" id="eSectionField"><span>Batch / Section</span>
+            <select class="input" data-field="section_id">
+              <option value="">— none —</option>
+              ${sections.map(s => `<option value="${escapeHtml(s.section_id)}" ${u.section_id === s.section_id ? 'selected' : ''}>${escapeHtml(s.section_id)} — ${escapeHtml(s.name)}</option>`).join('')}
+            </select>
+          </label>
+        </div>
+        <div style="margin-top:16px;padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text)">
+          <i class="fas fa-info-circle"></i> To change the password, use the <strong>key icon</strong> on the user's row.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-primary" data-save><i class="fas fa-check"></i> Save changes</button>
+      </div>
+    </div>`;
+    document.body.appendChild(dialog); dialog.showModal();
+
+    const roleSel = dialog.querySelector('#eRole');
+    const secField = dialog.querySelector('#eSectionField');
+    const setSectionVisibility = () => { secField.style.display = roleSel.value === 'student' ? 'block' : 'none'; };
+    setSectionVisibility();
+    roleSel.onchange = setSectionVisibility;
+
+    dialog.querySelector('[data-save]').onclick = async () => {
+      const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
+      if (u.id === auth.profile.id && get('role') !== 'admin') return toast('You cannot demote yourself', 'error');
+
+      const payload = {
+        full_name: get('full_name') || null,
+        phone: get('phone') || null,
+        department: get('department') || null,
+        role: get('role'),
+        section_id: get('role') === 'student' ? (get('section_id') || null) : null,
+      };
+
+      const { error } = await supabase.from('profiles').update(payload).eq('id', id);
+      if (error) return toast(error.message, 'error');
+      toast('User updated', 'success');
+      dialog.close(); dialog.remove();
+      await load();
+    };
+
     const close = () => { dialog.close(); dialog.remove(); };
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
     dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  async function toggle(id, active) {
-    if (id === auth.profile.id) return toast('You cannot suspend yourself', 'error');
-    const { error } = await supabase.from('profiles').update({ is_active: !active, suspended_at: active ? new Date().toISOString() : null, suspended_reason: active ? 'Suspended by admin' : null }).eq('id', id);
-    if (error) return toast(error.message, 'error');
-    toast(active ? 'Suspended' : 'Reactivated', 'success'); await load();
+  /* ============ RESET PASSWORD ============ */
+  function openResetPassword(id) {
+    const u = users.find(x => x.id === id);
+    if (!u) return;
+    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content">
+      <div class="modal-header">
+        <div><div class="modal-title">Reset password</div><div class="modal-sub">Set a new password for ${escapeHtml(u.email)}</div></div>
+        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <label class="field"><span>New password *</span>
+          <input class="input" type="text" data-field="password" value="${Math.random().toString(36).slice(-10)}" placeholder="Min 6 characters" autofocus>
+          <div class="pw-hint">Share this with the user. They should change it after first login.</div>
+        </label>
+        <div class="info-banner" style="margin-top:12px;padding:12px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:8px;font-size:12px;color:var(--warning-text)">
+          <i class="fas fa-triangle-exclamation"></i> The user will be signed out of all devices. They must use the new password immediately.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-primary" data-save><i class="fas fa-key"></i> Reset password</button>
+      </div>
+    </div>`;
+    document.body.appendChild(dialog); dialog.showModal();
+
+    dialog.querySelector('[data-save]').onclick = async () => {
+      const pwd = dialog.querySelector('[data-field="password"]').value;
+      if (pwd.length < 6) return toast('Password must be 6+ characters', 'error');
+      const btn = dialog.querySelector('[data-save]');
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting…';
+
+      const { data, error } = await supabase.rpc('admin_reset_password', {
+        p_user_id: id,
+        p_new_password: pwd,
+      });
+
+      btn.disabled = false; btn.innerHTML = '<i class="fas fa-key"></i> Reset password';
+
+      if (error) return toast(error.message, 'error');
+      if (data?.error) return toast(data.error, 'error');
+      toast(`Password reset for ${u.email}`, 'success');
+      dialog.close(); dialog.remove();
+    };
+
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  document.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filter = b.dataset.f; document.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === b)); render(); });
+  /* ============ SUSPEND / ACTIVATE ============ */
+  async function toggle(id, active) {
+    if (id === auth.profile.id) return toast('You cannot suspend yourself', 'error');
+    const { error } = await supabase.from('profiles').update({
+      is_active: !active,
+      suspended_at: active ? new Date().toISOString() : null,
+      suspended_reason: active ? 'Suspended by admin' : null,
+    }).eq('id', id);
+    if (error) return toast(error.message, 'error');
+    toast(active ? 'User suspended' : 'User reactivated', 'success');
+    await load();
+  }
+
+  /* ============ DELETE USER ============ */
+  async function del(id) {
+    const u = users.find(x => x.id === id);
+    if (!u) return;
+    if (id === auth.profile.id) return toast('You cannot delete yourself', 'error');
+    const confirmed = confirm(`Delete ${u.email}?\n\nThis will PERMANENTLY remove:\n• The auth account\n• The profile\n• All their bookings & activity\n\nThis cannot be undone.`);
+    if (!confirmed) return;
+
+    const { data, error } = await supabase.rpc('admin_delete_user', { p_user_id: id });
+    if (error) return toast(error.message, 'error');
+    if (data?.error) return toast(data.error, 'error');
+    toast('User deleted', 'success');
+    await load();
+  }
+
+  /* ============ FILTERS ============ */
+  document.querySelectorAll('[data-r]').forEach(b => b.onclick = () => {
+    roleFilter = b.dataset.r;
+    document.querySelectorAll('[data-r]').forEach(x => x.classList.toggle('on', x === b));
+    render();
+  });
+  $('secFilter').onchange = e => { secFilter = e.target.value; render(); };
   $('search').oninput = e => { search = e.target.value.trim(); render(); };
+
   await load();
 })();
 </script>

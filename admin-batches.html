@@ -9,6 +9,13 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/admin.css">
+<style>
+.student-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;transition:background 120ms;font-size:13px}
+.student-row:hover{background:var(--surface-hover)}
+.student-row .meta{font-size:11px;color:var(--text-muted);margin-top:1px}
+.section-pane{max-height:360px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px}
+.pane-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:8px;padding:0 8px}
+</style>
 </head>
 <body>
 <div id="nav"></div>
@@ -29,86 +36,276 @@
     <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
     <a href="admin-users.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
   </div>
-  <div class="row" style="margin-bottom:16px"><div class="search-wrap" style="max-width:360px"><i class="fas fa-search search-icon"></i><input class="input" id="search" placeholder="Search batch ID, name, department…"></div></div>
+
+  <div class="row" style="margin-bottom:16px">
+    <div class="search-wrap" style="max-width:360px">
+      <i class="fas fa-search search-icon"></i>
+      <input class="input" id="search" placeholder="Search batch ID, name, department…">
+    </div>
+  </div>
+
   <div class="grid-auto" id="grid"></div>
 </div>
+
 <script type="module">
 import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.js';
+
 (async () => {
-  const auth = await requireRole(['admin']); if (!auth) return;
+  const auth = await requireRole(['admin']);
+  if (!auth) return;
   renderNav(auth.profile);
+
   const $ = id => document.getElementById(id);
-  const DOW = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   let sections = [], tt = [], users = [], search = '';
 
   async function load() {
     const [{ data: s }, { data: t }, { data: u }] = await Promise.all([
       supabase.from('sections').select('*').order('section_id'),
       supabase.from('timetable').select('*').eq('is_active', true),
-      supabase.from('profiles').select('id,role,section_id'),
+      supabase.from('profiles').select('*'),
     ]);
     sections = s ?? []; tt = t ?? []; users = u ?? [];
     render();
   }
 
+  function studentsOf(sectionId) {
+    return users.filter(u => u.role === 'student' && u.section_id === sectionId);
+  }
+
   function render() {
     let list = sections;
-    if (search) { const q = search.toLowerCase(); list = list.filter(s => s.section_id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || (s.department || '').toLowerCase().includes(q)); }
-    if (!list.length) { $('grid').innerHTML = `<div class="card" style="grid-column:1/-1"><div class="empty-action"><div class="empty-action-icon"><i class="fas fa-users-rectangle"></i></div><div class="empty-action-title">No batches yet</div><div class="empty-action-sub">Click "Add batch" to create the first one.</div></div></div>`; return; }
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(s => s.section_id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || (s.department || '').toLowerCase().includes(q));
+    }
+    if (!list.length) {
+      $('grid').innerHTML = `<div class="card" style="grid-column:1/-1"><div class="empty-action"><div class="empty-action-icon"><i class="fas fa-users-rectangle"></i></div><div class="empty-action-title">No batches yet</div><div class="empty-action-sub">Click "Add batch" to create the first one.</div></div></div>`;
+      return;
+    }
     $('grid').innerHTML = list.map(s => {
       const classes = tt.filter(t => t.section_id === s.section_id);
       const courses = new Set(classes.map(c => c.course_code).filter(Boolean)).size;
-      const enrolled = users.filter(u => u.role === 'student' && u.section_id === s.section_id).length;
+      const enrolled = studentsOf(s.section_id).length;
+      const capacity = s.strength || 0;
+      const fillPct = capacity ? Math.round((enrolled / capacity) * 100) : 0;
+      const fillColor = fillPct >= 100 ? 'var(--danger)' : fillPct >= 80 ? 'var(--warning)' : 'var(--success)';
       return `<div class="card card-hover">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:12px">
-          <div><div style="font-weight:700;color:var(--text);font-size:15px;display:flex;align-items:center;gap:8px"><i class="fas fa-users-rectangle" style="color:var(--brand);font-size:12px"></i>${escapeHtml(s.section_id)}</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">${escapeHtml(s.name)}</div></div>
+          <div>
+            <div style="font-weight:700;color:var(--text);font-size:15px;display:flex;align-items:center;gap:8px"><i class="fas fa-users-rectangle" style="color:var(--brand);font-size:12px"></i>${escapeHtml(s.section_id)}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${escapeHtml(s.name)}</div>
+          </div>
+        </div>
+        <div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:4px">
+            <span><i class="fas fa-users"></i> ${enrolled} / ${s.strength || '?'} students</span>
+            <span style="color:${fillColor};font-weight:600">${fillPct}%</span>
+          </div>
+          <div style="height:6px;background:var(--surface-active);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${Math.min(fillPct, 100)}%;background:${fillColor};transition:width 200ms"></div>
+          </div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--text-muted);margin-bottom:12px">
-          <span><i class="fas fa-users"></i> ${enrolled}/${s.strength || '?'} students</span>
           <span><i class="fas fa-book"></i> ${courses} course${courses === 1 ? '' : 's'}</span>
           <span><i class="fas fa-table"></i> ${classes.length} class${classes.length === 1 ? '' : 'es'}</span>
           ${s.department ? `<span><i class="fas fa-building-columns"></i> ${escapeHtml(s.department)}</span>` : ''}
         </div>
         <div class="chips" style="gap:6px">
-          <button class="btn btn-sm" data-view="${escapeHtml(s.section_id)}"><i class="fas fa-eye"></i> View</button>
+          <button class="btn btn-sm btn-primary" data-students="${escapeHtml(s.section_id)}"><i class="fas fa-user-plus"></i> Students</button>
+          <button class="btn btn-sm" data-view="${escapeHtml(s.section_id)}"><i class="fas fa-eye"></i> Schedule</button>
           <button class="btn btn-sm" data-edit="${escapeHtml(s.section_id)}"><i class="fas fa-pen"></i></button>
           <button class="btn btn-sm btn-danger" data-del="${escapeHtml(s.section_id)}"><i class="fas fa-trash"></i></button>
         </div>
       </div>`;
     }).join('');
+
+    document.querySelectorAll('[data-students]').forEach(b => b.onclick = () => manageStudents(b.dataset.students));
     document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => view(b.dataset.view));
     document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => edit(b.dataset.edit));
     document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => del(b.dataset.del));
   }
 
-  function view(id) {
-    const s = sections.find(x => x.section_id === id); if (!s) return;
-    const classes = tt.filter(t => t.section_id === id);
-    const students = users.filter(u => u.role === 'student' && u.section_id === id);
-    const byDay = new Map(); classes.forEach(c => { if (!byDay.has(c.day_of_week)) byDay.set(c.day_of_week, []); byDay.get(c.day_of_week).push(c); });
-    const sched = [1,2,3,4,5,6,0].filter(d => byDay.has(d)).map(d => `<div style="margin-bottom:14px"><div class="label-small" style="margin-bottom:6px">${DOW[d]}</div>${byDay.get(d).map(c => `<div style="padding:10px;background:var(--surface-hover);border-radius:8px;margin-bottom:4px"><div style="font-family:monospace;font-weight:600;color:var(--brand);font-size:12px">${escapeHtml(c.course_code || '—')}</div><div style="font-size:12px;color:var(--text);margin-top:2px">${escapeHtml(c.room_id)} · Slot ${escapeHtml(c.slot_id)}</div></div>`).join('')}</div>`).join('') || '<div class="empty">No classes scheduled</div>';
+  /* ============ MANAGE STUDENTS ============ */
+  function manageStudents(sectionId) {
+    const sec = sections.find(s => s.section_id === sectionId);
+    if (!sec) return;
+
+    let currentAssigned = studentsOf(sectionId);
+    const allStudents = users.filter(u => u.role === 'student');
+
     const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
-    dialog.innerHTML = `<div class="modal-content modal-wide"><div class="modal-header"><div><div class="modal-title">${escapeHtml(s.section_id)}</div><div class="modal-sub">${escapeHtml(s.name)} · ${students.length} students</div></div><button class="modal-close" data-close><i class="fas fa-xmark"></i></button></div><div class="modal-body"><div class="label-small" style="margin-bottom:8px">Weekly schedule</div>${sched}</div><div class="modal-footer"><button class="btn" data-close>Close</button></div></div>`;
+    dialog.innerHTML = `<div class="modal-content modal-wide">
+      <div class="modal-header">
+        <div><div class="modal-title">Manage students · ${escapeHtml(sectionId)}</div><div class="modal-sub">${escapeHtml(sec.name)} · Strength ${sec.strength || '?'}</div></div>
+        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" class="modal-split">
+          <div>
+            <div class="pane-title">In this batch (<span id="assignedCount">${currentAssigned.length}</span>)</div>
+            <div class="section-pane" id="assignedPane"></div>
+          </div>
+          <div>
+            <div class="pane-title">Not in this batch (<span id="unassignedCount">${allStudents.length - currentAssigned.length}</span>)</div>
+            <div style="margin-bottom:8px">
+              <input class="input" id="searchStudents" placeholder="Search students…" style="min-height:34px;font-size:12px">
+            </div>
+            <div class="section-pane" id="unassignedPane"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-close>Done</button>
+      </div>
+    </div>`;
     document.body.appendChild(dialog); dialog.showModal();
+
+    function renderPanes(filter = '') {
+      const q = filter.toLowerCase();
+      const assigned = currentAssigned.filter(s => !q || (s.full_name || '').toLowerCase().includes(q) || (s.email || '').toLowerCase().includes(q));
+      const assignedIds = new Set(currentAssigned.map(s => s.id));
+      const unassigned = allStudents.filter(s => !assignedIds.has(s.id) && (!q || (s.full_name || '').toLowerCase().includes(q) || (s.email || '').toLowerCase().includes(q)));
+
+      dialog.querySelector('#assignedCount').textContent = currentAssigned.length;
+      dialog.querySelector('#unassignedCount').textContent = allStudents.length - currentAssigned.length;
+
+      dialog.querySelector('#assignedPane').innerHTML = assigned.length
+        ? assigned.map(s => `<div class="student-row">
+            <div style="min-width:0"><div style="color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(s.full_name || s.email)}</div><div class="meta">${escapeHtml(s.email)}</div></div>
+            <button class="btn btn-sm" data-remove="${s.id}" title="Remove from batch" style="padding:4px 8px;min-height:26px"><i class="fas fa-minus"></i></button>
+          </div>`).join('')
+        : '<div class="empty" style="padding:24px;font-size:12px">No students in this batch</div>';
+
+      dialog.querySelector('#unassignedPane').innerHTML = unassigned.length
+        ? unassigned.map(s => `<div class="student-row">
+            <div style="min-width:0"><div style="color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(s.full_name || s.email)}${s.section_id ? ` <span class="badge badge-gray" style="font-size:9px;margin-left:4px">${escapeHtml(s.section_id)}</span>` : ''}</div><div class="meta">${escapeHtml(s.email)}</div></div>
+            <button class="btn btn-sm btn-primary" data-add="${s.id}" title="Add to batch" style="padding:4px 8px;min-height:26px"><i class="fas fa-plus"></i></button>
+          </div>`).join('')
+        : '<div class="empty" style="padding:24px;font-size:12px">No more students to add</div>';
+
+      // Wire up buttons
+      dialog.querySelectorAll('[data-remove]').forEach(b => b.onclick = async () => {
+        const userId = b.dataset.remove;
+        b.disabled = true; b.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        const { data, error } = await supabase.rpc('admin_remove_students', { p_user_ids: [userId] });
+        if (error) { b.disabled = false; b.innerHTML = '<i class="fas fa-minus"></i>'; return toast(error.message, 'error'); }
+        if (data?.error) { b.disabled = false; b.innerHTML = '<i class="fas fa-minus"></i>'; return toast(data.error, 'error'); }
+
+        const student = users.find(u => u.id === userId);
+        if (student) student.section_id = null;
+        currentAssigned = currentAssigned.filter(s => s.id !== userId);
+        toast('Removed from batch', 'success');
+        renderPanes(dialog.querySelector('#searchStudents').value);
+      });
+
+      dialog.querySelectorAll('[data-add]').forEach(b => b.onclick = async () => {
+        const userId = b.dataset.add;
+        b.disabled = true; b.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        const { data, error } = await supabase.rpc('admin_assign_students', { p_section_id: sectionId, p_user_ids: [userId] });
+        if (error) { b.disabled = false; b.innerHTML = '<i class="fas fa-plus"></i>'; return toast(error.message, 'error'); }
+        if (data?.error) { b.disabled = false; b.innerHTML = '<i class="fas fa-plus"></i>'; return toast(data.error, 'error'); }
+
+        const student = users.find(u => u.id === userId);
+        if (student) student.section_id = sectionId;
+        currentAssigned.push(student);
+        toast('Added to batch', 'success');
+        renderPanes(dialog.querySelector('#searchStudents').value);
+      });
+    }
+
+    dialog.querySelector('#searchStudents').oninput = e => renderPanes(e.target.value);
+    renderPanes();
+
+    const close = () => { dialog.close(); dialog.remove(); load(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) { dialog.remove(); load(); } });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+  }
+
+  /* ============ VIEW SCHEDULE ============ */
+  function view(sectionId) {
+    const s = sections.find(x => x.section_id === sectionId);
+    if (!s) return;
+    const classes = tt.filter(t => t.section_id === sectionId);
+    const students = studentsOf(sectionId);
+    const byDay = new Map();
+    classes.forEach(c => { if (!byDay.has(c.day_of_week)) byDay.set(c.day_of_week, []); byDay.get(c.day_of_week).push(c); });
+    const DOW = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const sched = [1,2,3,4,5,6,0].filter(d => byDay.has(d)).map(d => `<div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">${DOW[d]}</div>
+      ${byDay.get(d).sort((a, b) => a.slot_id.localeCompare(b.slot_id)).map(c => `<div style="padding:8px 10px;background:var(--surface-hover);border-radius:6px;margin-bottom:4px;font-size:12px"><span style="font-family:monospace;font-weight:700;color:var(--brand)">${escapeHtml(c.course_code || '—')}</span> · ${escapeHtml(c.room_id)} · ${escapeHtml(c.slot_id)}</div>`).join('')}
+    </div>`).join('') || '<div class="empty" style="padding:16px">No classes scheduled</div>';
+
+    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content modal-wide">
+      <div class="modal-header">
+        <div><div class="modal-title">${escapeHtml(sectionId)} · ${escapeHtml(s.name)}</div><div class="modal-sub">${students.length} / ${s.strength || '?'} students</div></div>
+        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">
+          <strong>Department:</strong> ${escapeHtml(s.department || '—')}
+        </div>
+        <h3 style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:10px"><i class="fas fa-users" style="color:var(--brand)"></i> Students (${students.length})</h3>
+        <div style="margin-bottom:20px">
+          ${students.length ? students.map(st => `<span style="display:inline-block;padding:3px 8px;background:var(--surface-hover);border-radius:6px;font-size:11px;margin:0 4px 4px 0">${escapeHtml(st.full_name || st.email)}</span>`).join('') : '<span class="dim" style="font-size:12px">No students assigned yet</span>'}
+        </div>
+        <h3 style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:10px"><i class="fas fa-calendar-week" style="color:var(--brand)"></i> Weekly schedule</h3>
+        ${sched}
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-close>Close</button>
+        <button class="btn btn-primary" id="manageBtn"><i class="fas fa-user-plus"></i> Manage students</button>
+      </div>
+    </div>`;
+    document.body.appendChild(dialog); dialog.showModal();
+
+    dialog.querySelector('#manageBtn').onclick = () => { dialog.close(); dialog.remove(); manageStudents(sectionId); };
     const close = () => { dialog.close(); dialog.remove(); };
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
     dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
+  /* ============ ADD / EDIT BATCH ============ */
+  $('addBtn').onclick = () => edit();
   function edit(id) {
     const s = id ? sections.find(x => x.section_id === id) : null;
     const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
-    dialog.innerHTML = `<div class="modal-content"><div class="modal-header"><div class="modal-title">${s ? 'Edit ' + escapeHtml(s.section_id) : 'Add batch'}</div><button class="modal-close" data-close><i class="fas fa-xmark"></i></button></div><div class="modal-body"><label class="field"><span>Batch ID *</span><input class="input" data-field="section_id" value="${escapeHtml(s?.section_id || '')}" ${s ? 'disabled' : ''} placeholder="CSE-4A"></label><label class="field"><span>Display name *</span><input class="input" data-field="name" value="${escapeHtml(s?.name || '')}" placeholder="CSE 4th Year A"></label><label class="field"><span>Strength</span><input class="input" type="number" data-field="strength" value="${s?.strength || 60}"></label><label class="field"><span>Department</span><input class="input" data-field="department" value="${escapeHtml(s?.department || '')}"></label></div><div class="modal-footer"><button class="btn" data-close>Cancel</button><button class="btn btn-primary" data-save>Save</button></div></div>`;
+    dialog.innerHTML = `<div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">${s ? 'Edit ' + escapeHtml(s.section_id) : 'Add batch'}</div>
+        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <label class="field"><span>Batch ID *</span><input class="input" data-field="section_id" value="${escapeHtml(s?.section_id || '')}" ${s ? 'disabled' : ''} placeholder="CSE-4A"></label>
+        <label class="field"><span>Display name *</span><input class="input" data-field="name" value="${escapeHtml(s?.name || '')}" placeholder="CSE 4th Year A"></label>
+        <label class="field"><span>Strength</span><input class="input" type="number" data-field="strength" value="${s?.strength || 60}"></label>
+        <label class="field"><span>Department</span><input class="input" data-field="department" value="${escapeHtml(s?.department || '')}"></label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-primary" data-save>Save</button>
+      </div>
+    </div>`;
     document.body.appendChild(dialog); dialog.showModal();
+
     dialog.querySelector('[data-save]').onclick = async () => {
       const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
       if (!get('section_id') || !get('name')) return toast('ID and name required', 'error');
-      const payload = { section_id: s?.section_id || get('section_id'), name: get('name'), strength: parseInt(get('strength')) || 60, department: get('department') || null };
+      const payload = {
+        section_id: s?.section_id || get('section_id').trim(),
+        name: get('name').trim(),
+        strength: parseInt(get('strength')) || 60,
+        department: get('department') || null,
+      };
       const r = s ? await supabase.from('sections').update(payload).eq('section_id', s.section_id) : await supabase.from('sections').insert(payload);
       if (r.error) return toast(r.error.message, 'error');
-      toast(s ? 'Updated' : 'Created', 'success'); dialog.close(); dialog.remove(); await load();
+      toast(s ? 'Updated' : 'Created', 'success');
+      dialog.close(); dialog.remove();
+      await load();
     };
+
     const close = () => { dialog.close(); dialog.remove(); };
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
@@ -116,7 +313,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   }
 
   async function del(id) {
-    const students = users.filter(u => u.section_id === id).length;
+    const students = studentsOf(id).length;
     const classes = tt.filter(t => t.section_id === id).length;
     let msg = `Delete ${id}?`;
     if (students > 0) msg += `\n\n⚠️ ${students} student(s) will lose their batch.`;
@@ -124,11 +321,12 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     if (!confirm(msg)) return;
     const { error } = await supabase.from('sections').delete().eq('section_id', id);
     if (error) return toast(error.message, 'error');
-    toast('Deleted', 'success'); await load();
+    toast('Deleted', 'success');
+    await load();
   }
 
-  $('addBtn').onclick = () => edit();
   $('search').oninput = e => { search = e.target.value.trim(); render(); };
+
   await load();
 })();
 </script>
