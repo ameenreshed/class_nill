@@ -13,8 +13,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 
-<!-- Turnstile: Implicit rendering -->
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<!-- Turnstile: EXPLICIT rendering (no data-callback attributes needed) -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
 <body>
 
@@ -61,19 +61,11 @@
           </div>
         </label>
 
-        <!-- Turnstile widget -->
-        <div class="cf-turnstile"
-             data-sitekey="0x4AAAAAAFk78nRRRuS58LzL"
-             data-callback="onTurnstileSuccess"
-             data-expired-callback="onTurnstileExpired"
-             data-error-callback="onTurnstileError"
-             data-theme="auto"
-             data-size="normal"
-             style="margin-bottom:16px; min-height:65px;">
-        </div>
+        <!-- Turnstile widget container (empty — rendered via JS) -->
+        <div id="turnstile-container" style="margin-bottom:16px; min-height:65px;"></div>
 
         <button type="submit" class="btn btn-primary btn-block" id="loginBtn" style="min-height:44px" disabled>
-          <i class="fas fa-shield-halved"></i> Verifying…
+          <i class="fas fa-shield-halved"></i> Verify to continue
         </button>
       </form>
 
@@ -87,31 +79,17 @@
 import { supabase, initTheme, waitForSession } from './js/core.js';
 
 const EMAIL_DOMAIN = 'lpu.in';
+const TURNSTILE_SITE_KEY = '0x4AAAAAAFk78nRRRuS58LzL';
 
 initTheme();
 const $ = id => document.getElementById(id);
 
-/* ---------- Turnstile callbacks ---------- */
+/* ---------- State ---------- */
 let turnstileToken = null;
+let turnstileWidgetId = null;
+let turnstileReady = false;
 
-window.onTurnstileSuccess = (token) => {
-  turnstileToken = token;
-  setLoginButton('ready');
-};
-
-window.onTurnstileExpired = () => {
-  turnstileToken = null;
-  setLoginButton('waiting');
-};
-
-window.onTurnstileError = (code) => {
-  turnstileToken = null;
-  setLoginButton('waiting');
-  console.error('Turnstile error code:', code);
-  showError('Verification failed to load. Check the browser console for the error code.');
-};
-
-/* ---------- Button state ---------- */
+/* ---------- Button State Manager ---------- */
 function setLoginButton(state) {
   const btn = $('loginBtn');
   if (state === 'ready') {
@@ -120,27 +98,14 @@ function setLoginButton(state) {
   } else if (state === 'waiting') {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-shield-halved"></i> Verify to continue';
+  } else if (state === 'loading') {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading verification…';
   } else if (state === 'signingin') {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
   }
 }
-
-setLoginButton('waiting');
-
-/* ---------- Fallback if Turnstile script fails ---------- */
-setTimeout(() => {
-  if (!window.turnstile) {
-    const widget = document.querySelector('.cf-turnstile');
-    if (widget) {
-      widget.innerHTML = '<div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:12px;color:#991b1b;">' +
-        '<strong>Turnstile failed to load.</strong><br>' +
-        'Check: (1) hostname <code>class.amnrd.com</code> is added to your Cloudflare widget, ' +
-        '(2) no CSP blocks <code>challenges.cloudflare.com</code>, ' +
-        '(3) you are online.</div>';
-    }
-  }
-}, 5000);
 
 /* ---------- Helpers ---------- */
 function showError(html) {
@@ -152,7 +117,7 @@ function clearError() {
   $('errorMsg').classList.remove('show');
 }
 
-/* ---------- Suspended banner ---------- */
+/* ---------- Suspended Banner ---------- */
 if (new URLSearchParams(location.search).get('err') === 'suspended') {
   showError('Your account has been suspended. Contact an administrator.');
   history.replaceState({}, '', 'login.html');
@@ -168,7 +133,84 @@ if (new URLSearchParams(location.search).get('err') === 'suspended') {
   if (profile?.role) location.replace(`./${profile.role}.html`);
 })();
 
-/* ---------- Password visibility ---------- */
+/* ---------- Turnstile: Explicit Rendering with Polling ---------- */
+setLoginButton('loading');
+
+let pollAttempts = 0;
+const MAX_POLL_ATTEMPTS = 50; // ~10 seconds at 200ms
+
+function initTurnstile() {
+  pollAttempts++;
+
+  // 1. Wait for script to load
+  if (!window.turnstile) {
+    if (pollAttempts >= MAX_POLL_ATTEMPTS) {
+      setLoginButton('waiting');
+      showError(
+        'Verification failed to load. Check: ' +
+        '(1) hostname <code>class.amnrd.com</code> is in Cloudflare, ' +
+        '(2) CSP allows <code>challenges.cloudflare.com</code>, ' +
+        '(3) you are online.'
+      );
+      return;
+    }
+    setTimeout(initTurnstile, 200);
+    return;
+  }
+
+  // 2. Wait for container to exist
+  const container = document.getElementById('turnstile-container');
+  if (!container) {
+    if (pollAttempts < MAX_POLL_ATTEMPTS) setTimeout(initTurnstile, 200);
+    return;
+  }
+
+  // 3. Render only once
+  if (turnstileReady) return;
+  turnstileReady = true;
+
+  try {
+    turnstileWidgetId = window.turnstile.render(container, {
+      sitekey: TURNSTILE_SITE_KEY,
+      theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
+      size: 'normal',
+
+      // SUCCESS: enable the button
+      callback: (token) => {
+        turnstileToken = token;
+        setLoginButton('ready');
+        clearError();
+      },
+
+      // TOKEN EXPIRED: disable the button again
+      'expired-callback': () => {
+        turnstileToken = null;
+        setLoginButton('waiting');
+      },
+
+      // ERROR: show a clear message and keep the button disabled
+      'error-callback': (code) => {
+        console.error('Turnstile error:', code);
+        turnstileToken = null;
+        setLoginButton('waiting');
+        showError(`Verification error (code ${code}). Please refresh and try again.`);
+      },
+    });
+  } catch (err) {
+    console.error('Turnstile render failed:', err);
+    setLoginButton('waiting');
+    showError('Verification could not start. Please refresh the page.');
+  }
+}
+
+// Kick off after DOM is ready
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  initTurnstile();
+} else {
+  window.addEventListener('DOMContentLoaded', initTurnstile);
+}
+
+/* ---------- Password Visibility ---------- */
 $('pwdToggle').onclick = () => {
   const pwd = $('password');
   const isPwd = pwd.type === 'password';
@@ -176,7 +218,7 @@ $('pwdToggle').onclick = () => {
   $('pwdToggle').innerHTML = isPwd ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
 };
 
-/* ---------- Digits-only input ---------- */
+/* ---------- Digits-Only Input ---------- */
 const regnoEl = $('regno');
 regnoEl.addEventListener('input', e => {
   e.target.value = e.target.value.replace(/\D/g, '').slice(0, 20);
@@ -190,13 +232,14 @@ regnoEl.addEventListener('paste', e => {
   regnoEl.value = text.replace(/\D/g, '').slice(0, 20);
 });
 
-/* ---------- Login ---------- */
+/* ---------- Login Submission ---------- */
 $('loginForm').onsubmit = async (e) => {
   e.preventDefault();
   clearError();
 
+  // Guard: require a fresh token
   if (!turnstileToken) {
-    showError('Please complete the verification first.');
+    showError('Please complete the verification checkbox first.');
     return;
   }
 
@@ -222,7 +265,7 @@ $('loginForm').onsubmit = async (e) => {
     result = await supabase.auth.signInWithPassword({
       email,
       password,
-      options: { captchaToken: turnstileToken }
+      options: { captchaToken: turnstileToken } // ← Turnstile token sent here
     });
   } catch (err) {
     setLoginButton('waiting');
@@ -235,17 +278,20 @@ $('loginForm').onsubmit = async (e) => {
   if (error) {
     const m = (error.message || '').toLowerCase();
     let friendly = error.message;
+
     if (m.includes('invalid login credentials')) {
       friendly = 'Incorrect registration number or password.';
     } else if (m.includes('email not confirmed')) {
       friendly = 'This account has not been confirmed. Contact your administrator.';
     } else if (m.includes('captcha')) {
-      friendly = 'Verification failed. Please tick the checkbox again.';
-      if (window.turnstile) {
-        try { window.turnstile.reset(); } catch {}
-        turnstileToken = null;
+      friendly = 'Verification failed or token expired. Please tick the checkbox again.';
+      // Reset the widget so the user can generate a fresh token
+      if (window.turnstile && turnstileWidgetId !== null) {
+        try { window.turnstile.reset(turnstileWidgetId); } catch {}
       }
+      turnstileToken = null;
     }
+
     showError(friendly);
     setLoginButton(turnstileToken ? 'ready' : 'waiting');
     return;
@@ -257,6 +303,7 @@ $('loginForm').onsubmit = async (e) => {
     return;
   }
 
+  // Fetch profile to route correctly
   const { data: profile, error: profErr } = await supabase
     .from('profiles').select('role, is_active').eq('id', data.session.user.id).single();
 
