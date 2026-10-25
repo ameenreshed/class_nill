@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <title>Sign in · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
@@ -14,7 +12,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+
+<!-- Turnstile: Implicit rendering (no ?render=explicit) -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
 
@@ -61,8 +61,16 @@
           </div>
         </label>
 
-        <!-- Cloudflare Turnstile widget -->
-        <div id="turnstile-container" style="margin-bottom:16px; min-height:65px;"></div>
+        <!-- Turnstile widget: implicit rendering for your domain -->
+        <div class="cf-turnstile"
+             data-sitekey="0x4AAAAAAFk78nRRRuS58LzL"
+             data-callback="onTurnstileSuccess"
+             data-expired-callback="onTurnstileExpired"
+             data-error-callback="onTurnstileError"
+             data-theme="auto"
+             data-size="normal"
+             style="margin-bottom:16px; min-height:65px;">
+        </div>
 
         <button type="submit" class="btn btn-primary btn-block" id="loginBtn" style="min-height:44px" disabled>
           <i class="fas fa-shield-halved"></i> Verifying…
@@ -70,7 +78,6 @@
       </form>
 
       <div id="errorMsg" class="login-error"></div>
-
       <p class="auth-hint">Forgot your password? Contact your department administrator.</p>
     </div>
   </main>
@@ -79,36 +86,63 @@
 <script type="module">
 import { supabase, initTheme, waitForSession } from './js/core.js';
 
-// ─────────────────────────────────────────────────────────────
-// CONFIG
-// ─────────────────────────────────────────────────────────────
 const EMAIL_DOMAIN = 'lpu.in';
-
-// ⚠️ Replace with your real Cloudflare Turnstile SITE KEY
-// Cloudflare Dashboard → Turnstile → your widget → Site Key
-// Test key (always passes): 1x00000000000000000000AA
-const TURNSTILE_SITE_KEY = '0x4AAAAAAFk78nRRRuS58LzL';
 
 initTheme();
 const $ = id => document.getElementById(id);
 
-/* ---------- suspended banner ---------- */
-if (new URLSearchParams(location.search).get('err') === 'suspended') {
-  showError('Your account has been suspended. Contact an administrator.');
-  history.replaceState({}, '', 'login.html');
+/* ---------- Turnstile callbacks ---------- */
+let turnstileToken = null;
+
+window.onTurnstileSuccess = (token) => {
+  turnstileToken = token;
+  setLoginButton('ready');
+};
+
+window.onTurnstileExpired = () => {
+  turnstileToken = null;
+  setLoginButton('waiting');
+};
+
+window.onTurnstileError = (code) => {
+  turnstileToken = null;
+  setLoginButton('waiting');
+  console.error('Turnstile error code:', code);
+  showError('Verification failed to load. Check the browser console for the error code.');
+};
+
+/* ---------- Button state ---------- */
+function setLoginButton(state) {
+  const btn = $('loginBtn');
+  if (state === 'ready') {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
+  } else if (state === 'waiting') {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-shield-halved"></i> Verify to continue';
+  } else if (state === 'signingin') {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
+  }
 }
 
-/* ---------- redirect if already signed in ---------- */
-(async () => {
-  const session = await waitForSession(1000);
-  if (!session) return;
-  const { data: profile } = await supabase
-    .from('profiles').select('role, is_active').eq('id', session.user.id).single();
-  if (profile?.is_active === false) { await supabase.auth.signOut(); return; }
-  if (profile?.role) location.replace(`./${profile.role}.html`);
-})();
+setLoginButton('waiting');
 
-/* ---------- helpers ---------- */
+/* ---------- Fallback if Turnstile script fails ---------- */
+setTimeout(() => {
+  if (!window.turnstile) {
+    const widget = document.querySelector('.cf-turnstile');
+    if (widget) {
+      widget.innerHTML = '<div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:12px;color:#991b1b;">' +
+        '<strong>Turnstile failed to load.</strong><br>' +
+        'Check: (1) hostname <code>class.amnrd.com</code> is added to your Cloudflare widget, ' +
+        '(2) no CSP blocks <code>challenges.cloudflare.com</code>, ' +
+        '(3) you are online.</div>';
+    }
+  }
+}, 5000);
+
+/* ---------- Helpers ---------- */
 function showError(html) {
   const el = $('errorMsg');
   el.innerHTML = `<i class="fas fa-circle-exclamation"></i><div>${html}</div>`;
@@ -118,7 +152,23 @@ function clearError() {
   $('errorMsg').classList.remove('show');
 }
 
-/* ---------- password visibility ---------- */
+/* ---------- Suspended banner ---------- */
+if (new URLSearchParams(location.search).get('err') === 'suspended') {
+  showError('Your account has been suspended. Contact an administrator.');
+  history.replaceState({}, '', 'login.html');
+}
+
+/* ---------- Redirect if already signed in ---------- */
+(async () => {
+  const session = await waitForSession(1000);
+  if (!session) return;
+  const { data: profile } = await supabase
+    .from('profiles').select('role, is_active').eq('id', session.user.id).single();
+  if (profile?.is_active === false) { await supabase.auth.signOut(); return; }
+  if (profile?.role) location.replace(`./${profile.role}.html`);
+})();
+
+/* ---------- Password visibility ---------- */
 $('pwdToggle').onclick = () => {
   const pwd = $('password');
   const isPwd = pwd.type === 'password';
@@ -126,7 +176,7 @@ $('pwdToggle').onclick = () => {
   $('pwdToggle').innerHTML = isPwd ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
 };
 
-/* ---------- digits-only input ---------- */
+/* ---------- Digits-only input ---------- */
 const regnoEl = $('regno');
 regnoEl.addEventListener('input', e => {
   e.target.value = e.target.value.replace(/\D/g, '').slice(0, 20);
@@ -140,57 +190,7 @@ regnoEl.addEventListener('paste', e => {
   regnoEl.value = text.replace(/\D/g, '').slice(0, 20);
 });
 
-/* ---------- Turnstile ---------- */
-let turnstileToken = null;
-let turnstileWidgetId = null;
-
-function setLoginButton(state) {
-  const btn = $('loginBtn');
-  if (state === 'ready') {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
-  } else if (state === 'waiting') {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-shield-halved"></i> Verify to continue';
-  } else if (state === 'loading') {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading verification…';
-  } else if (state === 'signingin') {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
-  }
-}
-
-function initTurnstile() {
-  if (!window.turnstile) {
-    setTimeout(initTurnstile, 200);
-    return;
-  }
-  turnstileWidgetId = window.turnstile.render('#turnstile-container', {
-    sitekey: TURNSTILE_SITE_KEY,
-    theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
-    callback: (token) => {
-      turnstileToken = token;
-      setLoginButton('ready');
-    },
-    'expired-callback': () => {
-      turnstileToken = null;
-      setLoginButton('waiting');
-    },
-    'error-callback': (err) => {
-      console.error('Turnstile error:', err);
-      turnstileToken = null;
-      setLoginButton('waiting');
-      showError('Verification failed to load. Check your connection and refresh the page.');
-    }
-  });
-}
-
-setLoginButton('loading');
-if (document.readyState === 'complete') initTurnstile();
-else window.addEventListener('load', initTurnstile);
-
-/* ---------- login ---------- */
+/* ---------- Login ---------- */
 $('loginForm').onsubmit = async (e) => {
   e.preventDefault();
   clearError();
@@ -235,19 +235,17 @@ $('loginForm').onsubmit = async (e) => {
   if (error) {
     const m = (error.message || '').toLowerCase();
     let friendly = error.message;
-
     if (m.includes('invalid login credentials')) {
       friendly = 'Incorrect registration number or password.';
     } else if (m.includes('email not confirmed')) {
       friendly = 'This account has not been confirmed. Contact your administrator.';
     } else if (m.includes('captcha')) {
       friendly = 'Verification failed. Please tick the checkbox again.';
-      if (window.turnstile && turnstileWidgetId !== null) {
-        window.turnstile.reset(turnstileWidgetId);
+      if (window.turnstile) {
+        try { window.turnstile.reset(); } catch {}
         turnstileToken = null;
       }
     }
-
     showError(friendly);
     setLoginButton(turnstileToken ? 'ready' : 'waiting');
     return;
