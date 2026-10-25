@@ -14,6 +14,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
+
+<!-- Cloudflare Turnstile script (explicit rendering) -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
 <body>
 
@@ -60,7 +63,10 @@
           </div>
         </label>
 
-        <button type="submit" class="btn btn-primary btn-block" id="loginBtn" style="min-height:44px">
+        <!-- Cloudflare Turnstile widget container -->
+        <div id="turnstile-container" style="margin-bottom:16px; min-height:65px;"></div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="loginBtn" style="min-height:44px" disabled>
           <i class="fas fa-right-to-bracket"></i> Sign in
         </button>
       </form>
@@ -80,15 +86,21 @@
 <script type="module">
 import { supabase, initTheme, waitForSession } from './js/core.js';
 
+// ─────────────────────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────────────────────
 const EMAIL_DOMAIN = 'lpu.in';
+
+// ⚠️ Replace with your Cloudflare Turnstile SITE KEY
+// (Cloudflare Dashboard → Turnstile → your widget → Site Key)
+const TURNSTILE_SITE_KEY = '0x4AAAAAAFk78nRRRuS58LzL'; // test key — replace before production
 
 initTheme();
 const $ = id => document.getElementById(id);
 
-/* ---------- connection status ----------
-   Uses the SDK directly. It attaches `apikey` + `Authorization` headers
-   automatically, so it can never produce a spurious 401 from a missing
-   header. This is more reliable than fetching /auth/v1/health manually. */
+// ─────────────────────────────────────────────────────────────
+// CONNECTION STATUS (kept from previous version)
+// ─────────────────────────────────────────────────────────────
 (async () => {
   const el = $('connStatus');
   try {
@@ -98,13 +110,11 @@ const $ = id => document.getElementById(id);
       .limit(1);
 
     if (error) {
-      // 42P01 = table does not exist → schema.sql not run
-      // PGRST301 / 401 = key problem
       const msg = (error.message || '').toLowerCase();
       if (msg.includes('does not exist') || error.code === '42P01') {
-        el.innerHTML = '<i class="fas fa-triangle-exclamation" style="color:var(--warning)"></i> Connected, but schema not installed — run schema.sql';
+        el.innerHTML = '<i class="fas fa-triangle-exclamation" style="color:var(--warning)"></i> Connected, but schema not installed';
       } else if (msg.includes('invalid api key') || msg.includes('jwt')) {
-        el.innerHTML = '<i class="fas fa-circle-xmark" style="color:var(--danger)"></i> Invalid Supabase key — check js/config.js';
+        el.innerHTML = '<i class="fas fa-circle-xmark" style="color:var(--danger)"></i> Invalid Supabase key';
       } else {
         el.innerHTML = `<i class="fas fa-triangle-exclamation" style="color:var(--warning)"></i> Supabase: ${error.message}`;
       }
@@ -112,27 +122,55 @@ const $ = id => document.getElementById(id);
       el.innerHTML = '<i class="fas fa-circle-check" style="color:var(--success)"></i> Connected to Supabase';
     }
   } catch (err) {
-    el.innerHTML = '<i class="fas fa-circle-xmark" style="color:var(--danger)"></i> Cannot reach Supabase — check internet / config.js';
+    el.innerHTML = '<i class="fas fa-circle-xmark" style="color:var(--danger)"></i> Cannot reach Supabase';
   }
 })();
 
-/* ---------- suspended banner ---------- */
-if (new URLSearchParams(location.search).get('err') === 'suspended') {
-  showError('Your account has been suspended. Contact an administrator.');
-  history.replaceState({}, '', 'login.html');
+// ─────────────────────────────────────────────────────────────
+// TURNSTILE — explicit rendering
+// ─────────────────────────────────────────────────────────────
+let turnstileToken = null;
+let turnstileWidgetId = null;
+
+function initTurnstile() {
+  if (!window.turnstile) {
+    // Script still loading — retry shortly
+    setTimeout(initTurnstile, 200);
+    return;
+  }
+
+  turnstileWidgetId = turnstile.render('#turnstile-container', {
+    sitekey: TURNSTILE_SITE_KEY,
+    theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
+    callback: (token) => {
+      turnstileToken = token;
+      $('loginBtn').disabled = false;          // enable button after verification
+      $('loginBtn').innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
+    },
+    'expired-callback': () => {
+      turnstileToken = null;
+      $('loginBtn').disabled = true;           // disable button when token expires
+      $('loginBtn').innerHTML = '<i class="fas fa-shield-halved"></i> Verify to continue';
+    },
+    'error-callback': (err) => {
+      console.error('Turnstile error:', err);
+      turnstileToken = null;
+      $('loginBtn').disabled = true;
+      showError('Human verification failed. Please refresh the page and try again.');
+    }
+  });
 }
 
-/* ---------- redirect if already signed in ---------- */
-(async () => {
-  const session = await waitForSession(1000);
-  if (!session) return;
-  const { data: profile } = await supabase
-    .from('profiles').select('role, is_active').eq('id', session.user.id).single();
-  if (profile?.is_active === false) { await supabase.auth.signOut(); return; }
-  if (profile?.role) location.replace(`./${profile.role}.html`);
-})();
+// Start Turnstile once the page has settled
+if (document.readyState === 'complete') {
+  initTurnstile();
+} else {
+  window.addEventListener('load', initTurnstile);
+}
 
-/* ---------- helpers ---------- */
+// ─────────────────────────────────────────────────────────────
+// HELPERS (unchanged)
+// ─────────────────────────────────────────────────────────────
 function showError(html) {
   const el = $('errorMsg');
   el.innerHTML = `<i class="fas fa-circle-exclamation"></i><div>${html}</div>`;
@@ -142,7 +180,9 @@ function clearError() {
   $('errorMsg').classList.remove('show');
 }
 
-/* ---------- password visibility ---------- */
+// ─────────────────────────────────────────────────────────────
+// PASSWORD VISIBILITY (unchanged)
+// ─────────────────────────────────────────────────────────────
 $('pwdToggle').onclick = () => {
   const pwd = $('password');
   const isPwd = pwd.type === 'password';
@@ -150,7 +190,9 @@ $('pwdToggle').onclick = () => {
   $('pwdToggle').innerHTML = isPwd ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
 };
 
-/* ---------- digits-only input ---------- */
+// ─────────────────────────────────────────────────────────────
+// DIGITS-ONLY INPUT (unchanged)
+// ─────────────────────────────────────────────────────────────
 const regnoEl = $('regno');
 regnoEl.addEventListener('input', e => {
   e.target.value = e.target.value.replace(/\D/g, '').slice(0, 20);
@@ -164,10 +206,17 @@ regnoEl.addEventListener('paste', e => {
   regnoEl.value = text.replace(/\D/g, '').slice(0, 20);
 });
 
-/* ---------- login ---------- */
+// ─────────────────────────────────────────────────────────────
+// LOGIN
+// ─────────────────────────────────────────────────────────────
 $('loginForm').onsubmit = async (e) => {
   e.preventDefault();
   clearError();
+
+  if (!turnstileToken) {
+    showError('Please complete the human verification first.');
+    return;
+  }
 
   const regno = regnoEl.value.trim();
   const password = $('password').value;
@@ -190,7 +239,13 @@ $('loginForm').onsubmit = async (e) => {
 
   let result;
   try {
-    result = await supabase.auth.signInWithPassword({ email, password });
+    result = await supabase.auth.signInWithPassword({
+      email,
+      password,
+      options: {
+        captchaToken: turnstileToken          // ← Turnstile token passed here
+      }
+    });
   } catch (err) {
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
@@ -209,8 +264,12 @@ $('loginForm').onsubmit = async (e) => {
         Expected user: <code style="background:rgba(0,0,0,.08);padding:1px 4px;border-radius:3px">${email}</code></small>`;
     } else if (m.includes('email not confirmed')) {
       friendly = 'This account has not been confirmed in Supabase.';
-    } else if (m.includes('invalid api key') || m.includes('jwt')) {
-      friendly = 'Supabase key is invalid. Re‑copy the publishable key from Supabase → Settings → API into js/config.js.';
+    } else if (m.includes('captcha')) {
+      friendly = 'Human verification failed. Please complete the checkbox again.';
+      if (window.turnstile && turnstileWidgetId !== null) {
+        turnstile.reset(turnstileWidgetId);   // reset widget so user can retry
+        turnstileToken = null;
+      }
     }
     showError(friendly);
     btn.disabled = false;
@@ -226,7 +285,10 @@ $('loginForm').onsubmit = async (e) => {
   }
 
   const { data: profile, error: profErr } = await supabase
-    .from('profiles').select('role, is_active').eq('id', data.session.user.id).single();
+    .from('profiles')
+    .select('role, is_active')
+    .eq('id', data.session.user.id)
+    .single();
 
   if (profErr || !profile) {
     showError('Signed in, but no profile row exists. Run schema.sql + create-users.sql in Supabase.');
