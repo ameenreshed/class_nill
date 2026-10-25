@@ -5,292 +5,262 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Control Center · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 <style>
   /* ============ SHELL ============ */
-  .admin-shell {
-    display: grid;
-    grid-template-columns: 240px 1fr;
-    gap: 24px;
-    max-width: 1440px;
-    margin: 0 auto;
-    padding: 24px;
-  }
-  .admin-sidebar {
-    position: sticky; top: 84px;
-    height: fit-content;
-    max-height: calc(100vh - 104px);
+  .cc-shell { display: grid; grid-template-columns: 240px 1fr; gap: 0; min-height: calc(100vh - 60px); }
+  .cc-sidebar {
+    position: sticky; top: 60px;
+    height: calc(100vh - 60px);
     overflow-y: auto;
-    padding: 8px;
+    padding: 16px 8px;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
+    border-right: 1px solid var(--border);
   }
-  .sidebar-group { margin-bottom: 16px; }
-  .sidebar-group:last-child { margin-bottom: 0; }
-  .sidebar-label {
+  .cc-group { margin-bottom: 16px; }
+  .cc-group:last-child { margin-bottom: 0; }
+  .cc-label {
     padding: 8px 12px 6px;
     font-size: 10px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.08em;
     color: var(--text-muted);
   }
-  .sidebar-item {
+  .cc-item {
     display: flex; align-items: center; gap: 10px;
-    width: 100%; padding: 10px 12px;
+    width: 100%; padding: 9px 12px;
     background: transparent; border: none;
     color: var(--text-secondary);
     font-family: inherit; font-size: 13px; font-weight: 500;
     text-align: left; cursor: pointer;
     border-radius: 8px;
     transition: all 140ms ease;
+    margin-bottom: 2px;
   }
-  .sidebar-item i {
-    font-size: 13px; width: 16px; text-align: center;
-    color: var(--text-muted);
-    transition: color 140ms ease;
-  }
-  .sidebar-item:hover {
-    background: var(--surface-hover);
-    color: var(--text);
-  }
-  .sidebar-item:hover i { color: var(--text); }
-  .sidebar-item.active {
-    background: var(--brand-soft);
-    color: var(--brand-text);
-  }
-  .sidebar-item.active i { color: var(--brand); }
-  .sidebar-item .side-badge {
+  .cc-item i { font-size: 13px; width: 16px; text-align: center; color: var(--text-muted); }
+  .cc-item:hover { background: var(--surface-hover); color: var(--text); }
+  .cc-item:hover i { color: var(--text); }
+  .cc-item.active { background: var(--brand-soft); color: var(--brand-text); }
+  .cc-item.active i { color: var(--brand); }
+  .cc-item .cc-badge {
     margin-left: auto;
     padding: 1px 7px;
     background: var(--surface-active);
     color: var(--text-secondary);
     font-size: 10px; font-weight: 600;
-    border-radius: 999px;
-    min-width: 20px; text-align: center;
+    border-radius: 999px; min-width: 20px; text-align: center;
   }
-  .sidebar-item.active .side-badge {
-    background: var(--brand);
-    color: #fff;
-  }
+  .cc-item.active .cc-badge { background: var(--brand); color: #fff; }
 
-  .admin-main {
-    min-width: 0;
-    padding-bottom: 60px;
-  }
+  .cc-main { padding: 24px; max-width: 1600px; width: 100%; }
+  .cc-panel { display: none; }
+  .cc-panel.active { display: block; animation: fadeIn 200ms ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* ============ PANELS ============ */
-  .panel { display: none; }
-  .panel.active { display: block; animation: panelIn 200ms ease; }
-  @keyframes panelIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+  .cc-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+  .cc-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); display: flex; align-items: center; gap: 10px; }
+  .cc-title i { color: var(--brand); font-size: 18px; }
+  .cc-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; }
+  .cc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-  .panel-header {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    gap: 16px; margin-bottom: 20px;
-    flex-wrap: wrap;
-  }
-  .panel-title {
-    font-size: 22px; font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--text);
-    display: flex; align-items: center; gap: 10px;
-  }
-  .panel-title i { color: var(--brand); font-size: 18px; }
-  .panel-sub {
-    font-size: 13px; color: var(--text-muted);
-    margin-top: 4px; line-height: 1.5;
-  }
-  .panel-actions {
-    display: flex; gap: 8px; flex-wrap: wrap;
-  }
+  .cc-toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .cc-toolbar .input { max-width: 200px; }
+  .cc-toolbar .search-wrap { flex: 1; min-width: 200px; max-width: 360px; margin-left: auto; }
 
-  .toolbar {
-    display: flex; gap: 8px; margin-bottom: 16px;
-    flex-wrap: wrap; align-items: center;
-  }
-  .toolbar .input { max-width: 200px; }
-  .toolbar .search-wrap { flex: 1; min-width: 180px; max-width: 360px; margin-left: auto; }
-
-  /* ============ OVERVIEW ============ */
-  .overview-grid {
-    display: grid; gap: 16px;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    margin-bottom: 24px;
-  }
-  .overview-card {
-    padding: 20px;
+  .cc-stats { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-bottom: 20px; }
+  .cc-stat {
+    padding: 16px 18px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
     display: flex; flex-direction: column;
-    transition: all 160ms ease;
-    cursor: pointer;
   }
-  .overview-card:hover {
-    border-color: var(--brand);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-  }
-  .overview-icon {
-    width: 40px; height: 40px; border-radius: 10px;
-    background: var(--brand-soft); color: var(--brand);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px; margin-bottom: 12px;
-  }
-  .overview-value {
-    font-size: 28px; font-weight: 700;
-    color: var(--text); letter-spacing: -0.03em;
-    line-height: 1;
-  }
-  .overview-label {
-    font-size: 12px; color: var(--text-muted);
-    margin-top: 4px;
-  }
+  .cc-stat.clickable { cursor: pointer; transition: all 160ms ease; }
+  .cc-stat.clickable:hover { border-color: var(--brand); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .cc-stat-val { font-size: 26px; font-weight: 700; color: var(--text); letter-spacing: -0.03em; line-height: 1; }
+  .cc-stat-lbl { font-size: 11px; color: var(--text-muted); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+  .cc-stat-icon { color: var(--brand); font-size: 14px; margin-bottom: 8px; }
 
-  /* ============ HEALTH ============ */
-  .health-block {
-    padding: 20px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    margin-bottom: 20px;
-  }
-  .health-row {
-    display: flex; justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 13px;
-  }
-  .health-row:last-child { border-bottom: none; }
-  .health-label { color: var(--text-secondary); }
-  .health-value {
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 600; font-size: 12px;
-    color: var(--text);
-  }
-  .health-value.ok { color: var(--success); }
-  .health-value.warn { color: var(--warning); }
-  .health-value.bad { color: var(--danger); }
-
-  /* ============ TABLES ============ */
-  .data-table {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-  .data-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .data-table thead { background: var(--bg-subtle); }
-  .data-table th {
-    padding: 11px 14px;
-    text-align: left;
+  .cc-table { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .cc-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .cc-table thead { background: var(--bg-subtle); }
+  .cc-table th {
+    padding: 11px 14px; text-align: left;
     font-size: 10px; font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.06em;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--border);
+    color: var(--text-muted); border-bottom: 1px solid var(--border);
     white-space: nowrap;
   }
-  .data-table td {
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--border);
-    color: var(--text);
-    vertical-align: middle;
-  }
-  .data-table tbody tr:last-child td { border-bottom: none; }
-  .data-table tbody tr:hover { background: var(--surface-hover); }
-  .data-table .row-actions {
-    text-align: right;
-    white-space: nowrap;
-  }
-  .data-table .row-actions .btn {
-    padding: 6px 10px; min-height: 30px; font-size: 11px;
-  }
-  .data-table .checkbox-cell { width: 40px; padding: 0 0 0 14px; }
+  .cc-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+  .cc-table tbody tr:last-child td { border-bottom: none; }
+  .cc-table tbody tr:hover { background: var(--surface-hover); }
+  .cc-table .row-actions { text-align: right; white-space: nowrap; }
+  .cc-table .row-actions .btn { padding: 6px 10px; min-height: 30px; font-size: 11px; }
+  .cc-table .checkbox-cell { width: 40px; padding: 0 0 0 14px; }
 
-  /* ============ CARDS GRID ============ */
-  .cards-grid {
-    display: grid; gap: 12px;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  }
-  .data-card {
+  .cc-cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .cc-card {
     padding: 16px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
     transition: all 160ms ease;
+    display: flex; flex-direction: column;
   }
-  .data-card:hover {
-    border-color: var(--border-strong);
-    box-shadow: var(--shadow-sm);
-  }
-  .data-card-head {
-    display: flex; justify-content: space-between;
-    align-items: flex-start; gap: 8px;
-    margin-bottom: 10px;
-  }
-  .data-card-title {
-    font-size: 14px; font-weight: 600;
-    color: var(--text);
-    display: flex; align-items: center; gap: 6px;
-  }
-  .data-card-meta {
-    font-size: 11px; color: var(--text-muted);
-    display: flex; gap: 10px; flex-wrap: wrap;
-    margin-bottom: 10px;
-  }
-  .data-card-meta span {
-    display: inline-flex; align-items: center; gap: 4px;
-  }
-  .data-card-meta i { font-size: 9px; opacity: 0.7; }
-  .data-card-actions {
-    display: flex; gap: 6px; margin-top: 10px;
-  }
-  .data-card-actions .btn {
-    flex: 1; padding: 6px 8px; min-height: 30px; font-size: 11px;
-  }
+  .cc-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+  .cc-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
+  .cc-card-title { font-size: 14px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; }
+  .cc-card-title i { color: var(--brand); font-size: 12px; }
+  .cc-card-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .cc-card-meta span { display: inline-flex; align-items: center; gap: 4px; }
+  .cc-card-meta i { font-size: 9px; opacity: 0.7; }
+  .cc-card-actions { display: flex; gap: 6px; margin-top: auto; }
+  .cc-card-actions .btn { flex: 1; padding: 6px 8px; min-height: 30px; font-size: 11px; }
 
-  /* ============ MOBILE ============ */
-  @media (max-width: 900px) {
-    .admin-shell {
-      grid-template-columns: 1fr;
-      padding: 16px;
-      gap: 12px;
-    }
-    .admin-sidebar {
-      position: static;
-      max-height: none;
-      padding: 6px;
-    }
-    .sidebar-group {
-      display: flex; gap: 4px;
-      overflow-x: auto;
-      scrollbar-width: none;
-      margin-bottom: 0;
-    }
-    .sidebar-group::-webkit-scrollbar { display: none; }
-    .sidebar-label { display: none; }
-    .sidebar-item {
-      flex-shrink: 0; padding: 8px 12px;
-      font-size: 12px; white-space: nowrap;
-    }
-    .sidebar-item .side-badge { display: none; }
+  .cc-grid-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+  .cc-grid { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .cc-grid th {
+    padding: 8px 6px; background: var(--bg-subtle);
+    text-align: center; font-size: 10px; font-weight: 600;
+    color: var(--text-muted); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 2; white-space: nowrap;
   }
-
-  @media (max-width: 640px) {
-    .panel-title { font-size: 18px; }
-    .overview-value { font-size: 22px; }
-    .data-table { overflow-x: auto; }
-    .data-table table { font-size: 12px; }
-    .cards-grid { grid-template-columns: 1fr; }
+  .cc-grid th:first-child { text-align: left; padding-left: 12px; position: sticky; left: 0; z-index: 3; min-width: 130px; }
+  .cc-grid td { padding: 6px 4px; border-bottom: 1px solid var(--border); text-align: center; }
+  .cc-grid td:first-child {
+    text-align: left; padding: 8px 12px;
+    background: var(--surface); position: sticky; left: 0; z-index: 1;
+    font-weight: 500; min-width: 130px;
   }
+  .cc-grid tbody tr:hover td:first-child { background: var(--surface-hover); }
+  .cc-cell {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 38px; padding: 4px 6px;
+    border-radius: 6px; font-size: 10px; font-weight: 500;
+    background: var(--surface-hover);
+    color: var(--text-muted);
+    line-height: 1.2;
+    text-align: center;
+  }
+  .cc-cell.has-class {
+    background: var(--brand-soft);
+    color: var(--brand-text);
+    font-weight: 600;
+    border: 1px solid var(--brand-soft-border);
+    cursor: pointer;
+  }
+  .cc-cell.has-class:hover { background: var(--brand); color: #fff; }
+  .cc-cell .cc-cell-code { font-size: 10px; font-weight: 700; }
+  .cc-cell .cc-cell-sub { font-size: 9px; opacity: 0.8; margin-top: 1px; }
 
-  /* ============ MODAL HELPERS ============ */
-  .modal-content.wide { width: min(760px, calc(100vw - 32px)); }
+  .cc-empty {
+    padding: 48px 24px; text-align: center; color: var(--text-muted);
+  }
+  .cc-empty i { display: block; font-size: 32px; opacity: 0.4; margin-bottom: 12px; }
+  .cc-empty-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .cc-empty-sub { font-size: 13px; line-height: 1.5; max-width: 340px; margin: 0 auto; }
+
+  /* Detail drawer */
+  .cc-drawer-backdrop {
+    position: fixed; inset: 0; background: rgba(15,23,42,0.5);
+    backdrop-filter: blur(4px); z-index: 50;
+    opacity: 0; pointer-events: none; transition: opacity 200ms ease;
+  }
+  .cc-drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+  .cc-drawer {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(680px, 100vw);
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    z-index: 51;
+    transform: translateX(100%);
+    transition: transform 240ms cubic-bezier(.4,0,.2,1);
+    display: flex; flex-direction: column;
+    box-shadow: -8px 0 32px rgba(15,23,42,0.1);
+  }
+  .cc-drawer.open { transform: translateX(0); }
+  .cc-drawer-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 12px; flex-shrink: 0;
+  }
+  .cc-drawer-title { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+  .cc-drawer-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .cc-drawer-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+  .cc-drawer-footer { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; flex-shrink: 0; }
+  .cc-drawer-close {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: transparent; border: none;
+    color: var(--text-muted); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all 140ms ease;
+  }
+  .cc-drawer-close:hover { background: var(--surface-hover); color: var(--text); }
+
+  /* Conflict alert */
+  .conflict-alert {
+    padding: 10px 12px;
+    background: var(--warning-soft);
+    border: 1px solid var(--warning-soft-border);
+    border-radius: 8px;
+    color: var(--warning-text);
+    font-size: 12px;
+    margin-top: 8px;
+    display: flex; gap: 8px; align-items: flex-start;
+    line-height: 1.5;
+  }
+  .conflict-alert i { color: var(--warning); font-size: 13px; margin-top: 1px; flex-shrink: 0; }
+  .conflict-alert ul { margin: 4px 0 0 18px; padding: 0; }
+
+  /* View mode chips */
+  .view-modes { display: flex; gap: 4px; background: var(--bg-subtle); padding: 3px; border-radius: 8px; }
+  .view-mode {
+    padding: 6px 12px; border-radius: 6px;
+    border: none; background: transparent;
+    color: var(--text-secondary); font-size: 12px; font-weight: 500;
+    cursor: pointer; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: all 140ms ease;
+  }
+  .view-mode i { font-size: 11px; }
+  .view-mode:hover { color: var(--text); }
+  .view-mode.active { background: var(--surface); color: var(--brand); box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+
+  /* Panel-specific */
+  .detail-section { margin-bottom: 20px; }
+  .detail-section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .detail-kv { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .detail-kv .kv-item { display: flex; flex-direction: column; gap: 2px; }
+  .detail-kv .kv-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  .detail-kv .kv-value { font-size: 13px; color: var(--text); font-weight: 500; }
+  .detail-kv .kv-value.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  .schedule-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 10px; background: var(--surface-hover); border-radius: 6px;
+    margin-bottom: 4px; font-size: 12px;
+  }
+  .schedule-row .sr-code { font-weight: 700; color: var(--brand); font-family: 'JetBrains Mono', monospace; }
+  .schedule-row .sr-name { color: var(--text); font-weight: 500; margin-top: 2px; }
+  .schedule-row .sr-meta { color: var(--text-muted); font-size: 11px; margin-top: 2px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .schedule-row .sr-time { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-secondary); }
+  .schedule-row .sr-day { font-weight: 600; color: var(--text); margin-bottom: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .info-banner {
+    padding: 12px 14px;
+    background: var(--info-soft);
+    border: 1px solid var(--info-soft-border);
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--info-text);
+    line-height: 1.55;
+    margin-bottom: 16px;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .info-banner i { color: var(--info); font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
   .modal-help {
     padding: 12px 14px;
     background: var(--info-soft);
@@ -305,197 +275,234 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
   }
+  .modal-content.wide { width: min(800px, calc(100vw - 32px)); }
   .modal-textarea {
-    width: 100%;
-    padding: 14px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    resize: vertical;
-    min-height: 200px;
+    width: 100%; padding: 14px;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 10px; color: var(--text); resize: vertical; min-height: 180px;
   }
-  .modal-textarea:focus {
-    outline: none;
-    border-color: var(--brand);
-    box-shadow: 0 0 0 3px var(--brand-soft);
+  .modal-textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+
+  @media (max-width: 900px) {
+    .cc-shell { grid-template-columns: 1fr; }
+    .cc-sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 8px; }
+    .cc-group { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; margin-bottom: 0; }
+    .cc-group::-webkit-scrollbar { display: none; }
+    .cc-label { display: none; }
+    .cc-item { flex-shrink: 0; padding: 8px 12px; font-size: 12px; white-space: nowrap; }
+    .cc-item .cc-badge { display: none; }
+    .cc-main { padding: 16px; }
   }
-  .modal-preview {
-    margin-top: 14px;
-    padding: 12px 14px;
-    border-radius: 10px;
-    font-size: 13px;
-    line-height: 1.55;
-  }
-  .modal-preview.ok {
-    background: var(--success-soft);
-    border: 1px solid var(--success-soft-border);
-    color: var(--success-text);
-  }
-  .modal-preview.err {
-    background: var(--warning-soft);
-    border: 1px solid var(--warning-soft-border);
-    color: var(--warning-text);
+  @media (max-width: 640px) {
+    .cc-title { font-size: 18px; }
+    .cc-stat-val { font-size: 22px; }
+    .cc-table { overflow-x: auto; }
+    .cc-cards { grid-template-columns: 1fr; }
+    .detail-kv { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 <div id="nav"></div>
 
-<div class="admin-shell">
-  <aside class="admin-sidebar">
-    <div class="sidebar-group">
-      <div class="sidebar-label">System</div>
-      <button class="sidebar-item active" data-panel="overview">
-        <i class="fas fa-gauge-high"></i> Overview
-      </button>
+<div class="cc-shell">
+  <aside class="cc-sidebar">
+    <div class="cc-group">
+      <div class="cc-label">System</div>
+      <button class="cc-item active" data-panel="overview"><i class="fas fa-gauge-high"></i> Overview</button>
     </div>
-    <div class="sidebar-group">
-      <div class="sidebar-label">Scheduling</div>
-      <button class="sidebar-item" data-panel="timetable">
-        <i class="fas fa-table"></i> Timetable
-        <span class="side-badge" id="badgeTT">0</span>
-      </button>
-      <button class="sidebar-item" data-panel="batches">
-        <i class="fas fa-users-rectangle"></i> Batches
-        <span class="side-badge" id="badgeSec">0</span>
-      </button>
-      <button class="sidebar-item" data-panel="calendar">
-        <i class="fas fa-calendar-days"></i> Calendar
-      </button>
+    <div class="cc-group">
+      <div class="cc-label">Academics</div>
+      <button class="cc-item" data-panel="faculty"><i class="fas fa-chalkboard-user"></i> Faculty <span class="cc-badge" id="badgeFac">0</span></button>
+      <button class="cc-item" data-panel="batches"><i class="fas fa-users-rectangle"></i> Batches <span class="cc-badge" id="badgeSec">0</span></button>
+      <button class="cc-item" data-panel="courses"><i class="fas fa-book"></i> Courses <span class="cc-badge" id="badgeCourses">0</span></button>
     </div>
-    <div class="sidebar-group">
-      <div class="sidebar-label">Facilities</div>
-      <button class="sidebar-item" data-panel="rooms">
-        <i class="fas fa-door-open"></i> Rooms
-        <span class="side-badge" id="badgeRooms">0</span>
-      </button>
-      <button class="sidebar-item" data-panel="buildings">
-        <i class="fas fa-building"></i> Buildings
-      </button>
-      <button class="sidebar-item" data-panel="slots">
-        <i class="fas fa-clock"></i> Time slots
-      </button>
+    <div class="cc-group">
+      <div class="cc-label">Schedule</div>
+      <button class="cc-item" data-panel="timetable"><i class="fas fa-table"></i> Timetable <span class="cc-badge" id="badgeTT">0</span></button>
+      <button class="cc-item" data-panel="bookings"><i class="fas fa-calendar-check"></i> Bookings <span class="cc-badge" id="badgePending">0</span></button>
+      <button class="cc-item" data-panel="calendar"><i class="fas fa-calendar-days"></i> Calendar</button>
     </div>
-    <div class="sidebar-group">
-      <div class="sidebar-label">People</div>
-      <button class="sidebar-item" data-panel="users">
-        <i class="fas fa-users"></i> Users
-        <span class="side-badge" id="badgeUsers">0</span>
-      </button>
+    <div class="cc-group">
+      <div class="cc-label">Facilities</div>
+      <button class="cc-item" data-panel="rooms"><i class="fas fa-door-open"></i> Rooms <span class="cc-badge" id="badgeRooms">0</span></button>
+      <button class="cc-item" data-panel="buildings"><i class="fas fa-building"></i> Buildings</button>
+      <button class="cc-item" data-panel="slots"><i class="fas fa-clock"></i> Time slots</button>
+    </div>
+    <div class="cc-group">
+      <div class="cc-label">People</div>
+      <button class="cc-item" data-panel="users"><i class="fas fa-users"></i> Users <span class="cc-badge" id="badgeUsers">0</span></button>
     </div>
   </aside>
 
-  <main class="admin-main">
-    <!-- OVERVIEW -->
-    <div class="panel active" data-panel="overview">
-      <div class="panel-header">
+  <main class="cc-main">
+    <!-- ==================== OVERVIEW ==================== -->
+    <div class="cc-panel active" data-panel="overview">
+      <div class="cc-header">
         <div>
-          <div class="panel-title"><i class="fas fa-gauge-high"></i> Control Center</div>
-          <div class="panel-sub">Full control over rooms, batches, timetables, and accounts.</div>
+          <div class="cc-title"><i class="fas fa-gauge-high"></i> Control Center</div>
+          <div class="cc-sub">Everything connected — faculty, batches, courses, rooms, timetable, bookings.</div>
         </div>
-        <div class="panel-actions">
-          <button class="btn" id="refreshOverview"><i class="fas fa-rotate-right"></i> Refresh</button>
-        </div>
+        <button class="btn" id="refreshOverview"><i class="fas fa-rotate-right"></i> Refresh</button>
       </div>
-
-      <div class="overview-grid" id="overviewGrid">
-        <div class="overview-card"><div class="skeleton" style="height:40px;width:40px;border-radius:10px;margin-bottom:12px"></div><div class="skeleton" style="height:28px;width:50%"></div></div>
-        <div class="overview-card"><div class="skeleton" style="height:40px;width:40px;border-radius:10px;margin-bottom:12px"></div><div class="skeleton" style="height:28px;width:50%"></div></div>
-        <div class="overview-card"><div class="skeleton" style="height:40px;width:40px;border-radius:10px;margin-bottom:12px"></div><div class="skeleton" style="height:28px;width:50%"></div></div>
-        <div class="overview-card"><div class="skeleton" style="height:40px;width:40px;border-radius:10px;margin-bottom:12px"></div><div class="skeleton" style="height:28px;width:50%"></div></div>
-      </div>
-
-      <div class="health-block">
-        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:10px">
-          <i class="fas fa-heart-pulse" style="color:var(--brand)"></i> System health
-        </div>
-        <div id="healthRows"><div class="empty" style="padding:16px"><i class="fas fa-spinner fa-spin"></i></div></div>
-      </div>
-
-      <div class="data-table">
+      <div class="cc-stats" id="ovStats"></div>
+      <div class="info-banner" id="ovHealth"></div>
+      <div class="cc-table">
         <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;color:var(--text)">
           <i class="fas fa-clock-rotate-left" style="color:var(--brand)"></i> Recent activity
         </div>
-        <div id="recentActivity" style="padding:16px"><div class="empty"><i class="fas fa-spinner fa-spin"></i></div></div>
+        <div id="ovActivity" style="padding:16px"></div>
       </div>
     </div>
 
-    <!-- TIMETABLE -->
-    <div class="panel" data-panel="timetable">
-      <div class="panel-header">
+    <!-- ==================== FACULTY ==================== -->
+    <div class="cc-panel" data-panel="faculty">
+      <div class="cc-header">
         <div>
-          <div class="panel-title"><i class="fas fa-table"></i> Timetable</div>
-          <div class="panel-sub">Manage regular class schedule · import live data from university</div>
+          <div class="cc-title"><i class="fas fa-chalkboard-user"></i> Faculty</div>
+          <div class="cc-sub">Manage faculty accounts, view their workload, classes, and bookings.</div>
         </div>
-        <div class="panel-actions">
-          <button class="btn" id="exportTT"><i class="fas fa-download"></i> Export</button>
-          <button class="btn" id="importTT"><i class="fas fa-file-import"></i> Import CSV</button>
-          <button class="btn btn-primary" id="addTT"><i class="fas fa-plus"></i> Add row</button>
+        <div class="cc-actions">
+          <button class="btn" id="facExport"><i class="fas fa-download"></i> Export</button>
         </div>
       </div>
-      <div class="toolbar">
-        <select class="input" id="ttSectionFilter"><option value="">All sections</option></select>
-        <select class="input" id="ttDayFilter">
-          <option value="">All days</option>
-          <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
-          <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option>
-          <option value="0">Sunday</option>
-        </select>
+      <div class="cc-toolbar">
         <div class="search-wrap">
           <i class="fas fa-search search-icon"></i>
-          <input class="input" id="ttSearch" placeholder="Search course, room, section…">
+          <input class="input" id="facSearch" placeholder="Search name, email, or department…">
         </div>
       </div>
-      <div class="data-table">
+      <div class="cc-table">
         <table>
           <thead>
             <tr>
-              <th>Section</th><th>Day</th><th>Slot</th><th>Room</th>
-              <th>Course</th><th>Faculty</th>
-              <th style="text-align:right">Actions</th>
+              <th>Faculty</th><th>Department</th><th>Courses</th><th>Weekly classes</th>
+              <th>Status</th><th style="text-align:right">Actions</th>
             </tr>
           </thead>
-          <tbody id="ttBody"><tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+          <tbody id="facBody"></tbody>
         </table>
       </div>
     </div>
 
-    <!-- BATCHES -->
-    <div class="panel" data-panel="batches">
-      <div class="panel-header">
+    <!-- ==================== BATCHES ==================== -->
+    <div class="cc-panel" data-panel="batches">
+      <div class="cc-header">
         <div>
-          <div class="panel-title"><i class="fas fa-users-rectangle"></i> Batches / Sections</div>
-          <div class="panel-sub">Every class batch students belong to</div>
+          <div class="cc-title"><i class="fas fa-users-rectangle"></i> Batches / Sections</div>
+          <div class="cc-sub">Every batch, its students, courses, and schedule.</div>
         </div>
-        <div class="panel-actions">
+        <div class="cc-actions">
           <button class="btn btn-primary" id="addSec"><i class="fas fa-plus"></i> Add batch</button>
         </div>
       </div>
-      <div class="toolbar">
+      <div class="cc-toolbar">
         <div class="search-wrap">
           <i class="fas fa-search search-icon"></i>
-          <input class="input" id="secSearch" placeholder="Search by ID, name, or department…">
+          <input class="input" id="secSearch" placeholder="Search batch ID, name, department…">
         </div>
       </div>
-      <div class="cards-grid" id="secGrid"><div class="empty"><i class="fas fa-spinner fa-spin"></i></div></div>
+      <div class="cc-cards" id="secGrid"></div>
     </div>
 
-    <!-- ROOMS -->
-    <div class="panel" data-panel="rooms">
-      <div class="panel-header">
+    <!-- ==================== COURSES ==================== -->
+    <div class="cc-panel" data-panel="courses">
+      <div class="cc-header">
         <div>
-          <div class="panel-title"><i class="fas fa-door-open"></i> Rooms</div>
-          <div class="panel-sub">Manage every bookable and hidden space</div>
+          <div class="cc-title"><i class="fas fa-book"></i> Courses</div>
+          <div class="cc-sub">Course catalog — code, name, department, credits.</div>
         </div>
-        <div class="panel-actions">
-          <button class="btn" id="exportRooms"><i class="fas fa-download"></i> Export</button>
+        <div class="cc-actions">
+          <button class="btn" id="courseExport"><i class="fas fa-download"></i> Export</button>
+          <button class="btn btn-primary" id="addCourse"><i class="fas fa-plus"></i> Add course</button>
+        </div>
+      </div>
+      <div class="cc-toolbar">
+        <div class="search-wrap">
+          <i class="fas fa-search search-icon"></i>
+          <input class="input" id="courseSearch" placeholder="Search code or name…">
+        </div>
+      </div>
+      <div class="cc-cards" id="courseGrid"></div>
+    </div>
+
+    <!-- ==================== TIMETABLE ==================== -->
+    <div class="cc-panel" data-panel="timetable">
+      <div class="cc-header">
+        <div>
+          <div class="cc-title"><i class="fas fa-table"></i> Timetable</div>
+          <div class="cc-sub">View and edit the class schedule — filter by batch, faculty, or room.</div>
+        </div>
+        <div class="cc-actions">
+          <button class="btn" id="ttExport"><i class="fas fa-download"></i> Export</button>
+          <button class="btn" id="ttImport"><i class="fas fa-file-import"></i> Import CSV</button>
+          <button class="btn btn-primary" id="ttAdd"><i class="fas fa-plus"></i> Add row</button>
+        </div>
+      </div>
+      <div class="cc-toolbar">
+        <div class="view-modes" id="ttViewModes">
+          <button class="view-mode active" data-mode="list"><i class="fas fa-list"></i> List</button>
+          <button class="view-mode" data-mode="batch"><i class="fas fa-users-rectangle"></i> By batch</button>
+          <button class="view-mode" data-mode="faculty"><i class="fas fa-chalkboard-user"></i> By faculty</button>
+          <button class="view-mode" data-mode="room"><i class="fas fa-door-open"></i> By room</button>
+        </div>
+        <select class="input" id="ttDayView" style="display:none"><option value="">All days</option></select>
+        <div class="search-wrap">
+          <i class="fas fa-search search-icon"></i>
+          <input class="input" id="ttSearch" placeholder="Search…">
+        </div>
+      </div>
+      <div id="ttContent"></div>
+    </div>
+
+    <!-- ==================== BOOKINGS ==================== -->
+    <div class="cc-panel" data-panel="bookings">
+      <div class="cc-header">
+        <div>
+          <div class="cc-title"><i class="fas fa-calendar-check"></i> Bookings</div>
+          <div class="cc-sub">Approve or reject makeup requests across all batches.</div>
+        </div>
+        <button class="btn" id="bkRefresh"><i class="fas fa-rotate-right"></i> Refresh</button>
+      </div>
+      <div class="cc-toolbar">
+        <div class="chips" id="bkFilter">
+          <button class="chip on" data-f="pending">Pending</button>
+          <button class="chip" data-f="approved">Approved</button>
+          <button class="chip" data-f="rejected">Rejected</button>
+          <button class="chip" data-f="all">All</button>
+        </div>
+        <div class="search-wrap">
+          <i class="fas fa-search search-icon"></i>
+          <input class="input" id="bkSearch" placeholder="Search room, faculty, batch…">
+        </div>
+      </div>
+      <div class="cc-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Room · Slot</th><th>Batch · Course</th><th>Faculty</th>
+              <th>Date</th><th>Status</th><th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="bkBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== ROOMS ==================== -->
+    <div class="cc-panel" data-panel="rooms">
+      <div class="cc-header">
+        <div>
+          <div class="cc-title"><i class="fas fa-door-open"></i> Rooms</div>
+          <div class="cc-sub">Manage rooms, view schedules and utilization.</div>
+        </div>
+        <div class="cc-actions">
+          <button class="btn" id="roomExport"><i class="fas fa-download"></i> Export</button>
           <button class="btn btn-primary" id="addRoom"><i class="fas fa-plus"></i> Add room</button>
         </div>
       </div>
-      <div class="toolbar">
+      <div class="cc-toolbar">
         <select class="input" id="roomBuildingFilter"><option value="">All blocks</option></select>
         <div class="search-wrap">
           <i class="fas fa-search search-icon"></i>
@@ -509,46 +516,42 @@
           <button class="btn btn-sm" id="roomBulkClear"><i class="fas fa-times"></i> Clear</button>
         </div>
       </div>
-      <div class="data-table">
+      <div class="cc-table">
         <table>
           <thead>
             <tr>
               <th class="checkbox-cell"><input type="checkbox" id="roomSelectAll"></th>
-              <th>Room</th><th>Type</th><th>Capacity</th><th>Flags</th>
-              <th style="text-align:right">Actions</th>
+              <th>Room</th><th>Type</th><th>Capacity</th><th>Weekly classes</th>
+              <th>Status</th><th style="text-align:right">Actions</th>
             </tr>
           </thead>
-          <tbody id="roomBody"><tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+          <tbody id="roomBody"></tbody>
         </table>
       </div>
     </div>
 
-    <!-- BUILDINGS -->
-    <div class="panel" data-panel="buildings">
-      <div class="panel-header">
+    <!-- ==================== BUILDINGS ==================== -->
+    <div class="cc-panel" data-panel="buildings">
+      <div class="cc-header">
         <div>
-          <div class="panel-title"><i class="fas fa-building"></i> Buildings &amp; Floors</div>
-          <div class="panel-sub">Every campus block and its floors</div>
+          <div class="cc-title"><i class="fas fa-building"></i> Buildings &amp; Floors</div>
+          <div class="cc-sub">Every campus block with its floors and room counts.</div>
         </div>
-        <div class="panel-actions">
-          <button class="btn btn-primary" id="addBld"><i class="fas fa-plus"></i> Add building</button>
-        </div>
+        <button class="btn btn-primary" id="addBld"><i class="fas fa-plus"></i> Add building</button>
       </div>
-      <div class="cards-grid" id="bldGrid"><div class="empty"><i class="fas fa-spinner fa-spin"></i></div></div>
+      <div class="cc-cards" id="bldGrid"></div>
     </div>
 
-    <!-- SLOTS -->
-    <div class="panel" data-panel="slots">
-      <div class="panel-header">
+    <!-- ==================== SLOTS ==================== -->
+    <div class="cc-panel" data-panel="slots">
+      <div class="cc-header">
         <div>
-          <div class="panel-title"><i class="fas fa-clock"></i> Time slots</div>
-          <div class="panel-sub">Period definitions — used by timetable and bookings</div>
+          <div class="cc-title"><i class="fas fa-clock"></i> Time slots</div>
+          <div class="cc-sub">Period definitions used by the timetable and bookings.</div>
         </div>
-        <div class="panel-actions">
-          <button class="btn btn-primary" id="addSlot"><i class="fas fa-plus"></i> Add slot</button>
-        </div>
+        <button class="btn btn-primary" id="addSlot"><i class="fas fa-plus"></i> Add slot</button>
       </div>
-      <div class="data-table">
+      <div class="cc-table">
         <table>
           <thead>
             <tr>
@@ -556,44 +559,39 @@
               <th>Status</th><th style="text-align:right">Actions</th>
             </tr>
           </thead>
-          <tbody id="slotBody"><tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+          <tbody id="slotBody"></tbody>
         </table>
       </div>
     </div>
 
-    <!-- CALENDAR -->
-    <div class="panel" data-panel="calendar">
-      <div class="panel-header">
+    <!-- ==================== CALENDAR ==================== -->
+    <div class="cc-panel" data-panel="calendar">
+      <div class="cc-header">
         <div>
-          <div class="panel-title"><i class="fas fa-calendar-days"></i> Academic calendar</div>
-          <div class="panel-sub">Holidays, working Saturdays, exam weeks, events</div>
+          <div class="cc-title"><i class="fas fa-calendar-days"></i> Academic calendar</div>
+          <div class="cc-sub">Holidays, working Saturdays, exam weeks, special events.</div>
         </div>
-        <div class="panel-actions">
-          <button class="btn btn-primary" id="addCal"><i class="fas fa-plus"></i> Add entry</button>
-        </div>
+        <button class="btn btn-primary" id="addCal"><i class="fas fa-plus"></i> Add entry</button>
       </div>
-      <div class="data-table">
+      <div class="cc-table">
         <table>
           <thead>
-            <tr>
-              <th>Date</th><th>Kind</th><th>Label</th>
-              <th style="text-align:right">Actions</th>
-            </tr>
+            <tr><th>Date</th><th>Kind</th><th>Label</th><th style="text-align:right">Actions</th></tr>
           </thead>
-          <tbody id="calBody"><tr><td colspan="4" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+          <tbody id="calBody"></tbody>
         </table>
       </div>
     </div>
 
-    <!-- USERS -->
-    <div class="panel" data-panel="users">
-      <div class="panel-header">
+    <!-- ==================== USERS ==================== -->
+    <div class="cc-panel" data-panel="users">
+      <div class="cc-header">
         <div>
-          <div class="panel-title"><i class="fas fa-users"></i> Users</div>
-          <div class="panel-sub">Manage roles, sections, and access</div>
+          <div class="cc-title"><i class="fas fa-users"></i> Users</div>
+          <div class="cc-sub">Manage roles, sections, and access for all accounts.</div>
         </div>
       </div>
-      <div class="toolbar">
+      <div class="cc-toolbar">
         <div class="chips" id="userFilter">
           <button class="chip on" data-f="all">All</button>
           <button class="chip" data-f="admin">Admins</button>
@@ -606,7 +604,7 @@
           <input class="input" id="userSearch" placeholder="Search name or email…">
         </div>
       </div>
-      <div class="data-table">
+      <div class="cc-table">
         <table>
           <thead>
             <tr>
@@ -614,15 +612,32 @@
               <th>Status</th><th style="text-align:right">Actions</th>
             </tr>
           </thead>
-          <tbody id="userBody"><tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+          <tbody id="userBody"></tbody>
         </table>
       </div>
     </div>
   </main>
 </div>
 
+<!-- Detail drawer -->
+<div class="cc-drawer-backdrop" id="drawerBackdrop"></div>
+<aside class="cc-drawer" id="drawer">
+  <div class="cc-drawer-header">
+    <div>
+      <div class="cc-drawer-title" id="drawerTitle">—</div>
+      <div class="cc-drawer-sub" id="drawerSub"></div>
+    </div>
+    <button class="cc-drawer-close" id="drawerClose"><i class="fas fa-xmark"></i></button>
+  </div>
+  <div class="cc-drawer-body" id="drawerBody"></div>
+  <div class="cc-drawer-footer" id="drawerFooter"></div>
+</aside>
+
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime, todayISO } from './js/core.js';
+import {
+  requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime,
+  todayISO, dayOfWeekNum, humanDate, formatTime, nowDate
+} from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
@@ -630,18 +645,58 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
   renderNav(auth.profile);
 
   const $ = id => document.getElementById(id);
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const DOW_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+  /* ============================================================
+     CACHE
+     ============================================================ */
   const cache = {
     rooms: [], buildings: [], sections: [], slots: [],
-    timetable: [], calendar: [], users: [], types: [],
+    timetable: [], calendar: [], users: [], types: [], courses: [], bookings: [],
   };
   let currentPanel = 'overview';
 
+  async function reloadCache() {
+    const [
+      { data: rooms }, { data: bl }, { data: sec }, { data: sl },
+      { data: tt }, { data: cal }, { data: us }, { data: ty }, { data: co }, { data: bk }
+    ] = await Promise.all([
+      supabase.from('rooms').select('*').order('room_id'),
+      supabase.from('buildings').select('*').order('sort_order').order('id'),
+      supabase.from('sections').select('*').order('section_id'),
+      supabase.from('time_slots').select('*').order('sort_order').order('start_time'),
+      supabase.from('timetable').select('*').order('section_id').order('day_of_week'),
+      supabase.from('academic_calendar').select('*').order('date', { ascending: false }).limit(200),
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('room_types').select('*').eq('is_active', true).order('sort_order'),
+      supabase.from('courses').select('*').order('course_id'),
+      supabase.from('bookings').select('*').order('book_date', { ascending: false }).limit(300),
+    ]);
+    cache.rooms = rooms ?? [];
+    cache.buildings = bl ?? [];
+    cache.sections = sec ?? [];
+    cache.slots = sl ?? [];
+    cache.timetable = tt ?? [];
+    cache.calendar = cal ?? [];
+    cache.users = us ?? [];
+    cache.types = ty ?? [];
+    cache.courses = co ?? [];
+    cache.bookings = bk ?? [];
+
+    $('badgeFac').textContent = cache.users.filter(u => u.role === 'faculty').length;
+    $('badgeSec').textContent = cache.sections.length;
+    $('badgeCourses').textContent = cache.courses.length;
+    $('badgeTT').textContent = cache.timetable.length;
+    $('badgeRooms').textContent = cache.rooms.length;
+    $('badgeUsers').textContent = cache.users.length;
+    $('badgePending').textContent = cache.bookings.filter(b => b.status === 'pending').length;
+  }
+
   /* ============================================================
-     FORM MODAL HELPER
+     HELPERS
      ============================================================ */
-  function formModal({ title, sub, fields, saveText = 'Save', onSave }) {
+  function openFormModal({ title, sub, fields, saveText = 'Save', onSave }) {
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
     dialog.innerHTML = `
@@ -661,10 +716,8 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
       </div>`;
     document.body.appendChild(dialog);
     dialog.showModal();
-
     const get = f => dialog.querySelector(`[data-field="${f}"]`)?.value?.trim() ?? '';
     const getCb = f => dialog.querySelector(`[data-field="${f}"]`)?.checked ?? false;
-
     dialog.querySelector('[data-save]').onclick = async () => {
       const btn = dialog.querySelector('[data-save]');
       btn.disabled = true;
@@ -679,141 +732,162 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
         btn.innerHTML = saveText;
       }
     };
-
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = () => { dialog.close(); dialog.remove(); });
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
     dialog.onclick = (e) => { if (e.target === dialog) { dialog.close(); dialog.remove(); } };
   }
 
+  function downloadFile(content, filename, mime) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   /* ============================================================
-     PANEL SWITCHING
+     DETAIL DRAWER
+     ============================================================ */
+  const drawer = $('drawer');
+  const drawerBackdrop = $('drawerBackdrop');
+  function openDrawer({ title, sub, body, footer }) {
+    $('drawerTitle').textContent = title;
+    $('drawerSub').textContent = sub || '';
+    $('drawerBody').innerHTML = body;
+    $('drawerFooter').innerHTML = footer || '<button class="btn" id="drawerDone">Close</button>';
+    drawer.classList.add('open');
+    drawerBackdrop.classList.add('open');
+    $('drawerDone')?.addEventListener('click', closeDrawer);
+    return drawer;
+  }
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    drawerBackdrop.classList.remove('open');
+  }
+  $('drawerClose').onclick = closeDrawer;
+  drawerBackdrop.onclick = closeDrawer;
+
+  /* ============================================================
+     PANEL NAVIGATION
      ============================================================ */
   document.querySelectorAll('[data-panel]').forEach(btn => {
+    if (btn.tagName !== 'BUTTON') return;
     btn.onclick = () => {
-      const target = btn.dataset.panel;
-      if (target === currentPanel) return;
-      currentPanel = target;
-      document.querySelectorAll('.sidebar-item').forEach(b => b.classList.toggle('active', b.dataset.panel === target));
-      document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.dataset.panel === target));
-      loadPanel(target);
+      const t = btn.dataset.panel;
+      if (t === currentPanel) return;
+      currentPanel = t;
+      document.querySelectorAll('.cc-item').forEach(b => b.classList.toggle('active', b.dataset.panel === t));
+      document.querySelectorAll('.cc-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === t));
+      loadPanel(t);
     };
   });
 
   async function loadPanel(name) {
-    if (name === 'overview') await renderOverview();
-    else if (name === 'timetable') await renderTimetable();
-    else if (name === 'batches') await renderBatches();
-    else if (name === 'rooms') await renderRooms();
-    else if (name === 'buildings') await renderBuildings();
-    else if (name === 'slots') await renderSlots();
-    else if (name === 'calendar') await renderCalendar();
-    else if (name === 'users') await renderUsers();
-  }
-
-  async function reloadCache() {
-    const [{ data: rooms }, { data: bl }, { data: sec }, { data: sl }, { data: tt }, { data: cal }, { data: us }, { data: ty }] = await Promise.all([
-      supabase.from('rooms').select('*').order('room_id'),
-      supabase.from('buildings').select('*').order('sort_order').order('id'),
-      supabase.from('sections').select('*').order('section_id'),
-      supabase.from('time_slots').select('*').order('sort_order').order('start_time'),
-      supabase.from('timetable').select('*').order('section_id').order('day_of_week'),
-      supabase.from('academic_calendar').select('*').order('date', { ascending: false }).limit(200),
-      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-      supabase.from('room_types').select('*').eq('is_active', true).order('sort_order'),
-    ]);
-    cache.rooms = rooms ?? [];
-    cache.buildings = bl ?? [];
-    cache.sections = sec ?? [];
-    cache.slots = sl ?? [];
-    cache.timetable = tt ?? [];
-    cache.calendar = cal ?? [];
-    cache.users = us ?? [];
-    cache.types = ty ?? [];
-
-    $('badgeTT').textContent = cache.timetable.length;
-    $('badgeSec').textContent = cache.sections.length;
-    $('badgeRooms').textContent = cache.rooms.length;
-    $('badgeUsers').textContent = cache.users.length;
+    if (!cache.rooms.length) await reloadCache();
+    if (name === 'overview') renderOverview();
+    else if (name === 'faculty') renderFaculty();
+    else if (name === 'batches') renderBatches();
+    else if (name === 'courses') renderCourses();
+    else if (name === 'timetable') renderTimetable();
+    else if (name === 'bookings') renderBookings();
+    else if (name === 'rooms') renderRooms();
+    else if (name === 'buildings') renderBuildings();
+    else if (name === 'slots') renderSlots();
+    else if (name === 'calendar') renderCalendar();
+    else if (name === 'users') renderUsers();
   }
 
   /* ============================================================
-     PANEL 1: OVERVIEW
+     OVERVIEW
      ============================================================ */
   async function renderOverview() {
     await reloadCache();
-
     const today = todayISO();
-    const [pendingBookings, todayBookings] = await Promise.all([
-      supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('book_date', today),
-    ]);
+    const pending = cache.bookings.filter(b => b.status === 'pending').length;
+    const todayBk = cache.bookings.filter(b => b.book_date === today).length;
+    const faculty = cache.users.filter(u => u.role === 'faculty').length;
+    const students = cache.users.filter(u => u.role === 'student').length;
 
-    $('overviewGrid').innerHTML = `
-      <div class="overview-card" data-jump="rooms">
-        <div class="overview-icon"><i class="fas fa-door-open"></i></div>
-        <div class="overview-value">${cache.rooms.length}</div>
-        <div class="overview-label">Rooms</div>
+    $('ovStats').innerHTML = `
+      <div class="cc-stat clickable" data-jump="faculty">
+        <div class="cc-stat-icon"><i class="fas fa-chalkboard-user"></i></div>
+        <div class="cc-stat-val">${faculty}</div>
+        <div class="cc-stat-lbl">Faculty</div>
       </div>
-      <div class="overview-card" data-jump="batches">
-        <div class="overview-icon"><i class="fas fa-users-rectangle"></i></div>
-        <div class="overview-value">${cache.sections.length}</div>
-        <div class="overview-label">Batches</div>
+      <div class="cc-stat clickable" data-jump="batches">
+        <div class="cc-stat-icon"><i class="fas fa-users-rectangle"></i></div>
+        <div class="cc-stat-val">${cache.sections.length}</div>
+        <div class="cc-stat-lbl">Batches</div>
       </div>
-      <div class="overview-card" data-jump="timetable">
-        <div class="overview-icon"><i class="fas fa-table"></i></div>
-        <div class="overview-value">${cache.timetable.length}</div>
-        <div class="overview-label">Timetable rows</div>
+      <div class="cc-stat clickable" data-jump="courses">
+        <div class="cc-stat-icon"><i class="fas fa-book"></i></div>
+        <div class="cc-stat-val">${cache.courses.length}</div>
+        <div class="cc-stat-lbl">Courses</div>
       </div>
-      <div class="overview-card" data-jump="users">
-        <div class="overview-icon"><i class="fas fa-users"></i></div>
-        <div class="overview-value">${cache.users.length}</div>
-        <div class="overview-label">Users</div>
+      <div class="cc-stat clickable" data-jump="rooms">
+        <div class="cc-stat-icon"><i class="fas fa-door-open"></i></div>
+        <div class="cc-stat-val">${cache.rooms.length}</div>
+        <div class="cc-stat-lbl">Rooms</div>
       </div>
-      <div class="overview-card">
-        <div class="overview-icon" style="background:var(--warning-soft);color:var(--warning)"><i class="fas fa-hourglass-half"></i></div>
-        <div class="overview-value" style="color:var(--warning)">${pendingBookings.count ?? 0}</div>
-        <div class="overview-label">Pending bookings</div>
+      <div class="cc-stat clickable" data-jump="timetable">
+        <div class="cc-stat-icon"><i class="fas fa-table"></i></div>
+        <div class="cc-stat-val">${cache.timetable.length}</div>
+        <div class="cc-stat-lbl">Timetable rows</div>
       </div>
-      <div class="overview-card">
-        <div class="overview-icon" style="background:var(--success-soft);color:var(--success)"><i class="fas fa-calendar-day"></i></div>
-        <div class="overview-value" style="color:var(--success)">${todayBookings.count ?? 0}</div>
-        <div class="overview-label">Today's bookings</div>
+      <div class="cc-stat">
+        <div class="cc-stat-icon" style="color:var(--warning)"><i class="fas fa-hourglass-half"></i></div>
+        <div class="cc-stat-val" style="color:var(--warning)">${pending}</div>
+        <div class="cc-stat-lbl">Pending bookings</div>
+      </div>
+      <div class="cc-stat">
+        <div class="cc-stat-icon" style="color:var(--success)"><i class="fas fa-calendar-day"></i></div>
+        <div class="cc-stat-val" style="color:var(--success)">${todayBk}</div>
+        <div class="cc-stat-lbl">Today's bookings</div>
+      </div>
+      <div class="cc-stat">
+        <div class="cc-stat-icon"><i class="fas fa-users"></i></div>
+        <div class="cc-stat-val">${students}</div>
+        <div class="cc-stat-lbl">Students</div>
       </div>
     `;
-
-    document.querySelectorAll('[data-jump]').forEach(card => {
-      card.onclick = () => {
-        const target = card.dataset.jump;
-        document.querySelector(`.sidebar-item[data-panel="${target}"]`)?.click();
-      };
+    document.querySelectorAll('[data-jump]').forEach(c => {
+      c.onclick = () => document.querySelector(`.cc-item[data-panel="${c.dataset.jump}"]`)?.click();
     });
 
-    const health = [
-      { label: 'Rooms configured', value: `${cache.rooms.length}`, status: cache.rooms.length > 0 ? 'ok' : 'bad' },
-      { label: 'Batches configured', value: `${cache.sections.length}`, status: cache.sections.length > 0 ? 'ok' : 'warn' },
-      { label: 'Time slots', value: `${cache.slots.length}`, status: cache.slots.length > 0 ? 'ok' : 'bad' },
-      { label: 'Timetable rows', value: `${cache.timetable.length}`, status: cache.timetable.length > 0 ? 'ok' : 'warn' },
-      { label: 'Active users', value: `${cache.users.filter(u => u.is_active !== false).length} / ${cache.users.length}`, status: 'ok' },
-    ];
+    // Health checks
+    const issues = [];
+    if (!cache.rooms.length) issues.push('No rooms configured');
+    if (!cache.sections.length) issues.push('No batches configured');
+    if (!cache.slots.length) issues.push('No time slots');
+    if (!cache.timetable.length) issues.push('Timetable is empty');
+    const studentsNoBatch = cache.users.filter(u => u.role === 'student' && !u.section_id).length;
+    if (studentsNoBatch > 0) issues.push(`${studentsNoBatch} student${studentsNoBatch === 1 ? '' : 's'} without batch`);
+    const orphanCourses = cache.timetable.filter(t => t.course_code && !cache.courses.find(c => c.course_id === t.course_code)).length;
+    if (orphanCourses > 0) issues.push(`${orphanCourses} timetable row${orphanCourses === 1 ? '' : 's'} referencing unknown courses`);
 
-    const studentsNoSec = cache.users.filter(u => u.role === 'student' && !u.section_id).length;
-    if (studentsNoSec > 0) {
-      health.push({ label: 'Students without batch', value: `${studentsNoSec}`, status: 'warn' });
+    if (issues.length) {
+      $('ovHealth').innerHTML = `<i class="fas fa-triangle-exclamation" style="color:var(--warning)"></i>
+        <div><strong>${issues.length} thing${issues.length === 1 ? '' : 's'} to fix</strong><ul>${issues.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul></div>`;
+      $('ovHealth').style.background = 'var(--warning-soft)';
+      $('ovHealth').style.borderColor = 'var(--warning-soft-border)';
+      $('ovHealth').style.color = 'var(--warning-text)';
+    } else {
+      $('ovHealth').innerHTML = `<i class="fas fa-circle-check" style="color:var(--success)"></i>
+        <div><strong>All systems healthy</strong> — every piece of data is connected properly.</div>`;
+      $('ovHealth').style.background = 'var(--success-soft)';
+      $('ovHealth').style.borderColor = 'var(--success-soft-border)';
+      $('ovHealth').style.color = 'var(--success-text)';
     }
 
-    $('healthRows').innerHTML = health.map(h => `
-      <div class="health-row">
-        <div class="health-label">${escapeHtml(h.label)}</div>
-        <div class="health-value ${h.status}">${escapeHtml(h.value)}</div>
-      </div>`).join('');
-
-    const { data: logs } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(8);
+    const { data: logs } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(10);
     if (!logs?.length) {
-      $('recentActivity').innerHTML = '<div class="empty"><i class="fas fa-inbox"></i>No activity yet</div>';
+      $('ovActivity').innerHTML = '<div class="empty"><i class="fas fa-inbox"></i>No activity yet</div>';
     } else {
-      $('recentActivity').innerHTML = logs.map(l => `
+      $('ovActivity').innerHTML = logs.map(l => `
         <div style="display:flex;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-          <div style="width:24px;height:24px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">
+          <div style="width:26px;height:26px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">
             <i class="fas ${l.action === 'auth.login' ? 'fa-right-to-bracket' : l.action?.startsWith('user.') ? 'fa-user-pen' : l.action?.startsWith('room.') ? 'fa-door-open' : l.action?.startsWith('booking.') ? 'fa-calendar-check' : 'fa-circle'}"></i>
           </div>
           <div style="flex:1;min-width:0">
@@ -823,113 +897,693 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
         </div>`).join('');
     }
   }
-
   $('refreshOverview').onclick = renderOverview;
 
   /* ============================================================
-     PANEL 2: TIMETABLE
+     FACULTY
      ============================================================ */
-  async function renderTimetable() {
-    if (!cache.timetable.length) await reloadCache();
+  function renderFaculty() {
+    const q = ($('facSearch').value || '').toLowerCase().trim();
+    let list = cache.users.filter(u => u.role === 'faculty' || u.role === 'admin');
+    if (q) list = list.filter(u =>
+      (u.full_name || '').toLowerCase().includes(q) ||
+      (u.email || '').toLowerCase().includes(q) ||
+      (u.department || '').toLowerCase().includes(q)
+    );
 
-    const ttSecFilter = $('ttSectionFilter');
-    if (ttSecFilter.options.length <= 1) {
-      ttSecFilter.innerHTML = `<option value="">All sections</option>${cache.sections.map(s => `<option value="${escapeHtml(s.section_id)}">${escapeHtml(s.section_id)}</option>`).join('')}`;
+    const ttByFaculty = new Map();
+    cache.timetable.forEach(t => {
+      if (!t.faculty_id) return;
+      if (!ttByFaculty.has(t.faculty_id)) ttByFaculty.set(t.faculty_id, []);
+      ttByFaculty.get(t.faculty_id).push(t);
+    });
+
+    if (!list.length) {
+      $('facBody').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-user-slash"></i>No faculty found</td></tr>';
+      return;
     }
-    renderTTTable();
+
+    $('facBody').innerHTML = list.map(u => {
+      const initial = ((u.full_name || u.email || '?').trim()[0] || '?').toUpperCase();
+      const classes = ttByFaculty.get(u.id) || [];
+      const courses = new Set(classes.map(c => c.course_code).filter(Boolean));
+      const sections = new Set(classes.map(c => c.section_id).filter(Boolean));
+      return `
+        <tr data-faculty="${u.id}" style="cursor:pointer">
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="avatar-sm">${escapeHtml(initial)}</span>
+              <div>
+                <div style="color:var(--text);font-weight:500">${escapeHtml(u.full_name || u.email)}</div>
+                <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(u.email)}</div>
+              </div>
+            </div>
+          </td>
+          <td class="dim">${escapeHtml(u.department || '—')}</td>
+          <td>${courses.size} course${courses.size === 1 ? '' : 's'}</td>
+          <td>${classes.length} class${classes.length === 1 ? '' : 'es'}</td>
+          <td>${u.is_active === false ? '<span class="badge badge-rejected">suspended</span>' : '<span class="badge badge-approved">active</span>'}</td>
+          <td class="row-actions">
+            <button class="btn btn-sm" data-view="${u.id}" title="View"><i class="fas fa-eye"></i></button>
+            <button class="btn btn-sm" data-edit="${u.id}" title="Edit"><i class="fas fa-pen"></i></button>
+          </td>
+        </tr>`;
+    }).join('');
+
+    document.querySelectorAll('#facBody [data-view]').forEach(b => b.onclick = (e) => { e.stopPropagation(); viewFaculty(b.dataset.view); });
+    document.querySelectorAll('#facBody [data-edit]').forEach(b => b.onclick = (e) => { e.stopPropagation(); editFaculty(b.dataset.edit); });
+    document.querySelectorAll('#facBody tr[data-faculty]').forEach(r => r.onclick = () => viewFaculty(r.dataset.faculty));
   }
 
-  function renderTTTable() {
-    const sec = $('ttSectionFilter').value;
-    const day = $('ttDayFilter').value;
-    const q = $('ttSearch').value.trim().toLowerCase();
+  function viewFaculty(id) {
+    const u = cache.users.find(x => x.id === id);
+    if (!u) return;
+    const classes = cache.timetable.filter(t => t.faculty_id === id);
+    const courses = [...new Set(classes.map(c => c.course_code).filter(Boolean))].map(code => cache.courses.find(c => c.course_id === code)).filter(Boolean);
+    const bookings = cache.bookings.filter(b => b.faculty_id === id && b.status === 'pending');
 
+    const byDay = new Map();
+    classes.forEach(c => {
+      if (!byDay.has(c.day_of_week)) byDay.set(c.day_of_week, []);
+      byDay.get(c.day_of_week).push(c);
+    });
+
+    const scheduleHtml = [1,2,3,4,5,6,0].filter(d => byDay.has(d)).map(d => {
+      const items = byDay.get(d).sort((a,b) => {
+        const sa = cache.slots.find(s => s.slot_id === a.slot_id);
+        const sb = cache.slots.find(s => s.slot_id === b.slot_id);
+        return (sa?.start_time || '').localeCompare(sb?.start_time || '');
+      });
+      return `
+        <div class="detail-section">
+          <div class="detail-section-title"><i class="fas fa-calendar-day"></i>${DOW_LONG[d]} · ${items.length} class${items.length === 1 ? '' : 'es'}</div>
+          ${items.map(c => {
+            const slot = cache.slots.find(s => s.slot_id === c.slot_id);
+            const room = cache.rooms.find(r => r.room_id === c.room_id);
+            return `
+              <div class="schedule-row">
+                <div>
+                  <div class="sr-code">${escapeHtml(c.course_code || '—')}</div>
+                  <div class="sr-name">${escapeHtml(c.course_name || '')}</div>
+                  <div class="sr-meta">
+                    <span><i class="fas fa-users-rectangle"></i>${escapeHtml(c.section_id)}</span>
+                    <span><i class="fas fa-door-open"></i>${escapeHtml(room?.display_name || c.room_id)}</span>
+                  </div>
+                </div>
+                <div class="sr-time">${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)}</div>
+              </div>`;
+          }).join('')}
+        </div>`;
+    }).join('') || '<div class="empty" style="padding:24px"><i class="fas fa-inbox"></i>No classes assigned yet</div>';
+
+    openDrawer({
+      title: u.full_name || u.email,
+      sub: u.email,
+      body: `
+        <div class="detail-section">
+          <div class="detail-kv">
+            <div class="kv-item"><div class="kv-label">Department</div><div class="kv-value">${escapeHtml(u.department || '—')}</div></div>
+            <div class="kv-item"><div class="kv-label">Phone</div><div class="kv-value">${escapeHtml(u.phone || '—')}</div></div>
+            <div class="kv-item"><div class="kv-label">Role</div><div class="kv-value"><span class="badge badge-${u.role}">${u.role}</span></div></div>
+            <div class="kv-item"><div class="kv-label">Status</div><div class="kv-value">${u.is_active === false ? '<span class="badge badge-rejected">suspended</span>' : '<span class="badge badge-approved">active</span>'}</div></div>
+            <div class="kv-item"><div class="kv-label">Weekly classes</div><div class="kv-value">${classes.length}</div></div>
+            <div class="kv-item"><div class="kv-label">Pending bookings</div><div class="kv-value">${bookings.length}</div></div>
+          </div>
+        </div>
+        ${courses.length ? `<div class="detail-section">
+          <div class="detail-section-title"><i class="fas fa-book"></i>Courses taught</div>
+          <div class="chips">${courses.map(c => `<span class="chip" style="cursor:default">${escapeHtml(c.course_id)} · ${escapeHtml(c.name)}</span>`).join('')}</div>
+        </div>` : ''}
+        <div class="detail-section">
+          <div class="detail-section-title"><i class="fas fa-calendar-week"></i>Weekly schedule</div>
+          ${scheduleHtml}
+        </div>
+      `,
+      footer: `<button class="btn" id="drawerDone">Close</button><button class="btn btn-primary" id="drawerEdit"><i class="fas fa-pen"></i> Edit account</button>`,
+    });
+    $('drawerDone').onclick = closeDrawer;
+    $('drawerEdit').onclick = () => { closeDrawer(); editFaculty(id); };
+  }
+
+  function editFaculty(id) {
+    const u = cache.users.find(x => x.id === id);
+    if (!u) return;
+    openFormModal({
+      title: `Edit ${u.email}`,
+      fields: `
+        <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+          <label class="field"><span>Full name</span><input class="input" data-field="full_name" value="${escapeHtml(u.full_name || '')}"></label>
+          <label class="field"><span>Department</span><input class="input" data-field="department" value="${escapeHtml(u.department || '')}"></label>
+          <label class="field"><span>Phone</span><input class="input" data-field="phone" value="${escapeHtml(u.phone || '')}"></label>
+          <label class="field"><span>Role</span>
+            <select class="input" data-field="role">
+              <option value="student" ${u.role === 'student' ? 'selected' : ''}>student</option>
+              <option value="faculty" ${u.role === 'faculty' ? 'selected' : ''}>faculty</option>
+              <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>admin</option>
+            </select>
+          </label>
+        </div>
+      `,
+      onSave: async ({ get }) => {
+        if (id === auth.profile.id && get('role') !== 'admin') { toast('You cannot demote yourself', 'error'); return false; }
+        const { error } = await supabase.from('profiles').update({
+          full_name: get('full_name') || null,
+          department: get('department') || null,
+          phone: get('phone') || null,
+          role: get('role'),
+        }).eq('id', id);
+        if (error) { toast(error.message, 'error'); return false; }
+        toast('Updated', 'success');
+        await reloadCache(); renderFaculty();
+      },
+    });
+  }
+
+  $('facSearch').oninput = renderFaculty;
+  $('facExport').onclick = () => {
+    const csv = ['name,email,department,role,weekly_classes']
+      .concat(cache.users.filter(u => u.role === 'faculty').map(u => {
+        const count = cache.timetable.filter(t => t.faculty_id === u.id).length;
+        return `"${(u.full_name || '').replace(/"/g,'""')}",${u.email},${u.department || ''},${u.role},${count}`;
+      })).join('\n');
+    downloadFile(csv, `faculty-${todayISO()}.csv`, 'text/csv');
+    toast('Exported', 'success');
+  };
+
+  /* ============================================================
+     BATCHES
+     ============================================================ */
+  function renderBatches() {
+    const q = ($('secSearch').value || '').toLowerCase().trim();
+    let list = cache.sections;
+    if (q) list = list.filter(s =>
+      s.section_id.toLowerCase().includes(q) ||
+      s.name.toLowerCase().includes(q) ||
+      (s.department || '').toLowerCase().includes(q));
+
+    if (!list.length) {
+      $('secGrid').innerHTML = `<div class="cc-empty" style="grid-column:1/-1">
+        <i class="fas fa-users-rectangle"></i>
+        <div class="cc-empty-title">No batches yet</div>
+        <div class="cc-empty-sub">Click "Add batch" to create the first one.</div>
+      </div>`;
+      return;
+    }
+
+    const ttBySec = new Map();
+    cache.timetable.forEach(t => {
+      if (!ttBySec.has(t.section_id)) ttBySec.set(t.section_id, []);
+      ttBySec.get(t.section_id).push(t);
+    });
+
+    $('secGrid').innerHTML = list.map(s => {
+      const classes = ttBySec.get(s.section_id) || [];
+      const courses = new Set(classes.map(c => c.course_code).filter(Boolean));
+      const enrolled = cache.users.filter(u => u.role === 'student' && u.section_id === s.section_id).length;
+      return `
+        <div class="cc-card">
+          <div class="cc-card-head">
+            <div>
+              <div class="cc-card-title"><i class="fas fa-users-rectangle"></i>${escapeHtml(s.section_id)}</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${escapeHtml(s.name)}</div>
+            </div>
+          </div>
+          <div class="cc-card-meta">
+            <span><i class="fas fa-users"></i>${enrolled} / ${s.strength || '?'} students</span>
+            <span><i class="fas fa-book"></i>${courses.size} course${courses.size === 1 ? '' : 's'}</span>
+            <span><i class="fas fa-table"></i>${classes.length} class${classes.length === 1 ? '' : 'es'}</span>
+            ${s.department ? `<span><i class="fas fa-building-columns"></i>${escapeHtml(s.department)}</span>` : ''}
+          </div>
+          <div class="cc-card-actions">
+            <button class="btn btn-sm" data-view="${escapeHtml(s.section_id)}"><i class="fas fa-eye"></i> View</button>
+            <button class="btn btn-sm" data-edit="${escapeHtml(s.section_id)}"><i class="fas fa-pen"></i></button>
+            <button class="btn btn-sm btn-danger" data-del="${escapeHtml(s.section_id)}"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>`;
+    }).join('');
+
+    document.querySelectorAll('#secGrid [data-view]').forEach(b => b.onclick = () => viewBatch(b.dataset.view));
+    document.querySelectorAll('#secGrid [data-edit]').forEach(b => b.onclick = () => editBatch(b.dataset.edit));
+    document.querySelectorAll('#secGrid [data-del]').forEach(b => b.onclick = () => deleteBatch(b.dataset.del));
+  }
+
+  function viewBatch(id) {
+    const sec = cache.sections.find(s => s.section_id === id);
+    if (!sec) return;
+    const classes = cache.timetable.filter(t => t.section_id === id);
+    const students = cache.users.filter(u => u.role === 'student' && u.section_id === id);
+    const byDay = new Map();
+    classes.forEach(c => { if (!byDay.has(c.day_of_week)) byDay.set(c.day_of_week, []); byDay.get(c.day_of_week).push(c); });
+
+    const scheduleHtml = [1,2,3,4,5,6,0].filter(d => byDay.has(d)).map(d => {
+      const items = byDay.get(d).sort((a,b) => {
+        const sa = cache.slots.find(s => s.slot_id === a.slot_id);
+        const sb = cache.slots.find(s => s.slot_id === b.slot_id);
+        return (sa?.start_time || '').localeCompare(sb?.start_time || '');
+      });
+      return `
+        <div class="detail-section">
+          <div class="detail-section-title"><i class="fas fa-calendar-day"></i>${DOW_LONG[d]}</div>
+          ${items.map(c => {
+            const slot = cache.slots.find(s => s.slot_id === c.slot_id);
+            const room = cache.rooms.find(r => r.room_id === c.room_id);
+            const fac = cache.users.find(u => u.id === c.faculty_id);
+            return `
+              <div class="schedule-row">
+                <div>
+                  <div class="sr-code">${escapeHtml(c.course_code || '—')}</div>
+                  <div class="sr-name">${escapeHtml(c.course_name || '')}</div>
+                  <div class="sr-meta">
+                    <span><i class="fas fa-door-open"></i>${escapeHtml(room?.display_name || c.room_id)}</span>
+                    ${fac ? `<span><i class="fas fa-chalkboard-user"></i>${escapeHtml(fac.full_name || fac.email)}</span>` : ''}
+                  </div>
+                </div>
+                <div class="sr-time">${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)}</div>
+              </div>`;
+          }).join('')}
+        </div>`;
+    }).join('') || '<div class="empty" style="padding:24px"><i class="fas fa-inbox"></i>No classes scheduled</div>';
+
+    openDrawer({
+      title: `${sec.section_id} · ${sec.name}`,
+      sub: `${students.length} students enrolled${sec.department ? ` · ${sec.department}` : ''}`,
+      body: `
+        <div class="detail-section">
+          <div class="detail-kv">
+            <div class="kv-item"><div class="kv-label">Batch ID</div><div class="kv-value mono">${escapeHtml(sec.section_id)}</div></div>
+            <div class="kv-item"><div class="kv-label">Name</div><div class="kv-value">${escapeHtml(sec.name)}</div></div>
+            <div class="kv-item"><div class="kv-label">Strength</div><div class="kv-value">${students.length} / ${sec.strength || '?'}</div></div>
+            <div class="kv-item"><div class="kv-label">Department</div><div class="kv-value">${escapeHtml(sec.department || '—')}</div></div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title"><i class="fas fa-users"></i>Enrolled students (${students.length})</div>
+          ${students.length ? `<div class="chips">${students.map(s => `<span class="chip" style="cursor:default">${escapeHtml(s.full_name || s.email)}</span>`).join('')}</div>` : '<div class="dim" style="font-size:12px">No students assigned to this batch</div>'}
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title"><i class="fas fa-calendar-week"></i>Weekly schedule</div>
+          ${scheduleHtml}
+        </div>
+      `,
+      footer: `<button class="btn" id="drawerDone">Close</button><button class="btn btn-primary" id="drawerEdit"><i class="fas fa-pen"></i> Edit batch</button>`,
+    });
+    $('drawerDone').onclick = closeDrawer;
+    $('drawerEdit').onclick = () => { closeDrawer(); editBatch(id); };
+  }
+
+  $('addSec').onclick = () => editBatch();
+  function editBatch(id) {
+    const existing = id ? cache.sections.find(s => s.section_id === id) : null;
+    openFormModal({
+      title: existing ? `Edit ${existing.section_id}` : 'Add batch',
+      fields: `
+        <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+          <label class="field"><span>Batch ID *</span><input class="input" data-field="section_id" value="${escapeHtml(existing?.section_id || '')}" ${existing ? 'disabled' : ''} placeholder="CSE-4A"></label>
+          <label class="field"><span>Display name *</span><input class="input" data-field="name" value="${escapeHtml(existing?.name || '')}" placeholder="CSE 4th Year A"></label>
+          <label class="field"><span>Strength</span><input class="input" type="number" data-field="strength" value="${existing?.strength || 60}"></label>
+          <label class="field"><span>Department</span><input class="input" data-field="department" value="${escapeHtml(existing?.department || '')}" placeholder="CSE"></label>
+        </div>
+      `,
+      onSave: async ({ get }) => {
+        if (!get('section_id') || !get('name')) { toast('ID and name required', 'error'); return false; }
+        const payload = {
+          section_id: existing?.section_id || get('section_id').trim(),
+          name: get('name').trim(),
+          strength: parseInt(get('strength')) || 60,
+          department: get('department') || null,
+        };
+        const result = existing
+          ? await supabase.from('sections').update(payload).eq('section_id', existing.section_id)
+          : await supabase.from('sections').insert(payload);
+        if (result.error) { toast(result.error.message, 'error'); return false; }
+        toast(existing ? 'Batch updated' : 'Batch added', 'success');
+        await reloadCache(); renderBatches();
+      },
+    });
+  }
+
+  async function deleteBatch(id) {
+    const students = cache.users.filter(u => u.section_id === id).length;
+    const ttCount = cache.timetable.filter(t => t.section_id === id).length;
+    let msg = `Delete ${id}?`;
+    if (students > 0) msg += `\n\n⚠️ ${students} student(s) will lose their batch.`;
+    if (ttCount > 0) msg += `\n⚠️ ${ttCount} timetable row(s) will be deleted.`;
+    if (!confirm(msg)) return;
+    const { error } = await supabase.from('sections').delete().eq('section_id', id);
+    if (error) return toast(error.message, 'error');
+    toast('Batch deleted', 'success');
+    await reloadCache(); renderBatches();
+  }
+
+  $('secSearch').oninput = renderBatches;
+
+  /* ============================================================
+     COURSES
+     ============================================================ */
+  function renderCourses() {
+    const q = ($('courseSearch').value || '').toLowerCase().trim();
+    let list = cache.courses;
+    if (q) list = list.filter(c => c.course_id.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || (c.department || '').toLowerCase().includes(q));
+
+    if (!list.length) {
+      $('courseGrid').innerHTML = `<div class="cc-empty" style="grid-column:1/-1">
+        <i class="fas fa-book"></i>
+        <div class="cc-empty-title">No courses in catalog</div>
+        <div class="cc-empty-sub">Click "Add course" to create the first one.</div>
+      </div>`;
+      return;
+    }
+
+    const ttByCourse = new Map();
+    cache.timetable.forEach(t => {
+      if (!t.course_code) return;
+      if (!ttByCourse.has(t.course_code)) ttByCourse.set(t.course_code, []);
+      ttByCourse.get(t.course_code).push(t);
+    });
+
+    $('courseGrid').innerHTML = list.map(c => {
+      const classes = ttByCourse.get(c.course_id) || [];
+      const batches = new Set(classes.map(x => x.section_id));
+      const faculty = new Set(classes.map(x => x.faculty_id).filter(Boolean));
+      return `
+        <div class="cc-card">
+          <div class="cc-card-head">
+            <div>
+              <div class="cc-card-title"><i class="fas fa-book"></i>${escapeHtml(c.course_id)}</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${escapeHtml(c.name)}</div>
+            </div>
+          </div>
+          <div class="cc-card-meta">
+            <span><i class="fas fa-building-columns"></i>${escapeHtml(c.department || '—')}</span>
+            <span><i class="fas fa-star"></i>${c.credits} credit${c.credits === 1 ? '' : 's'}</span>
+            <span><i class="fas fa-users-rectangle"></i>${batches.size} batch${batches.size === 1 ? '' : 'es'}</span>
+            <span><i class="fas fa-chalkboard-user"></i>${faculty.size} faculty</span>
+          </div>
+          <div class="cc-card-actions">
+            <button class="btn btn-sm" data-view="${escapeHtml(c.course_id)}"><i class="fas fa-eye"></i> View</button>
+            <button class="btn btn-sm" data-edit="${escapeHtml(c.course_id)}"><i class="fas fa-pen"></i></button>
+            <button class="btn btn-sm btn-danger" data-del="${escapeHtml(c.course_id)}"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>`;
+    }).join('');
+
+    document.querySelectorAll('#courseGrid [data-view]').forEach(b => b.onclick = () => viewCourse(b.dataset.view));
+    document.querySelectorAll('#courseGrid [data-edit]').forEach(b => b.onclick = () => editCourse(b.dataset.edit));
+    document.querySelectorAll('#courseGrid [data-del]').forEach(b => b.onclick = () => deleteCourse(b.dataset.del));
+  }
+
+  function viewCourse(id) {
+    const c = cache.courses.find(x => x.course_id === id);
+    if (!c) return;
+    const classes = cache.timetable.filter(t => t.course_code === id);
+    const batches = new Map();
+    const faculty = new Map();
+    classes.forEach(x => {
+      if (x.section_id) batches.set(x.section_id, (batches.get(x.section_id) || 0) + 1);
+      if (x.faculty_id) faculty.set(x.faculty_id, cache.users.find(u => u.id === x.faculty_id));
+    });
+
+    openDrawer({
+      title: `${c.course_id} · ${c.name}`,
+      sub: `${c.department || '—'} · ${c.credits} credits`,
+      body: `
+        <div class="detail-section">
+          <div class="detail-kv">
+            <div class="kv-item"><div class="kv-label">Code</div><div class="kv-value mono">${escapeHtml(c.course_id)}</div></div>
+            <div class="kv-item"><div class="kv-label">Department</div><div class="kv-value">${escapeHtml(c.department || '—')}</div></div>
+            <div class="kv-item"><div class="kv-label">Credits</div><div class="kv-value">${c.credits}</div></div>
+            <div class="kv-item"><div class="kv-label">Weekly classes</div><div class="kv-value">${classes.length}</div></div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title"><i class="fas fa-users-rectangle"></i>Batches taking this course (${batches.size})</div>
+          ${batches.size ? `<div class="chips">${[...batches.entries()].map(([sid, cnt]) => {
+            const sec = cache.sections.find(s => s.section_id === sid);
+            return `<span class="chip" style="cursor:default">${escapeHtml(sec?.name || sid)} · ${cnt} class${cnt === 1 ? '' : 'es'}</span>`;
+          }).join('')}</div>` : '<div class="dim" style="font-size:12px">No batches assigned yet</div>'}
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title"><i class="fas fa-chalkboard-user"></i>Faculty teaching (${faculty.size})</div>
+          ${faculty.size ? `<div class="chips">${[...faculty.values()].filter(Boolean).map(u => `<span class="chip" style="cursor:default">${escapeHtml(u.full_name || u.email)}</span>`).join('')}</div>` : '<div class="dim" style="font-size:12px">No faculty assigned yet</div>'}
+        </div>
+      `,
+      footer: `<button class="btn" id="drawerDone">Close</button><button class="btn btn-primary" id="drawerEdit"><i class="fas fa-pen"></i> Edit course</button>`,
+    });
+    $('drawerDone').onclick = closeDrawer;
+    $('drawerEdit').onclick = () => { closeDrawer(); editCourse(id); };
+  }
+
+  $('addCourse').onclick = () => editCourse();
+  function editCourse(id) {
+    const existing = id ? cache.courses.find(c => c.course_id === id) : null;
+    openFormModal({
+      title: existing ? `Edit ${existing.course_id}` : 'Add course',
+      fields: `
+        <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+          <label class="field"><span>Course code *</span><input class="input" data-field="course_id" value="${escapeHtml(existing?.course_id || '')}" ${existing ? 'disabled' : ''} placeholder="CS401"></label>
+          <label class="field"><span>Course name *</span><input class="input" data-field="name" value="${escapeHtml(existing?.name || '')}" placeholder="Compiler Design"></label>
+          <label class="field"><span>Department</span><input class="input" data-field="department" value="${escapeHtml(existing?.department || '')}" placeholder="CSE"></label>
+          <label class="field"><span>Credits</span><input class="input" type="number" min="1" max="10" data-field="credits" value="${existing?.credits || 3}"></label>
+        </div>
+        <label class="field" style="margin-top:12px"><span>Description</span><input class="input" data-field="description" value="${escapeHtml(existing?.description || '')}"></label>
+      `,
+      onSave: async ({ get }) => {
+        if (!get('course_id') || !get('name')) { toast('Code and name required', 'error'); return false; }
+        const payload = {
+          course_id: existing?.course_id || get('course_id').trim().toUpperCase(),
+          name: get('name').trim(),
+          department: get('department') || null,
+          credits: parseInt(get('credits')) || 3,
+          description: get('description') || null,
+          is_active: true,
+        };
+        const result = existing
+          ? await supabase.from('courses').update(payload).eq('course_id', existing.course_id)
+          : await supabase.from('courses').insert(payload);
+        if (result.error) { toast(result.error.message, 'error'); return false; }
+        toast(existing ? 'Course updated' : 'Course added', 'success');
+        await reloadCache(); renderCourses();
+      },
+    });
+  }
+
+  async function deleteCourse(id) {
+    const count = cache.timetable.filter(t => t.course_code === id).length;
+    if (count > 0) return toast(`Cannot delete: ${count} timetable row${count === 1 ? '' : 's'} use this course`, 'error');
+    if (!confirm(`Delete course ${id}?`)) return;
+    const { error } = await supabase.from('courses').delete().eq('course_id', id);
+    if (error) return toast(error.message, 'error');
+    toast('Deleted', 'success');
+    await reloadCache(); renderCourses();
+  }
+
+  $('courseSearch').oninput = renderCourses;
+  $('courseExport').onclick = () => {
+    const csv = ['course_id,name,department,credits,batches,faculty']
+      .concat(cache.courses.map(c => {
+        const classes = cache.timetable.filter(t => t.course_code === c.course_id);
+        const batches = new Set(classes.map(x => x.section_id)).size;
+        const fac = new Set(classes.map(x => x.faculty_id).filter(Boolean)).size;
+        return `${c.course_id},"${c.name.replace(/"/g,'""')}",${c.department || ''},${c.credits},${batches},${fac}`;
+      })).join('\n');
+    downloadFile(csv, `courses-${todayISO()}.csv`, 'text/csv');
+    toast('Exported', 'success');
+  };
+
+  /* ============================================================
+     TIMETABLE (with view modes)
+     ============================================================ */
+  let ttViewMode = 'list';
+  document.querySelectorAll('#ttViewModes .view-mode').forEach(b => {
+    b.onclick = () => {
+      ttViewMode = b.dataset.mode;
+      document.querySelectorAll('#ttViewModes .view-mode').forEach(x => x.classList.toggle('active', x === b));
+      renderTimetable();
+    };
+  });
+
+  function renderTimetable() {
+    if (ttViewMode === 'list') {
+      $('ttDayView').style.display = 'none';
+      renderTTList();
+    } else {
+      $('ttDayView').style.display = 'block';
+      if ($('ttDayView').options.length <= 1) {
+        $('ttDayView').innerHTML = [1,2,3,4,5,6,0].map(d => `<option value="${d}">${DOW_LONG[d]}</option>`).join('');
+        $('ttDayView').value = String(new Date().getDay() || 1);
+      }
+      renderTTGrid();
+    }
+  }
+
+  function renderTTList() {
+    const q = ($('ttSearch').value || '').toLowerCase().trim();
     let list = cache.timetable;
-    if (sec) list = list.filter(r => r.section_id === sec);
-    if (day !== '') list = list.filter(r => r.day_of_week === parseInt(day));
     if (q) list = list.filter(r =>
       (r.course_code || '').toLowerCase().includes(q) ||
       (r.course_name || '').toLowerCase().includes(q) ||
       r.room_id.toLowerCase().includes(q) ||
-      r.section_id.toLowerCase().includes(q)
-    );
+      r.section_id.toLowerCase().includes(q));
 
     const slotById = new Map(cache.slots.map(s => [s.slot_id, s]));
     const roomById = new Map(cache.rooms.map(r => [r.room_id, r.display_name]));
     const facById = new Map(cache.users.map(u => [u.id, u]));
 
     if (!list.length) {
-      $('ttBody').innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-inbox"></i>No rows match</td></tr>';
+      $('ttContent').innerHTML = `<div class="cc-empty"><i class="fas fa-table"></i><div class="cc-empty-title">No timetable rows</div><div class="cc-empty-sub">Click "Add row" to schedule a class.</div></div>`;
       return;
     }
 
-    $('ttBody').innerHTML = list.map(r => {
-      const slot = slotById.get(r.slot_id);
-      const fac = facById.get(r.faculty_id);
-      return `
-        <tr>
-          <td><span class="badge badge-admin">${escapeHtml(r.section_id)}</span></td>
-          <td style="font-weight:500">${dayNames[r.day_of_week]}</td>
-          <td>
-            <div class="mono" style="font-size:12px">${escapeHtml(slot?.label || r.slot_id)}</div>
-            <div style="font-size:10px;color:var(--text-muted)">${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)}</div>
-          </td>
-          <td class="mono">${escapeHtml(roomById.get(r.room_id) || r.room_id)}</td>
-          <td>
-            <div style="font-size:12px;font-weight:600;color:var(--text)">${escapeHtml(r.course_code || '—')}</div>
-            <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(r.course_name || '')}</div>
-          </td>
-          <td class="dim" style="font-size:12px">${escapeHtml(fac?.full_name || fac?.email || '—')}</td>
-          <td class="row-actions">
-            <button class="btn btn-sm" data-edit="${r.id}" title="Edit"><i class="fas fa-pen"></i></button>
-            <button class="btn btn-sm btn-danger" data-del="${r.id}" title="Delete"><i class="fas fa-trash"></i></button>
-          </td>
-        </tr>`;
-    }).join('');
+    $('ttContent').innerHTML = `
+      <div class="cc-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Batch</th><th>Day</th><th>Slot</th><th>Room</th>
+              <th>Course</th><th>Faculty</th>
+              <th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map(r => {
+              const slot = slotById.get(r.slot_id);
+              const fac = facById.get(r.faculty_id);
+              return `
+                <tr>
+                  <td><span class="badge badge-admin">${escapeHtml(r.section_id)}</span></td>
+                  <td style="font-weight:500">${DOW[r.day_of_week]}</td>
+                  <td>
+                    <div class="mono" style="font-size:12px">${escapeHtml(slot?.label || r.slot_id)}</div>
+                    <div style="font-size:10px;color:var(--text-muted)">${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)}</div>
+                  </td>
+                  <td class="mono">${escapeHtml(roomById.get(r.room_id) || r.room_id)}</td>
+                  <td>
+                    <div style="font-size:12px;font-weight:600;color:var(--text)">${escapeHtml(r.course_code || '—')}</div>
+                    <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(r.course_name || '')}</div>
+                  </td>
+                  <td class="dim" style="font-size:12px">${escapeHtml(fac?.full_name || fac?.email || '—')}</td>
+                  <td class="row-actions">
+                    <button class="btn btn-sm" data-edit="${r.id}"><i class="fas fa-pen"></i></button>
+                    <button class="btn btn-sm btn-danger" data-del="${r.id}"><i class="fas fa-trash"></i></button>
+                  </td>
+                </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
 
-    document.querySelectorAll('#ttBody [data-edit]').forEach(b => b.onclick = () => editTTRow(b.dataset.edit));
-    document.querySelectorAll('#ttBody [data-del]').forEach(b => b.onclick = async () => {
-      if (!confirm('Delete this timetable row?')) return;
+    document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { const r = cache.timetable.find(x => x.id === b.dataset.edit); if (r) openTTRowModal(r); });
+    document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+      if (!confirm('Delete this row?')) return;
       const { error } = await supabase.from('timetable').delete().eq('id', b.dataset.del);
       if (error) return toast(error.message, 'error');
       toast('Deleted', 'success');
-      await reloadCache();
-      renderTTTable();
+      await reloadCache(); renderTimetable();
     });
   }
 
-  $('ttSectionFilter').onchange = renderTTTable;
-  $('ttDayFilter').onchange = renderTTTable;
-  $('ttSearch').oninput = renderTTTable;
+  function renderTTGrid() {
+    const day = parseInt($('ttDayView').value) || 1;
+    const q = ($('ttSearch').value || '').toLowerCase().trim();
 
-  $('addTT').onclick = () => openTTRowModal();
-  async function editTTRow(id) {
-    const row = cache.timetable.find(r => r.id === id);
-    if (row) openTTRowModal(row);
+    let rowEntities, entityKey, entityLabel, entityFilter;
+    if (ttViewMode === 'batch') {
+      rowEntities = cache.sections.map(s => ({ id: s.section_id, label: s.name || s.section_id, meta: s.section_id }));
+      entityKey = 'section_id';
+    } else if (ttViewMode === 'faculty') {
+      rowEntities = cache.users.filter(u => u.role === 'faculty').map(u => ({ id: u.id, label: u.full_name || u.email, meta: u.department || '' }));
+      entityKey = 'faculty_id';
+    } else {
+      rowEntities = cache.rooms.map(r => ({ id: r.room_id, label: r.display_name, meta: `Block ${r.building} · F${r.floor}` }));
+      entityKey = 'room_id';
+    }
+
+    if (q) rowEntities = rowEntities.filter(e => (e.label || '').toLowerCase().includes(q) || (e.meta || '').toLowerCase().includes(q));
+
+    if (!rowEntities.length) {
+      $('ttContent').innerHTML = `<div class="cc-empty"><i class="fas fa-table"></i><div class="cc-empty-title">Nothing to show</div><div class="cc-empty-sub">${ttViewMode === 'faculty' ? 'No faculty accounts yet' : ttViewMode === 'batch' ? 'No batches yet' : 'No rooms yet'}</div></div>`;
+      return;
+    }
+
+    // Index timetable rows for day + entity + slot
+    const idx = new Map();
+    cache.timetable.filter(t => t.day_of_week === day).forEach(t => {
+      const k = `${t[entityKey]}|${t.slot_id}`;
+      idx.set(k, t);
+    });
+
+    const slotById = new Map(cache.slots.map(s => [s.slot_id, s]));
+    const roomById = new Map(cache.rooms.map(r => [r.room_id, r.display_name]));
+    const secById = new Map(cache.sections.map(s => [s.section_id, s.name]));
+    const facById = new Map(cache.users.map(u => [u.id, u]));
+
+    $('ttContent').innerHTML = `
+      <div class="cc-grid-wrap">
+        <table class="cc-grid">
+          <thead>
+            <tr>
+              <th>${ttViewMode === 'batch' ? 'Batch' : ttViewMode === 'faculty' ? 'Faculty' : 'Room'}</th>
+              ${cache.slots.map(s => `<th>${escapeHtml(s.label || s.slot_id)}<div style="font-size:9px;opacity:.7;font-weight:400;margin-top:2px">${s.start_time.slice(0,5)}</div></th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${rowEntities.map(row => `
+              <tr>
+                <td>
+                  <div style="font-weight:600;color:var(--text)">${escapeHtml(row.label)}</div>
+                  ${row.meta ? `<div style="font-size:10px;color:var(--text-muted);margin-top:1px">${escapeHtml(row.meta)}</div>` : ''}
+                </td>
+                ${cache.slots.map(slot => {
+                  const t = idx.get(`${row.id}|${slot.slot_id}`);
+                  if (!t) return `<td><div class="cc-cell">—</div></td>`;
+                  let sub = '';
+                  if (ttViewMode === 'batch') sub = roomById.get(t.room_id) || t.room_id;
+                  else if (ttViewMode === 'faculty') sub = secById.get(t.section_id) || t.section_id;
+                  else sub = secById.get(t.section_id) || t.section_id;
+                  return `<td><div class="cc-cell has-class" data-row="${t.id}" title="${escapeHtml(t.course_code || '')} — ${escapeHtml(t.course_name || '')}">
+                    <div class="cc-cell-code">${escapeHtml(t.course_code || '—')}</div>
+                    <div class="cc-cell-sub">${escapeHtml(sub)}</div>
+                  </div></td>`;
+                }).join('')}
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+
+    document.querySelectorAll('.cc-cell.has-class').forEach(el => {
+      el.onclick = () => {
+        const row = cache.timetable.find(t => t.id === el.dataset.row);
+        if (row) openTTRowModal(row);
+      };
+    });
   }
 
+  $('ttDayView').onchange = renderTTGrid;
+  $('ttSearch').oninput = renderTimetable;
+
+  $('ttAdd').onclick = () => openTTRowModal();
   function openTTRowModal(existing) {
-    formModal({
+    openFormModal({
       title: existing ? 'Edit timetable row' : 'Add timetable row',
-      sub: 'One row = one class scheduled for a batch, day, and slot.',
+      sub: 'One row = one class. Conflicts are checked before saving.',
       fields: `
         <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-          <label class="field"><span>Batch / Section</span>
+          <label class="field"><span>Batch *</span>
             <select class="input" data-field="section_id">
               ${cache.sections.map(s => `<option value="${escapeHtml(s.section_id)}" ${existing?.section_id === s.section_id ? 'selected' : ''}>${escapeHtml(s.section_id)} — ${escapeHtml(s.name)}</option>`).join('')}
             </select>
           </label>
-          <label class="field"><span>Day</span>
+          <label class="field"><span>Day *</span>
             <select class="input" data-field="day_of_week">
-              ${[1,2,3,4,5,6,0].map(d => `<option value="${d}" ${existing?.day_of_week === d ? 'selected' : ''}>${dayNames[d]} — ${{0:'Sunday',1:'Monday',2:'Tuesday',3:'Wednesday',4:'Thursday',5:'Friday',6:'Saturday'}[d]}</option>`).join('')}
+              ${[1,2,3,4,5,6,0].map(d => `<option value="${d}" ${existing?.day_of_week === d ? 'selected' : ''}>${DOW_LONG[d]}</option>`).join('')}
             </select>
           </label>
-          <label class="field"><span>Slot</span>
+          <label class="field"><span>Slot *</span>
             <select class="input" data-field="slot_id">
               ${cache.slots.map(s => `<option value="${escapeHtml(s.slot_id)}" ${existing?.slot_id === s.slot_id ? 'selected' : ''}>${escapeHtml(s.label || s.slot_id)} (${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)})</option>`).join('')}
             </select>
           </label>
-          <label class="field"><span>Room</span>
+          <label class="field"><span>Room *</span>
             <select class="input" data-field="room_id">
               ${cache.rooms.map(r => `<option value="${escapeHtml(r.room_id)}" ${existing?.room_id === r.room_id ? 'selected' : ''}>${escapeHtml(r.display_name)}</option>`).join('')}
             </select>
@@ -940,23 +1594,69 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
               ${cache.users.filter(u => u.role === 'faculty' || u.role === 'admin').map(u => `<option value="${u.id}" ${existing?.faculty_id === u.id ? 'selected' : ''}>${escapeHtml(u.full_name || u.email)}</option>`).join('')}
             </select>
           </label>
-          <label class="field"><span>Course code</span><input class="input" data-field="course_code" value="${escapeHtml(existing?.course_code || '')}" placeholder="CS401"></label>
-          <label class="field" style="grid-column:1/-1"><span>Course name</span><input class="input" data-field="course_name" value="${escapeHtml(existing?.course_name || '')}" placeholder="Compiler Design"></label>
+          <label class="field"><span>Course</span>
+            <select class="input" data-field="course_code">
+              <option value="">— none —</option>
+              ${cache.courses.map(c => `<option value="${escapeHtml(c.course_id)}" ${existing?.course_code === c.course_id ? 'selected' : ''}>${escapeHtml(c.course_id)} — ${escapeHtml(c.name)}</option>`).join('')}
+            </select>
+          </label>
+          <label class="field" style="grid-column:1/-1"><span>Course name (auto from catalog, override)</span><input class="input" data-field="course_name" value="${escapeHtml(existing?.course_name || '')}"></label>
         </div>
+        <div id="ttConflictZone"></div>
       `,
       onSave: async ({ get }) => {
-        if (!get('section_id') || !get('slot_id') || !get('room_id')) {
-          toast('Fill all required fields', 'error');
+        const section_id = get('section_id');
+        const day_of_week = parseInt(get('day_of_week'));
+        const slot_id = get('slot_id');
+        const room_id = get('room_id');
+        const faculty_id = get('faculty_id') || null;
+        const course_code = get('course_code') || null;
+        let course_name = get('course_name') || null;
+        if (course_code && !course_name) {
+          const cat = cache.courses.find(c => c.course_id === course_code);
+          if (cat) course_name = cat.name;
+        }
+
+        if (!section_id || !slot_id || !room_id) { toast('Fill required fields', 'error'); return false; }
+
+        // Conflict checks
+        const conflicts = [];
+        // Room conflict
+        const roomClash = cache.timetable.find(t =>
+          t.room_id === room_id &&
+          t.day_of_week === day_of_week &&
+          t.slot_id === slot_id &&
+          t.id !== existing?.id);
+        if (roomClash) conflicts.push(`Room ${room_id} is used by ${roomClash.section_id} (${roomClash.course_code || 'class'})`);
+        // Faculty conflict
+        if (faculty_id) {
+          const facClash = cache.timetable.find(t =>
+            t.faculty_id === faculty_id &&
+            t.day_of_week === day_of_week &&
+            t.slot_id === slot_id &&
+            t.id !== existing?.id);
+          if (facClash) conflicts.push(`Faculty is already teaching ${facClash.section_id} at this time`);
+        }
+        // Batch conflict
+        const batchClash = cache.timetable.find(t =>
+          t.section_id === section_id &&
+          t.day_of_week === day_of_week &&
+          t.slot_id === slot_id &&
+          t.id !== existing?.id);
+        if (batchClash) conflicts.push(`Batch ${section_id} already has ${batchClash.course_code || 'a class'} at this time`);
+
+        if (conflicts.length) {
+          const zone = document.getElementById('ttConflictZone');
+          if (zone) {
+            zone.innerHTML = `<div class="conflict-alert"><i class="fas fa-triangle-exclamation"></i><div><strong>Conflicts detected</strong><ul>${conflicts.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul></div></div>`;
+          }
+          toast('Conflicts detected — see details', 'error');
           return false;
         }
+
         const payload = {
-          section_id: get('section_id'),
-          day_of_week: parseInt(get('day_of_week')),
-          slot_id: get('slot_id'),
-          room_id: get('room_id'),
-          faculty_id: get('faculty_id') || null,
-          course_code: get('course_code') || null,
-          course_name: get('course_name') || null,
+          section_id, day_of_week, slot_id, room_id,
+          faculty_id, course_code, course_name,
           is_active: true,
         };
         const result = existing
@@ -964,33 +1664,31 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
           : await supabase.from('timetable').upsert(payload, { onConflict: 'section_id,day_of_week,slot_id' });
         if (result.error) { toast(result.error.message, 'error'); return false; }
         toast(existing ? 'Row updated' : 'Row added', 'success');
-        await reloadCache();
-        renderTTTable();
+        await reloadCache(); renderTimetable();
       },
     });
   }
 
-  $('exportTT').onclick = () => {
+  $('ttExport').onclick = () => {
     const facById = new Map(cache.users.map(u => [u.id, u]));
     const csv = ['section_id,day_of_week,slot_id,room_id,faculty_email,course_code,course_name']
       .concat(cache.timetable.map(r => {
         const fac = facById.get(r.faculty_id);
         return [r.section_id, r.day_of_week, r.slot_id, r.room_id, fac?.email || '', r.course_code || '', `"${(r.course_name || '').replace(/"/g, '""')}"`].join(',');
-      }))
-      .join('\n');
+      })).join('\n');
     downloadFile(csv, `timetable-${todayISO()}.csv`, 'text/csv');
     toast('Exported', 'success');
   };
 
-  $('importTT').onclick = () => {
+  $('ttImport').onclick = () => {
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
     dialog.innerHTML = `
       <div class="modal-content wide">
         <div class="modal-header">
           <div>
-            <div class="modal-title">Import timetable</div>
-            <div class="modal-sub">Bulk upload from your university's data</div>
+            <div class="modal-title">Bulk import timetable</div>
+            <div class="modal-sub">Paste CSV — existing rows for the same batch + day + slot are updated</div>
           </div>
           <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
         </div>
@@ -998,12 +1696,10 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
           <div class="modal-help">
             <strong>Format:</strong> <code>section_id,day_of_week,slot_id,room_id,faculty_email,course_code,course_name</code><br>
             • day_of_week: 1=Mon … 6=Sat, 0=Sun<br>
-            • faculty_email is optional (must match an existing account)<br>
-            • Comma or tab separated — existing rows for the same section + day + slot are updated.
+            • faculty_email optional — must match an existing account
           </div>
           <textarea id="csvInput" class="modal-textarea" placeholder="section_id,day_of_week,slot_id,room_id,faculty_email,course_code,course_name
-CSE-4A,1,P1,27-107,faculty1@lpu.in,CS401,Compiler Design
-CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
+CSE-4A,1,P1,27-107,faculty@lpu.in,CS401,Compiler Design"></textarea>
           <div id="importPreview"></div>
         </div>
         <div class="modal-footer">
@@ -1014,22 +1710,18 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
       </div>`;
     document.body.appendChild(dialog);
     dialog.showModal();
-
     let parsed = [];
-
     dialog.querySelector('#parseBtn').onclick = () => {
       const raw = dialog.querySelector('#csvInput').value.trim();
       if (!raw) return toast('Paste CSV first', 'error');
       const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
       if (lines.length < 2) return toast('Need header + at least one row', 'error');
-
       const delim = lines[0].includes('\t') ? '\t' : ',';
       const header = lines[0].split(delim).map(x => x.trim().toLowerCase());
       const idx = k => header.indexOf(k);
       const required = ['section_id', 'day_of_week', 'slot_id', 'room_id'];
       const missing = required.filter(k => idx(k) < 0);
       if (missing.length) return toast('Missing columns: ' + missing.join(', '), 'error');
-
       const emailToId = new Map(cache.users.map(u => [u.email.toLowerCase(), u.id]));
       parsed = [];
       const errs = [];
@@ -1045,195 +1737,122 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
           course_name: idx('course_name') >= 0 ? (p[idx('course_name')] || null) : null,
           is_active: true,
         };
-        if (!row.section_id || isNaN(row.day_of_week) || !row.slot_id || !row.room_id) {
-          errs.push(`Row ${i + 1}: missing required value`);
-          continue;
-        }
+        if (!row.section_id || isNaN(row.day_of_week) || !row.slot_id || !row.room_id) { errs.push(`Row ${i+1}`); continue; }
         parsed.push(row);
       }
-
-      const preview = dialog.querySelector('#importPreview');
-      preview.innerHTML = `
-        <div class="modal-preview ${errs.length ? 'err' : 'ok'}">
-          <strong>${parsed.length}</strong> rows ready${errs.length ? ` · <strong>${errs.length}</strong> errors` : ''}
-          ${errs.length ? '<ul style="margin:6px 0 0 18px;font-size:12px">' + errs.slice(0, 5).map(e => `<li>${escapeHtml(e)}</li>`).join('') + '</ul>' : ''}
+      dialog.querySelector('#importPreview').innerHTML = `
+        <div style="margin-top:14px;padding:12px;border-radius:8px;font-size:13px;${errs.length ? 'background:var(--warning-soft);color:var(--warning-text)' : 'background:var(--success-soft);color:var(--success-text)'}">
+          <strong>${parsed.length}</strong> valid rows${errs.length ? ` · ${errs.length} errors` : ''}
         </div>`;
-
       dialog.querySelector('#importNow').disabled = parsed.length === 0;
     };
-
     dialog.querySelector('#importNow').onclick = async () => {
       const btn = dialog.querySelector('#importNow');
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing…';
       const { error } = await supabase.from('timetable').upsert(parsed, { onConflict: 'section_id,day_of_week,slot_id' });
-      if (error) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-upload"></i> Import';
-        return toast(error.message, 'error');
-      }
-      try {
-        await supabase.from('sync_log').insert({
-          source: 'csv_upload', kind: 'timetable',
-          records_count: parsed.length, status: 'success',
-          synced_by: auth.session.user.id,
-        });
-      } catch {}
+      if (error) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-upload"></i> Import'; return toast(error.message, 'error'); }
       toast(`Imported ${parsed.length} rows`, 'success');
       dialog.close(); dialog.remove();
-      await reloadCache();
-      renderTTTable();
+      await reloadCache(); renderTimetable();
     };
-
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = () => { dialog.close(); dialog.remove(); });
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
     dialog.onclick = (e) => { if (e.target === dialog) { dialog.close(); dialog.remove(); } };
   };
 
   /* ============================================================
-     PANEL 3: BATCHES / SECTIONS
+     BOOKINGS
      ============================================================ */
-  async function renderBatches() {
-    if (!cache.sections.length) await reloadCache();
-
-    const studentsBySection = new Map();
-    cache.users.filter(u => u.role === 'student').forEach(u => {
-      if (u.section_id) studentsBySection.set(u.section_id, (studentsBySection.get(u.section_id) || 0) + 1);
+  let bkFilter = 'pending';
+  function renderBookings() {
+    const q = ($('bkSearch').value || '').toLowerCase().trim();
+    let list = cache.bookings;
+    if (bkFilter !== 'all') list = list.filter(b => b.status === bkFilter);
+    if (q) list = list.filter(b => {
+      const room = cache.rooms.find(r => r.room_id === b.room_id);
+      const fac = cache.users.find(u => u.id === b.faculty_id);
+      return (room?.display_name || '').toLowerCase().includes(q) ||
+        (b.section_id || '').toLowerCase().includes(q) ||
+        (b.course_code || '').toLowerCase().includes(q) ||
+        (fac?.full_name || '').toLowerCase().includes(q);
     });
-
-    const coursesBySection = new Map();
-    cache.timetable.forEach(t => {
-      const key = t.section_id;
-      if (!coursesBySection.has(key)) coursesBySection.set(key, new Set());
-      if (t.course_code) coursesBySection.get(key).add(t.course_code);
-    });
-
-    renderSecGrid(studentsBySection, coursesBySection);
-    $('secSearch').oninput = () => renderSecGrid(studentsBySection, coursesBySection);
-  }
-
-  function renderSecGrid(studentsBySection, coursesBySection) {
-    const q = ($('secSearch').value || '').toLowerCase().trim();
-    let list = cache.sections;
-    if (q) list = list.filter(s =>
-      s.section_id.toLowerCase().includes(q) ||
-      s.name.toLowerCase().includes(q) ||
-      (s.department || '').toLowerCase().includes(q)
-    );
-
     if (!list.length) {
-      $('secGrid').innerHTML = `<div class="empty" style="grid-column:1/-1;padding:48px">
-        <i class="fas fa-users-rectangle"></i>
-        <div style="margin-top:8px;font-weight:600;color:var(--text)">No batches yet</div>
-        <div style="font-size:13px;margin-top:4px">Click "Add batch" to create your first one.</div>
-      </div>`;
+      $('bkBody').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-inbox"></i>No bookings</td></tr>';
       return;
     }
+    const roomById = new Map(cache.rooms.map(r => [r.room_id, r]));
+    const slotById = new Map(cache.slots.map(s => [s.slot_id, s]));
+    const facById = new Map(cache.users.map(u => [u.id, u]));
 
-    $('secGrid').innerHTML = list.map(s => {
-      const studentCount = studentsBySection.get(s.section_id) || 0;
-      const courseCount = (coursesBySection.get(s.section_id)?.size) || 0;
+    $('bkBody').innerHTML = list.map(b => {
+      const room = roomById.get(b.room_id);
+      const slot = slotById.get(b.slot_id);
+      const fac = facById.get(b.faculty_id);
+      const badge = b.status === 'approved' ? 'approved' : b.status === 'rejected' ? 'rejected' : 'pending';
+      const icon = b.status === 'approved' ? 'check' : b.status === 'rejected' ? 'xmark' : 'clock';
       return `
-        <div class="data-card">
-          <div class="data-card-head">
-            <div>
-              <div class="data-card-title">
-                <i class="fas fa-users-rectangle" style="color:var(--brand);font-size:12px"></i>
-                ${escapeHtml(s.section_id)}
-              </div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${escapeHtml(s.name)}</div>
-            </div>
-          </div>
-          <div class="data-card-meta">
-            <span><i class="fas fa-users"></i>${studentCount} / ${s.strength || '?'}</span>
-            <span><i class="fas fa-book"></i>${courseCount} course${courseCount === 1 ? '' : 's'}</span>
-            ${s.department ? `<span><i class="fas fa-building-columns"></i>${escapeHtml(s.department)}</span>` : ''}
-          </div>
-          <div class="data-card-actions">
-            <button class="btn btn-sm" data-edit="${escapeHtml(s.section_id)}"><i class="fas fa-pen"></i> Edit</button>
-            <button class="btn btn-sm btn-danger" data-del="${escapeHtml(s.section_id)}"><i class="fas fa-trash"></i></button>
-          </div>
-        </div>`;
+        <tr>
+          <td>
+            <div class="mono" style="font-weight:500;color:var(--text)">${escapeHtml(room?.display_name || b.room_id)}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(slot?.label || b.slot_id)} · ${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)}</div>
+          </td>
+          <td>
+            <div style="font-size:13px;font-weight:500;color:var(--text)">${escapeHtml(b.section_id || '—')}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(b.course_code || b.type)}</div>
+          </td>
+          <td class="dim" style="font-size:12px">${escapeHtml(fac?.full_name || fac?.email || '—')}</td>
+          <td style="font-weight:500">${humanDate(b.book_date)}</td>
+          <td><span class="badge badge-${badge}"><i class="fas fa-${icon}"></i>${b.status}</span></td>
+          <td class="row-actions">
+            ${b.status === 'pending' ? `
+              <button class="btn btn-sm btn-success" data-approve="${b.id}"><i class="fas fa-check"></i></button>
+              <button class="btn btn-sm btn-danger" data-reject="${b.id}"><i class="fas fa-xmark"></i></button>
+            ` : ''}
+          </td>
+        </tr>`;
     }).join('');
 
-    document.querySelectorAll('#secGrid [data-edit]').forEach(b => b.onclick = () => editSection(b.dataset.edit));
-    document.querySelectorAll('#secGrid [data-del]').forEach(b => b.onclick = () => deleteSection(b.dataset.del));
+    document.querySelectorAll('#bkBody [data-approve]').forEach(b => b.onclick = () => actionBooking(b.dataset.approve, 'approved'));
+    document.querySelectorAll('#bkBody [data-reject]').forEach(b => b.onclick = () => actionBooking(b.dataset.reject, 'rejected'));
   }
 
-  $('addSec').onclick = () => editSection();
-
-  function editSection(id) {
-    const existing = id ? cache.sections.find(s => s.section_id === id) : null;
-    formModal({
-      title: existing ? `Edit ${existing.section_id}` : 'Add batch',
-      fields: `
-        <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-          <label class="field"><span>Batch ID *</span><input class="input" data-field="section_id" value="${escapeHtml(existing?.section_id || '')}" ${existing ? 'disabled' : ''} placeholder="CSE-4A"></label>
-          <label class="field"><span>Display name *</span><input class="input" data-field="name" value="${escapeHtml(existing?.name || '')}" placeholder="CSE 4th Year A"></label>
-          <label class="field"><span>Strength</span><input class="input" type="number" data-field="strength" value="${existing?.strength || 60}"></label>
-          <label class="field"><span>Department</span><input class="input" data-field="department" value="${escapeHtml(existing?.department || '')}" placeholder="CSE"></label>
-        </div>
-      `,
-      onSave: async ({ get }) => {
-        if (!get('section_id') || !get('name')) {
-          toast('ID and name required', 'error'); return false;
-        }
-        const payload = {
-          section_id: existing?.section_id || get('section_id').trim(),
-          name: get('name').trim(),
-          strength: parseInt(get('strength')) || 60,
-          department: get('department') || null,
-        };
-        const result = existing
-          ? await supabase.from('sections').update(payload).eq('section_id', existing.section_id)
-          : await supabase.from('sections').insert(payload);
-        if (result.error) { toast(result.error.message, 'error'); return false; }
-        toast(existing ? 'Batch updated' : 'Batch added', 'success');
-        await reloadCache();
-        await renderBatches();
-      },
-    });
-  }
-
-  async function deleteSection(id) {
-    const studentCount = cache.users.filter(u => u.section_id === id).length;
-    const ttCount = cache.timetable.filter(t => t.section_id === id).length;
-    const msg = `Delete ${id}?` +
-      (studentCount > 0 ? `\n\n⚠️ ${studentCount} student(s) assigned to this batch will lose their section.` : '') +
-      (ttCount > 0 ? `\n⚠️ ${ttCount} timetable row(s) will be deleted.` : '');
-    if (!confirm(msg)) return;
-    const { error } = await supabase.from('sections').delete().eq('section_id', id);
+  async function actionBooking(id, status) {
+    const { error } = await supabase.from('bookings').update({ status, approved_by: auth.session.user.id }).eq('id', id);
     if (error) return toast(error.message, 'error');
-    toast('Batch deleted', 'success');
-    await reloadCache();
-    await renderBatches();
+    toast(`Booking ${status}`, 'success');
+    await reloadCache(); renderBookings();
   }
+
+  document.querySelectorAll('#bkFilter [data-f]').forEach(b => b.onclick = () => {
+    bkFilter = b.dataset.f;
+    document.querySelectorAll('#bkFilter [data-f]').forEach(x => x.classList.toggle('on', x === b));
+    renderBookings();
+  });
+  $('bkSearch').oninput = renderBookings;
+  $('bkRefresh').onclick = async () => { await reloadCache(); renderBookings(); };
 
   /* ============================================================
-     PANEL 4: ROOMS
+     ROOMS
      ============================================================ */
   let roomSelected = new Set();
-  async function renderRooms() {
-    if (!cache.rooms.length) await reloadCache();
-
+  function renderRooms() {
     const bf = $('roomBuildingFilter');
     if (bf.options.length <= 1) {
       bf.innerHTML = `<option value="">All blocks</option>${cache.buildings.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name || b.id)}</option>`).join('')}`;
     }
-    renderRoomTable();
-  }
-
-  function renderRoomTable() {
-    const building = $('roomBuildingFilter').value;
-    const q = $('roomSearch').value.trim().toLowerCase();
+    const building = bf.value;
+    const q = ($('roomSearch').value || '').toLowerCase().trim();
     let list = cache.rooms;
     if (building) list = list.filter(r => r.building === building);
     if (q) list = list.filter(r => r.display_name.toLowerCase().includes(q) || r.room_id.toLowerCase().includes(q));
 
     const typeLabel = new Map(cache.types.map(t => [t.id, t.label]));
+    const weekCount = new Map();
+    cache.timetable.forEach(t => weekCount.set(t.room_id, (weekCount.get(t.room_id) || 0) + 1));
 
     if (!list.length) {
-      $('roomBody').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-door-closed"></i>No rooms match</td></tr>';
+      $('roomBody').innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-door-closed"></i>No rooms match</td></tr>';
       return;
     }
 
@@ -1246,11 +1865,10 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
         </td>
         <td>${escapeHtml(typeLabel.get(r.type) || r.type)}</td>
         <td>${r.capacity ?? '—'}</td>
-        <td>
-          ${r.bookable ? '<span class="badge badge-approved"><i class="fas fa-check"></i></span>' : '<span class="badge badge-gray"><i class="fas fa-eye-slash"></i></span>'}
-          ${r.weekend_open ? '<span class="badge badge-student" style="margin-left:3px">W</span>' : ''}
-        </td>
+        <td>${weekCount.get(r.room_id) || 0}</td>
+        <td>${r.bookable ? '<span class="badge badge-approved">bookable</span>' : '<span class="badge badge-gray">hidden</span>'}${r.weekend_open ? ' <span class="badge badge-student">W</span>' : ''}</td>
         <td class="row-actions">
+          <button class="btn btn-sm" data-view="${escapeHtml(r.room_id)}"><i class="fas fa-eye"></i></button>
           <button class="btn btn-sm" data-edit="${escapeHtml(r.room_id)}"><i class="fas fa-pen"></i></button>
           <button class="btn btn-sm btn-danger" data-del="${escapeHtml(r.room_id)}"><i class="fas fa-trash"></i></button>
         </td>
@@ -1259,47 +1877,98 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
     document.querySelectorAll('#roomBody [data-cb]').forEach(cb => {
       cb.onchange = () => { cb.checked ? roomSelected.add(cb.dataset.cb) : roomSelected.delete(cb.dataset.cb); updateRoomBulk(); };
     });
+    document.querySelectorAll('#roomBody [data-view]').forEach(b => b.onclick = () => viewRoom(b.dataset.view));
     document.querySelectorAll('#roomBody [data-edit]').forEach(b => b.onclick = () => editRoom(b.dataset.edit));
     document.querySelectorAll('#roomBody [data-del]').forEach(b => b.onclick = () => deleteRoom(b.dataset.del));
     updateRoomBulk();
   }
 
-  function updateRoomBulk() {
-    const bar = $('roomBulkBar');
-    if (roomSelected.size > 0) {
-      bar.classList.add('show');
-      $('roomBulkCount').textContent = `${roomSelected.size} selected`;
-    } else bar.classList.remove('show');
+  function viewRoom(id) {
+    const r = cache.rooms.find(x => x.room_id === id);
+    if (!r) return;
+    const classes = cache.timetable.filter(t => t.room_id === id);
+    const futureBookings = cache.bookings.filter(b => b.room_id === id && b.book_date >= todayISO() && (b.status === 'approved' || b.status === 'pending'));
+    const byDay = new Map();
+    classes.forEach(c => { if (!byDay.has(c.day_of_week)) byDay.set(c.day_of_week, []); byDay.get(c.day_of_week).push(c); });
+
+    const scheduleHtml = [1,2,3,4,5,6,0].filter(d => byDay.has(d)).map(d => {
+      const items = byDay.get(d).sort((a,b) => {
+        const sa = cache.slots.find(s => s.slot_id === a.slot_id);
+        const sb = cache.slots.find(s => s.slot_id === b.slot_id);
+        return (sa?.start_time || '').localeCompare(sb?.start_time || '');
+      });
+      return `
+        <div class="detail-section">
+          <div class="detail-section-title"><i class="fas fa-calendar-day"></i>${DOW_LONG[d]}</div>
+          ${items.map(c => {
+            const slot = cache.slots.find(s => s.slot_id === c.slot_id);
+            const fac = cache.users.find(u => u.id === c.faculty_id);
+            return `<div class="schedule-row">
+              <div>
+                <div class="sr-code">${escapeHtml(c.course_code || '—')}</div>
+                <div class="sr-name">${escapeHtml(c.section_id)}</div>
+                ${fac ? `<div class="sr-meta"><span><i class="fas fa-chalkboard-user"></i>${escapeHtml(fac.full_name || fac.email)}</span></div>` : ''}
+              </div>
+              <div class="sr-time">${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)}</div>
+            </div>`;
+          }).join('')}
+        </div>`;
+    }).join('') || '<div class="empty" style="padding:24px"><i class="fas fa-inbox"></i>No classes scheduled</div>';
+
+    openDrawer({
+      title: r.display_name,
+      sub: `Block ${r.building} · Floor ${r.floor} · ${r.capacity || '?'} seats`,
+      body: `
+        <div class="detail-section">
+          <div class="detail-kv">
+            <div class="kv-item"><div class="kv-label">Type</div><div class="kv-value">${escapeHtml(r.type)}</div></div>
+            <div class="kv-item"><div class="kv-label">Capacity</div><div class="kv-value">${r.capacity || '—'}</div></div>
+            <div class="kv-item"><div class="kv-label">Weekly classes</div><div class="kv-value">${classes.length}</div></div>
+            <div class="kv-item"><div class="kv-label">Upcoming bookings</div><div class="kv-value">${futureBookings.length}</div></div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title"><i class="fas fa-calendar-week"></i>Weekly schedule</div>
+          ${scheduleHtml}
+        </div>
+      `,
+      footer: `<button class="btn" id="drawerDone">Close</button><button class="btn btn-primary" id="drawerEdit"><i class="fas fa-pen"></i> Edit room</button>`,
+    });
+    $('drawerDone').onclick = closeDrawer;
+    $('drawerEdit').onclick = () => { closeDrawer(); editRoom(id); };
   }
 
-  $('roomBuildingFilter').onchange = renderRoomTable;
-  $('roomSearch').oninput = renderRoomTable;
+  function updateRoomBulk() {
+    if (roomSelected.size > 0) { $('roomBulkBar').classList.add('show'); $('roomBulkCount').textContent = `${roomSelected.size} selected`; }
+    else $('roomBulkBar').classList.remove('show');
+  }
+
+  $('roomBuildingFilter').onchange = renderRooms;
+  $('roomSearch').oninput = renderRooms;
   $('roomSelectAll').onchange = (e) => {
-    const building = $('roomBuildingFilter').value;
+    const bf = $('roomBuildingFilter').value;
     const q = $('roomSearch').value.trim().toLowerCase();
     let list = cache.rooms;
-    if (building) list = list.filter(r => r.building === building);
+    if (bf) list = list.filter(r => r.building === bf);
     if (q) list = list.filter(r => r.display_name.toLowerCase().includes(q) || r.room_id.toLowerCase().includes(q));
     if (e.target.checked) list.forEach(r => roomSelected.add(r.room_id));
     else roomSelected.clear();
-    renderRoomTable();
+    renderRooms();
   };
   $('roomBulkDelete').onclick = async () => {
     if (!roomSelected.size) return;
-    if (!confirm(`Delete ${roomSelected.size} room(s)? This cannot be undone.`)) return;
+    if (!confirm(`Delete ${roomSelected.size} room(s)?`)) return;
     const { error } = await supabase.from('rooms').delete().in('room_id', [...roomSelected]);
     if (error) return toast(error.message, 'error');
     toast('Deleted', 'success');
-    roomSelected.clear();
-    await reloadCache();
-    renderRoomTable();
+    roomSelected.clear(); await reloadCache(); renderRooms();
   };
-  $('roomBulkClear').onclick = () => { roomSelected.clear(); renderRoomTable(); };
+  $('roomBulkClear').onclick = () => { roomSelected.clear(); renderRooms(); };
 
   $('addRoom').onclick = () => editRoom();
   function editRoom(id) {
     const existing = id ? cache.rooms.find(r => r.room_id === id) : null;
-    formModal({
+    openFormModal({
       title: existing ? `Edit ${existing.display_name}` : 'Add room',
       fields: `
         <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
@@ -1318,13 +1987,9 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
           </label>
           <label class="field"><span>Capacity</span><input class="input" type="number" data-field="capacity" value="${existing?.capacity ?? 60}"></label>
         </div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px">
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)">
-            <input type="checkbox" data-field="bookable" ${existing?.bookable !== false ? 'checked' : ''}> Bookable
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)">
-            <input type="checkbox" data-field="weekend_open" ${existing?.weekend_open ? 'checked' : ''}> Open weekends
-          </label>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)"><input type="checkbox" data-field="bookable" ${existing?.bookable !== false ? 'checked' : ''}> Bookable</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)"><input type="checkbox" data-field="weekend_open" ${existing?.weekend_open ? 'checked' : ''}> Open weekends</label>
         </div>
       `,
       onSave: async ({ get, getCb }) => {
@@ -1349,22 +2014,20 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
           : await supabase.from('rooms').insert(payload);
         if (result.error) { toast(result.error.message, 'error'); return false; }
         toast(existing ? 'Room updated' : 'Room added', 'success');
-        await reloadCache();
-        renderRoomTable();
+        await reloadCache(); renderRooms();
       },
     });
   }
 
   async function deleteRoom(id) {
-    if (!confirm(`Delete room ${id}? This cannot be undone.`)) return;
+    if (!confirm(`Delete room ${id}?`)) return;
     const { error } = await supabase.from('rooms').delete().eq('room_id', id);
     if (error) return toast(error.message, 'error');
     toast('Deleted', 'success');
-    await reloadCache();
-    renderRoomTable();
+    await reloadCache(); renderRooms();
   }
 
-  $('exportRooms').onclick = () => {
+  $('roomExport').onclick = () => {
     const csv = ['room_id,display_name,building,floor,type,capacity,bookable,weekend_open']
       .concat(cache.rooms.map(r => [r.room_id, r.display_name, r.building, r.floor, r.type, r.capacity ?? '', r.bookable, r.weekend_open].join(',')))
       .join('\n');
@@ -1373,11 +2036,9 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
   };
 
   /* ============================================================
-     PANEL 5: BUILDINGS
+     BUILDINGS
      ============================================================ */
   async function renderBuildings() {
-    if (!cache.buildings.length) await reloadCache();
-
     const [floorsResp, roomsResp] = await Promise.all([
       supabase.from('building_floors').select('*').order('building_id').order('floor'),
       supabase.from('rooms').select('building,floor'),
@@ -1394,11 +2055,7 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
     });
 
     if (!cache.buildings.length) {
-      $('bldGrid').innerHTML = `<div class="empty" style="grid-column:1/-1;padding:48px">
-        <i class="fas fa-building"></i>
-        <div style="margin-top:8px;font-weight:600;color:var(--text)">No buildings yet</div>
-        <div style="font-size:13px;margin-top:4px">Click "Add building" to create the first one.</div>
-      </div>`;
+      $('bldGrid').innerHTML = `<div class="cc-empty" style="grid-column:1/-1"><i class="fas fa-building"></i><div class="cc-empty-title">No buildings yet</div><div class="cc-empty-sub">Click "Add building" to create the first one.</div></div>`;
       return;
     }
 
@@ -1406,18 +2063,15 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
       const floors = floorsByBld.get(b.id) || [];
       const totalRooms = floors.reduce((sum, f) => sum + (roomCount.get(`${b.id}|${f.floor}`) || 0), 0);
       return `
-        <div class="data-card">
-          <div class="data-card-head">
+        <div class="cc-card">
+          <div class="cc-card-head">
             <div>
-              <div class="data-card-title">
-                <i class="fas fa-building" style="color:var(--brand);font-size:12px"></i>
-                ${escapeHtml(b.name || b.id)}
-              </div>
+              <div class="cc-card-title"><i class="fas fa-building"></i>${escapeHtml(b.name || b.id)}</div>
               <div style="font-size:11px;color:var(--text-muted);margin-top:2px">ID: ${escapeHtml(b.id)}</div>
             </div>
             ${b.is_active ? '' : '<span class="badge badge-rejected">inactive</span>'}
           </div>
-          <div class="data-card-meta">
+          <div class="cc-card-meta">
             <span><i class="fas fa-layer-group"></i>${floors.length} floor${floors.length === 1 ? '' : 's'}</span>
             <span><i class="fas fa-door-open"></i>${totalRooms} room${totalRooms === 1 ? '' : 's'}</span>
           </div>
@@ -1425,11 +2079,9 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
             ${floors.map(f => `<span class="badge badge-gray" style="font-size:10px">F${f.floor} · ${roomCount.get(`${b.id}|${f.floor}`) || 0}</span>`).join('')}
             <button class="btn btn-sm" data-addfloor="${escapeHtml(b.id)}" style="padding:2px 8px;min-height:22px;font-size:10px"><i class="fas fa-plus" style="font-size:9px"></i></button>
           </div>
-          <div class="data-card-actions">
+          <div class="cc-card-actions">
             <button class="btn btn-sm" data-edit="${escapeHtml(b.id)}"><i class="fas fa-pen"></i></button>
-            <button class="btn btn-sm ${b.is_active ? 'btn-danger' : 'btn-success'}" data-toggle="${escapeHtml(b.id)}" data-active="${b.is_active}">
-              <i class="fas fa-${b.is_active ? 'eye-slash' : 'eye'}"></i>
-            </button>
+            <button class="btn btn-sm ${b.is_active ? 'btn-danger' : 'btn-success'}" data-toggle="${escapeHtml(b.id)}" data-active="${b.is_active}"><i class="fas fa-${b.is_active ? 'eye-slash' : 'eye'}"></i></button>
           </div>
         </div>`;
     }).join('');
@@ -1438,18 +2090,15 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
     document.querySelectorAll('#bldGrid [data-toggle]').forEach(x => x.onclick = async () => {
       const { error } = await supabase.from('buildings').update({ is_active: x.dataset.active !== 'true' }).eq('id', x.dataset.toggle);
       if (error) return toast(error.message, 'error');
-      toast('Updated', 'success');
-      await reloadCache();
-      await renderBuildings();
+      await reloadCache(); renderBuildings();
     });
     document.querySelectorAll('#bldGrid [data-addfloor]').forEach(x => x.onclick = () => addFloor(x.dataset.addfloor));
   }
 
   $('addBld').onclick = () => editBuilding();
-
   function editBuilding(id) {
     const existing = id ? cache.buildings.find(b => b.id === id) : null;
-    formModal({
+    openFormModal({
       title: existing ? `Edit ${existing.id}` : 'Add building',
       fields: `
         <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
@@ -1471,15 +2120,14 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
           ? await supabase.from('buildings').update(payload).eq('id', existing.id)
           : await supabase.from('buildings').insert(payload);
         if (result.error) { toast(result.error.message, 'error'); return false; }
-        toast(existing ? 'Building updated' : 'Building added', 'success');
-        await reloadCache();
-        await renderBuildings();
+        toast('Saved', 'success');
+        await reloadCache(); renderBuildings();
       },
     });
   }
 
   function addFloor(buildingId) {
-    formModal({
+    openFormModal({
       title: `Add floor to ${buildingId}`,
       fields: `<label class="field"><span>Floor number</span><input class="input" type="number" min="1" max="20" data-field="floor" value="1"></label>`,
       onSave: async ({ get }) => {
@@ -1494,16 +2142,13 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
   }
 
   /* ============================================================
-     PANEL 6: SLOTS
+     SLOTS
      ============================================================ */
-  async function renderSlots() {
-    if (!cache.slots.length) await reloadCache();
-
+  function renderSlots() {
     if (!cache.slots.length) {
       $('slotBody').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-clock"></i>No slots configured</td></tr>';
       return;
     }
-
     $('slotBody').innerHTML = cache.slots.map(s => `
       <tr>
         <td class="mono">${escapeHtml(s.slot_id)}</td>
@@ -1516,27 +2161,31 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
           <button class="btn btn-sm btn-danger" data-del="${escapeHtml(s.slot_id)}"><i class="fas fa-trash"></i></button>
         </td>
       </tr>`).join('');
-
     document.querySelectorAll('#slotBody [data-edit]').forEach(b => b.onclick = () => editSlot(b.dataset.edit));
-    document.querySelectorAll('#slotBody [data-del]').forEach(b => b.onclick = () => deleteSlot(b.dataset.del));
+    document.querySelectorAll('#slotBody [data-del]').forEach(b => b.onclick = async () => {
+      if (!confirm('Delete slot?')) return;
+      const { error } = await supabase.from('time_slots').delete().eq('slot_id', b.dataset.del);
+      if (error) return toast('Cannot delete: bookings reference it', 'error');
+      toast('Deleted', 'success'); await reloadCache(); renderSlots();
+    });
   }
 
   $('addSlot').onclick = () => editSlot();
   function editSlot(id) {
     const existing = id ? cache.slots.find(s => s.slot_id === id) : null;
-    formModal({
+    openFormModal({
       title: existing ? `Edit ${existing.slot_id}` : 'Add time slot',
       fields: `
         <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
           <label class="field"><span>Slot ID *</span><input class="input" data-field="slot_id" value="${escapeHtml(existing?.slot_id || '')}" ${existing ? 'disabled' : ''} placeholder="P8"></label>
           <label class="field"><span>Label</span><input class="input" data-field="label" value="${escapeHtml(existing?.label || '')}" placeholder="8th period"></label>
-          <label class="field"><span>Start time</span><input class="input" type="time" data-field="start_time" value="${existing?.start_time.slice(0,5) || '09:00'}"></label>
-          <label class="field"><span>End time</span><input class="input" type="time" data-field="end_time" value="${existing?.end_time.slice(0,5) || '09:50'}"></label>
+          <label class="field"><span>Start</span><input class="input" type="time" data-field="start_time" value="${existing?.start_time.slice(0,5) || '09:00'}"></label>
+          <label class="field"><span>End</span><input class="input" type="time" data-field="end_time" value="${existing?.end_time.slice(0,5) || '09:50'}"></label>
           <label class="field"><span>Sort order</span><input class="input" type="number" data-field="sort_order" value="${existing?.sort_order || 0}"></label>
         </div>
       `,
       onSave: async ({ get }) => {
-        if (!get('slot_id') || !get('start_time') || !get('end_time')) { toast('All fields required', 'error'); return false; }
+        if (!get('slot_id') || !get('start_time') || !get('end_time')) { toast('Required fields missing', 'error'); return false; }
         if (get('start_time') >= get('end_time')) { toast('End must be after start', 'error'); return false; }
         const payload = {
           slot_id: existing?.slot_id || get('slot_id').trim(),
@@ -1549,58 +2198,42 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
           ? await supabase.from('time_slots').update(payload).eq('slot_id', existing.slot_id)
           : await supabase.from('time_slots').insert(payload);
         if (result.error) { toast(result.error.message, 'error'); return false; }
-        toast(existing ? 'Slot updated' : 'Slot added', 'success');
-        await reloadCache();
-        await renderSlots();
+        toast('Saved', 'success');
+        await reloadCache(); renderSlots();
       },
     });
   }
 
-  async function deleteSlot(id) {
-    if (!confirm(`Delete slot ${id}? Bookings using it must be removed first.`)) return;
-    const { error } = await supabase.from('time_slots').delete().eq('slot_id', id);
-    if (error) return toast('Cannot delete: bookings reference this slot', 'error');
-    toast('Slot deleted', 'success');
-    await reloadCache();
-    await renderSlots();
-  }
-
   /* ============================================================
-     PANEL 7: CALENDAR
+     CALENDAR
      ============================================================ */
-  async function renderCalendar() {
-    if (!cache.calendar.length && !cache.buildings.length) await reloadCache();
-
+  function renderCalendar() {
     if (!cache.calendar.length) {
       $('calBody').innerHTML = '<tr><td colspan="4" class="empty"><i class="fas fa-calendar-days"></i>No calendar entries</td></tr>';
       return;
     }
-
     $('calBody').innerHTML = cache.calendar.map(c => {
-      const badgeCls = c.kind === 'holiday' ? 'rejected' : c.kind === 'working_saturday' ? 'approved' : c.kind === 'exam_week' ? 'pending' : 'admin';
+      const badge = c.kind === 'holiday' ? 'rejected' : c.kind === 'working_saturday' ? 'approved' : c.kind === 'exam_week' ? 'pending' : 'admin';
       return `
         <tr>
           <td class="mono">${c.date}</td>
-          <td><span class="badge badge-${badgeCls}">${escapeHtml(c.kind.replace('_', ' '))}</span></td>
+          <td><span class="badge badge-${badge}">${escapeHtml(c.kind.replace('_', ' '))}</span></td>
           <td>${escapeHtml(c.label || '—')}</td>
           <td class="row-actions">
             <button class="btn btn-sm btn-danger" data-del="${c.date}"><i class="fas fa-trash"></i></button>
           </td>
         </tr>`;
     }).join('');
-
     document.querySelectorAll('#calBody [data-del]').forEach(b => b.onclick = async () => {
-      if (!confirm('Delete calendar entry?')) return;
+      if (!confirm('Delete entry?')) return;
       const { error } = await supabase.from('academic_calendar').delete().eq('date', b.dataset.del);
       if (error) return toast(error.message, 'error');
-      toast('Deleted', 'success');
-      await reloadCache();
-      await renderCalendar();
+      toast('Deleted', 'success'); await reloadCache(); renderCalendar();
     });
   }
 
   $('addCal').onclick = () => {
-    formModal({
+    openFormModal({
       title: 'Add calendar entry',
       fields: `
         <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
@@ -1614,51 +2247,33 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
               <option value="special">Special</option>
             </select>
           </label>
-          <label class="field" style="grid-column:1/-1"><span>Label</span><input class="input" data-field="label" placeholder="e.g. Diwali / Mid-terms"></label>
+          <label class="field" style="grid-column:1/-1"><span>Label</span><input class="input" data-field="label" placeholder="e.g. Diwali"></label>
         </div>
       `,
       onSave: async ({ get }) => {
         if (!get('date')) { toast('Date required', 'error'); return false; }
-        const { error } = await supabase.from('academic_calendar').upsert({
-          date: get('date'),
-          kind: get('kind'),
-          label: get('label') || null,
-        });
+        const { error } = await supabase.from('academic_calendar').upsert({ date: get('date'), kind: get('kind'), label: get('label') || null });
         if (error) { toast(error.message, 'error'); return false; }
-        toast('Saved', 'success');
-        await reloadCache();
-        await renderCalendar();
+        toast('Saved', 'success'); await reloadCache(); renderCalendar();
       },
     });
   };
 
   /* ============================================================
-     PANEL 8: USERS
+     USERS
      ============================================================ */
   let userFilter = 'all';
-  async function renderUsers() {
-    if (!cache.users.length) await reloadCache();
-    renderUserTable();
-  }
-
-  function renderUserTable() {
+  function renderUsers() {
     const q = $('userSearch').value.trim().toLowerCase();
     let list = cache.users;
-    if (userFilter === 'admin' || userFilter === 'faculty' || userFilter === 'student') {
-      list = list.filter(u => u.role === userFilter);
-    } else if (userFilter === 'suspended') {
-      list = list.filter(u => u.is_active === false);
-    }
-    if (q) list = list.filter(u =>
-      (u.email || '').toLowerCase().includes(q) ||
-      (u.full_name || '').toLowerCase().includes(q)
-    );
+    if (userFilter === 'admin' || userFilter === 'faculty' || userFilter === 'student') list = list.filter(u => u.role === userFilter);
+    else if (userFilter === 'suspended') list = list.filter(u => u.is_active === false);
+    if (q) list = list.filter(u => (u.email || '').toLowerCase().includes(q) || (u.full_name || '').toLowerCase().includes(q));
 
     if (!list.length) {
       $('userBody').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-user-slash"></i>No users match</td></tr>';
       return;
     }
-
     $('userBody').innerHTML = list.map(u => {
       const initial = ((u.full_name || u.email || '?').trim()[0] || '?').toUpperCase();
       const roleIcon = u.role === 'admin' ? 'shield-halved' : u.role === 'faculty' ? 'chalkboard-user' : 'graduation-cap';
@@ -1668,7 +2283,7 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
           <td>
             <div style="display:flex;align-items:center;gap:10px">
               <span class="avatar-sm">${escapeHtml(initial)}</span>
-              <div style="min-width:0">
+              <div>
                 <div style="color:var(--text);font-weight:500">${escapeHtml(u.full_name || u.email)}</div>
                 <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(u.email)}</div>
               </div>
@@ -1677,31 +2292,28 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
           <td><span class="badge badge-${u.role}"><i class="fas fa-${roleIcon}"></i>${u.role}</span></td>
           <td class="mono" style="font-size:11px">${escapeHtml(u.section_id || '—')}</td>
           <td class="dim">${escapeHtml(u.department || '—')}</td>
-          <td>${susp ? '<span class="badge badge-rejected"><i class="fas fa-ban"></i>suspended</span>' : '<span class="badge badge-approved"><i class="fas fa-check"></i>active</span>'}</td>
+          <td>${susp ? '<span class="badge badge-rejected">suspended</span>' : '<span class="badge badge-approved">active</span>'}</td>
           <td class="row-actions">
-            <button class="btn btn-sm" data-edit="${u.id}" title="Edit"><i class="fas fa-pen"></i></button>
-            <button class="btn btn-sm ${susp ? 'btn-success' : 'btn-danger'}" data-toggle="${u.id}" data-active="${u.is_active !== false}" title="${susp ? 'Activate' : 'Suspend'}"><i class="fas fa-${susp ? 'play' : 'ban'}"></i></button>
+            <button class="btn btn-sm" data-edit="${u.id}"><i class="fas fa-pen"></i></button>
+            <button class="btn btn-sm ${susp ? 'btn-success' : 'btn-danger'}" data-toggle="${u.id}" data-active="${u.is_active !== false}"><i class="fas fa-${susp ? 'play' : 'ban'}"></i></button>
           </td>
         </tr>`;
     }).join('');
-
     document.querySelectorAll('#userBody [data-edit]').forEach(b => b.onclick = () => editUser(b.dataset.edit));
     document.querySelectorAll('#userBody [data-toggle]').forEach(b => b.onclick = () => toggleUser(b.dataset.toggle, b.dataset.active === 'true'));
   }
 
-  $('userSearch').oninput = renderUserTable;
-  document.querySelectorAll('[data-f]').forEach(btn => {
-    btn.onclick = () => {
-      userFilter = btn.dataset.f;
-      document.querySelectorAll('[data-f]').forEach(b => b.classList.toggle('on', b === btn));
-      renderUserTable();
-    };
+  $('userSearch').oninput = renderUsers;
+  document.querySelectorAll('#userFilter [data-f]').forEach(b => b.onclick = () => {
+    userFilter = b.dataset.f;
+    document.querySelectorAll('#userFilter [data-f]').forEach(x => x.classList.toggle('on', x === b));
+    renderUsers();
   });
 
   function editUser(id) {
     const u = cache.users.find(x => x.id === id);
     if (!u) return;
-    formModal({
+    openFormModal({
       title: `Edit ${u.email}`,
       fields: `
         <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
@@ -1724,19 +2336,16 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
         </div>
       `,
       onSave: async ({ get }) => {
-        const patch = {
+        if (id === auth.profile.id && get('role') !== 'admin') { toast('You cannot demote yourself', 'error'); return false; }
+        const { error } = await supabase.from('profiles').update({
           full_name: get('full_name') || null,
           department: get('department') || null,
           phone: get('phone') || null,
           role: get('role'),
           section_id: get('section_id') || null,
-        };
-        if (id === auth.profile.id && patch.role !== 'admin') { toast('You cannot demote yourself', 'error'); return false; }
-        const { error } = await supabase.from('profiles').update(patch).eq('id', id);
+        }).eq('id', id);
         if (error) { toast(error.message, 'error'); return false; }
-        toast('User updated', 'success');
-        await reloadCache();
-        renderUserTable();
+        toast('Saved', 'success'); await reloadCache(); renderUsers();
       },
     });
   }
@@ -1750,26 +2359,13 @@ CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
     }).eq('id', id);
     if (error) return toast(error.message, 'error');
     toast(currentlyActive ? 'Suspended' : 'Reactivated', 'success');
-    await reloadCache();
-    renderUserTable();
-  }
-
-  /* ============================================================
-     UTILITIES
-     ============================================================ */
-  function downloadFile(content, filename, mime) {
-    const blob = new Blob([content], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
+    await reloadCache(); renderUsers();
   }
 
   /* ============================================================
      BOOT
      ============================================================ */
+  await reloadCache();
   await renderOverview();
 })();
 </script>
