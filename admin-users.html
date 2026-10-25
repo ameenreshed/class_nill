@@ -10,19 +10,32 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/admin.css">
 <style>
-.pw-hint{font-size:11px;color:var(--text-muted);margin-top:4px}
-.section-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;background:var(--brand-soft);color:var(--brand-text);font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace}
-.modal-split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:640px){.modal-split{grid-template-columns:1fr}}
+  .section-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 6px;
+    background: var(--brand-soft);
+    color: var(--brand-text);
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .pw-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
 </style>
 </head>
 <body>
 <div id="nav"></div>
 <div class="container">
   <div class="page-header">
-    <div><h1 class="page-title"><i class="fas fa-users"></i> Users</h1><p class="page-subtitle">Create, edit, suspend, reset passwords. Full user management.</p></div>
+    <div>
+      <h1 class="page-title"><i class="fas fa-users"></i> Users</h1>
+      <p class="page-subtitle">Create, edit, suspend, reset passwords. Full user management.</p>
+    </div>
     <button class="btn btn-primary" id="addBtn"><i class="fas fa-user-plus"></i> Add user</button>
   </div>
+
   <div class="admin-tabs">
     <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-chalkboard-user"></i> Faculty</a>
     <a href="admin-batches.html" class="admin-tab"><i class="fas fa-users-rectangle"></i> Batches</a>
@@ -38,7 +51,7 @@
 
   <div class="stats" id="stats"></div>
 
-  <div class="row" style="margin-bottom:16px;gap:8px">
+  <div class="row">
     <div class="chips" id="roleFilter">
       <button class="chip on" data-r="all">All roles</button>
       <button class="chip" data-r="admin">Admins</button>
@@ -47,7 +60,7 @@
       <button class="chip" data-r="suspended">Suspended</button>
     </div>
     <select class="input" id="secFilter" style="max-width:220px"><option value="">All batches</option></select>
-    <div class="search-wrap" style="margin-left:auto;max-width:360px">
+    <div class="search-wrap">
       <i class="fas fa-search search-icon"></i>
       <input class="input" id="search" placeholder="Search name or email…">
     </div>
@@ -55,7 +68,12 @@
 
   <div class="table-wrap"><table>
     <thead><tr>
-      <th>User</th><th>Role</th><th>Batch</th><th>Department</th><th>Status</th><th style="text-align:right">Actions</th>
+      <th>User</th>
+      <th>Role</th>
+      <th>Batch</th>
+      <th>Department</th>
+      <th>Status</th>
+      <th style="text-align:right">Actions</th>
     </tr></thead>
     <tbody id="body"></tbody>
   </table></div>
@@ -126,16 +144,18 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
           <div style="display:flex;align-items:center;gap:10px">
             <span class="avatar-sm">${escapeHtml(init)}</span>
             <div>
-              <div style="color:var(--text);font-weight:500">${escapeHtml(u.full_name || u.email)}${isMe ? ' <span class="badge badge-admin" style="font-size:9px;padding:1px 5px">you</span>' : ''}</div>
-              <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(u.email)}</div>
+              <div style="color:var(--text);font-weight:500;font-size:13px">
+                ${escapeHtml(u.full_name || u.email)}${isMe ? ' <span class="badge badge-admin" style="font-size:9px;padding:1px 6px;margin-left:4px">you</span>' : ''}
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:1px">${escapeHtml(u.email)}</div>
             </div>
           </div>
         </td>
         <td><span class="badge badge-${u.role}"><i class="fas fa-${roleIcon}"></i>${u.role}</span></td>
         <td>${u.section_id ? `<span class="section-pill">${escapeHtml(u.section_id)}</span>` : '<span class="dim">—</span>'}</td>
-        <td class="dim">${escapeHtml(u.department || '—')}</td>
+        <td class="dim" style="font-size:12px">${escapeHtml(u.department || '—')}</td>
         <td>${susp ? '<span class="badge badge-rejected"><i class="fas fa-ban"></i>suspended</span>' : '<span class="badge badge-approved"><i class="fas fa-check"></i>active</span>'}</td>
-        <td style="text-align:right;white-space:nowrap">
+        <td class="row-actions">
           <button class="btn btn-sm" data-edit="${u.id}" title="Edit"><i class="fas fa-pen"></i></button>
           <button class="btn btn-sm" data-reset="${u.id}" title="Reset password"><i class="fas fa-key"></i></button>
           ${!isMe ? `<button class="btn btn-sm ${susp ? 'btn-success' : 'btn-danger'}" data-toggle="${u.id}" data-active="${!susp}" title="${susp ? 'Activate' : 'Suspend'}"><i class="fas fa-${susp ? 'play' : 'ban'}"></i></button>` : ''}
@@ -150,42 +170,47 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => del(b.dataset.del));
   }
 
-  /* ============ ADD USER ============ */
+  /* ===== ADD USER ===== */
   $('addBtn').onclick = () => {
-    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
     dialog.innerHTML = `<div class="modal-content modal-wide">
       <div class="modal-header">
-        <div><div class="modal-title">Add new user</div><div class="modal-sub">Create a login account for a faculty, student, or admin.</div></div>
+        <div>
+          <div class="modal-title">Add new user</div>
+          <div class="modal-sub">Create a login account for a faculty, student, or admin.</div>
+        </div>
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
-          <label class="field"><span>Full name *</span><input class="input" data-field="full_name" placeholder="Jane Doe" autofocus></label>
-          <label class="field"><span>Email *</span><input class="input" type="email" data-field="email" placeholder="jane@lpu.in"></label>
-          <label class="field"><span>Password *</span><input class="input" type="text" data-field="password" placeholder="Min 6 characters" value="${Math.random().toString(36).slice(-8)}"><div class="pw-hint">Visible so you can share it. User can change it later.</div></label>
-          <label class="field"><span>Phone</span><input class="input" data-field="phone" placeholder="+91 ..."></label>
-          <label class="field"><span>Role *</span>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+          <label class="field" style="margin-bottom:0"><span>Full name *</span><input class="input" data-field="full_name" placeholder="Jane Doe" autofocus></label>
+          <label class="field" style="margin-bottom:0"><span>Email *</span><input class="input" type="email" data-field="email" placeholder="jane@lpu.in"></label>
+          <label class="field" style="margin-bottom:0"><span>Password *</span><input class="input" type="text" data-field="password" placeholder="Min 6 characters" value="${Math.random().toString(36).slice(-8)}"><div class="pw-hint">Visible so you can share it.</div></label>
+          <label class="field" style="margin-bottom:0"><span>Phone</span><input class="input" data-field="phone" placeholder="+91 ..."></label>
+          <label class="field" style="margin-bottom:0"><span>Role *</span>
             <select class="input" data-field="role" id="roleSelect">
               <option value="student">student</option>
               <option value="faculty">faculty</option>
               <option value="admin">admin</option>
             </select>
           </label>
-          <label class="field"><span>Department</span><input class="input" data-field="department" placeholder="CSE"></label>
-          <label class="field" id="sectionField" style="grid-column:1/-1"><span>Batch / Section (for students)</span>
-            <select class="input" data-field="section_id">
-              <option value="">— none —</option>
-              ${sections.map(s => `<option value="${escapeHtml(s.section_id)}">${escapeHtml(s.section_id)} — ${escapeHtml(s.name)}</option>`).join('')}
-            </select>
-          </label>
+          <label class="field" style="margin-bottom:0"><span>Department</span><input class="input" data-field="department" placeholder="CSE"></label>
         </div>
+        <label class="field" id="sectionField" style="margin-top:14px;margin-bottom:0"><span>Batch / Section (for students)</span>
+          <select class="input" data-field="section_id">
+            <option value="">— none —</option>
+            ${sections.map(s => `<option value="${escapeHtml(s.section_id)}">${escapeHtml(s.section_id)} — ${escapeHtml(s.name)}</option>`).join('')}
+          </select>
+        </label>
       </div>
       <div class="modal-footer">
         <button class="btn" data-close>Cancel</button>
         <button class="btn btn-primary" data-save><i class="fas fa-user-plus"></i> Create user</button>
       </div>
     </div>`;
-    document.body.appendChild(dialog); dialog.showModal();
+    document.body.appendChild(dialog);
+    dialog.showModal();
 
     const roleSel = dialog.querySelector('#roleSelect');
     const secField = dialog.querySelector('#sectionField');
@@ -198,7 +223,8 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       if (get('password').length < 6) return toast('Password must be 6+ characters', 'error');
 
       const btn = dialog.querySelector('[data-save]');
-      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
 
       const { data, error } = await supabase.rpc('admin_create_user', {
         p_email: get('email'),
@@ -224,38 +250,42 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     dialog.onclick = e => { if (e.target === dialog) close(); };
   };
 
-  /* ============ EDIT USER ============ */
+  /* ===== EDIT ===== */
   function openEdit(id) {
     const u = users.find(x => x.id === id);
     if (!u) return;
-    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
     dialog.innerHTML = `<div class="modal-content modal-wide">
       <div class="modal-header">
-        <div><div class="modal-title">Edit ${escapeHtml(u.email)}</div><div class="modal-sub">Update profile details, role, and batch.</div></div>
+        <div>
+          <div class="modal-title">Edit ${escapeHtml(u.email)}</div>
+          <div class="modal-sub">Update profile details, role, and batch.</div>
+        </div>
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
-          <label class="field"><span>Full name</span><input class="input" data-field="full_name" value="${escapeHtml(u.full_name || '')}"></label>
-          <label class="field"><span>Email</span><input class="input" value="${escapeHtml(u.email)}" disabled><div class="pw-hint">Contact developer to change</div></label>
-          <label class="field"><span>Phone</span><input class="input" data-field="phone" value="${escapeHtml(u.phone || '')}"></label>
-          <label class="field"><span>Department</span><input class="input" data-field="department" value="${escapeHtml(u.department || '')}"></label>
-          <label class="field"><span>Role</span>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+          <label class="field" style="margin-bottom:0"><span>Full name</span><input class="input" data-field="full_name" value="${escapeHtml(u.full_name || '')}"></label>
+          <label class="field" style="margin-bottom:0"><span>Email</span><input class="input" value="${escapeHtml(u.email)}" disabled></label>
+          <label class="field" style="margin-bottom:0"><span>Phone</span><input class="input" data-field="phone" value="${escapeHtml(u.phone || '')}"></label>
+          <label class="field" style="margin-bottom:0"><span>Department</span><input class="input" data-field="department" value="${escapeHtml(u.department || '')}"></label>
+          <label class="field" style="margin-bottom:0"><span>Role</span>
             <select class="input" data-field="role" id="eRole">
               <option value="student" ${u.role === 'student' ? 'selected' : ''}>student</option>
               <option value="faculty" ${u.role === 'faculty' ? 'selected' : ''}>faculty</option>
               <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>admin</option>
             </select>
           </label>
-          <label class="field" id="eSectionField"><span>Batch / Section</span>
-            <select class="input" data-field="section_id">
-              <option value="">— none —</option>
-              ${sections.map(s => `<option value="${escapeHtml(s.section_id)}" ${u.section_id === s.section_id ? 'selected' : ''}>${escapeHtml(s.section_id)} — ${escapeHtml(s.name)}</option>`).join('')}
-            </select>
-          </label>
         </div>
-        <div style="margin-top:16px;padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text)">
-          <i class="fas fa-info-circle"></i> To change the password, use the <strong>key icon</strong> on the user's row.
+        <label class="field" id="eSectionField" style="margin-top:14px;margin-bottom:0"><span>Batch / Section</span>
+          <select class="input" data-field="section_id">
+            <option value="">— none —</option>
+            ${sections.map(s => `<option value="${escapeHtml(s.section_id)}" ${u.section_id === s.section_id ? 'selected' : ''}>${escapeHtml(s.section_id)} — ${escapeHtml(s.name)}</option>`).join('')}
+          </select>
+        </label>
+        <div style="padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);margin-top:14px;line-height:1.55">
+          <i class="fas fa-info-circle" style="margin-right:6px"></i>To change the password, use the <strong>key icon</strong> on the user's row.
         </div>
       </div>
       <div class="modal-footer">
@@ -263,13 +293,14 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         <button class="btn btn-primary" data-save><i class="fas fa-check"></i> Save changes</button>
       </div>
     </div>`;
-    document.body.appendChild(dialog); dialog.showModal();
+    document.body.appendChild(dialog);
+    dialog.showModal();
 
     const roleSel = dialog.querySelector('#eRole');
     const secField = dialog.querySelector('#eSectionField');
-    const setSectionVisibility = () => { secField.style.display = roleSel.value === 'student' ? 'block' : 'none'; };
-    setSectionVisibility();
-    roleSel.onchange = setSectionVisibility;
+    const setSec = () => { secField.style.display = roleSel.value === 'student' ? 'block' : 'none'; };
+    setSec();
+    roleSel.onchange = setSec;
 
     dialog.querySelector('[data-save]').onclick = async () => {
       const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
@@ -296,14 +327,18 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  /* ============ RESET PASSWORD ============ */
+  /* ===== RESET PASSWORD ===== */
   function openResetPassword(id) {
     const u = users.find(x => x.id === id);
     if (!u) return;
-    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
     dialog.innerHTML = `<div class="modal-content">
       <div class="modal-header">
-        <div><div class="modal-title">Reset password</div><div class="modal-sub">Set a new password for ${escapeHtml(u.email)}</div></div>
+        <div>
+          <div class="modal-title">Reset password</div>
+          <div class="modal-sub">Set a new password for ${escapeHtml(u.email)}</div>
+        </div>
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
@@ -311,8 +346,8 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
           <input class="input" type="text" data-field="password" value="${Math.random().toString(36).slice(-10)}" placeholder="Min 6 characters" autofocus>
           <div class="pw-hint">Share this with the user. They should change it after first login.</div>
         </label>
-        <div class="info-banner" style="margin-top:12px;padding:12px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:8px;font-size:12px;color:var(--warning-text)">
-          <i class="fas fa-triangle-exclamation"></i> The user will be signed out of all devices. They must use the new password immediately.
+        <div style="padding:12px 14px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:8px;font-size:12px;color:var(--warning-text);line-height:1.55">
+          <i class="fas fa-triangle-exclamation" style="margin-right:6px"></i>The user will be signed out of all devices and must use the new password immediately.
         </div>
       </div>
       <div class="modal-footer">
@@ -320,20 +355,23 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         <button class="btn btn-primary" data-save><i class="fas fa-key"></i> Reset password</button>
       </div>
     </div>`;
-    document.body.appendChild(dialog); dialog.showModal();
+    document.body.appendChild(dialog);
+    dialog.showModal();
 
     dialog.querySelector('[data-save]').onclick = async () => {
       const pwd = dialog.querySelector('[data-field="password"]').value;
       if (pwd.length < 6) return toast('Password must be 6+ characters', 'error');
       const btn = dialog.querySelector('[data-save]');
-      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting…';
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting…';
 
       const { data, error } = await supabase.rpc('admin_reset_password', {
         p_user_id: id,
         p_new_password: pwd,
       });
 
-      btn.disabled = false; btn.innerHTML = '<i class="fas fa-key"></i> Reset password';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-key"></i> Reset password';
 
       if (error) return toast(error.message, 'error');
       if (data?.error) return toast(data.error, 'error');
@@ -347,7 +385,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  /* ============ SUSPEND / ACTIVATE ============ */
   async function toggle(id, active) {
     if (id === auth.profile.id) return toast('You cannot suspend yourself', 'error');
     const { error } = await supabase.from('profiles').update({
@@ -360,7 +397,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     await load();
   }
 
-  /* ============ DELETE USER ============ */
   async function del(id) {
     const u = users.find(x => x.id === id);
     if (!u) return;
@@ -375,7 +411,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     await load();
   }
 
-  /* ============ FILTERS ============ */
   document.querySelectorAll('[data-r]').forEach(b => b.onclick = () => {
     roleFilter = b.dataset.r;
     document.querySelectorAll('[data-r]').forEach(x => x.classList.toggle('on', x === b));

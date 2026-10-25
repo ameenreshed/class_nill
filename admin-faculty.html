@@ -10,23 +10,124 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/admin.css">
 <style>
-.batch-section{margin-bottom:20px;padding:14px;background:var(--bg-subtle);border-radius:10px}
-.batch-section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:12px}
-.batch-section-title{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
-.batch-section-title i{color:var(--brand);font-size:12px}
-.student-chip{display:inline-flex;align-items:center;padding:4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text);margin:3px 3px 0 0}
-.student-chip .dot{width:6px;height:6px;border-radius:50%;margin-right:6px}
-.dot.ok{background:var(--success)}
-.dot.bad{background:var(--danger)}
+  .modal-section { margin-bottom: 24px; }
+  .modal-section:last-child { margin-bottom: 0; }
+  .modal-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .modal-section-title i { color: var(--brand); font-size: 13px; }
+  .modal-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .modal-metric-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .modal-metric-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+  .batch-block {
+    padding: 16px;
+    background: var(--bg-subtle);
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+  .batch-block:last-child { margin-bottom: 0; }
+  .batch-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .batch-block-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .batch-block-title i { color: var(--brand); font-size: 12px; font-family: 'Inter', sans-serif; }
+  .batch-student-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .batch-student-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .batch-student-chip .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot.ok { background: var(--success); }
+  .dot.bad { background: var(--danger); }
+  .schedule-day {
+    margin-bottom: 16px;
+  }
+  .schedule-day-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+  .schedule-item {
+    padding: 10px 12px;
+    background: var(--surface-hover);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+  }
+  .schedule-item-code { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--brand); font-size: 12px; }
+  .schedule-item-meta { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+  .schedule-item-slot { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 11px; flex-shrink: 0; }
 </style>
 </head>
 <body>
 <div id="nav"></div>
 <div class="container">
   <div class="page-header">
-    <div><h1 class="page-title"><i class="fas fa-chalkboard-user"></i> Faculty</h1><p class="page-subtitle">Manage faculty accounts, view workload and batch-wise students.</p></div>
+    <div>
+      <h1 class="page-title"><i class="fas fa-chalkboard-user"></i> Faculty</h1>
+      <p class="page-subtitle">Manage faculty accounts, view workload and batch-wise students.</p>
+    </div>
     <button class="btn btn-primary" id="addBtn"><i class="fas fa-user-plus"></i> Add faculty</button>
   </div>
+
   <div class="admin-tabs">
     <a href="admin-faculty.html" class="admin-tab active"><i class="fas fa-chalkboard-user"></i> Faculty</a>
     <a href="admin-batches.html" class="admin-tab"><i class="fas fa-users-rectangle"></i> Batches</a>
@@ -42,13 +143,13 @@
 
   <div class="stats" id="stats"></div>
 
-  <div class="row" style="margin-bottom:16px;gap:8px">
+  <div class="row">
     <div class="chips" id="filters">
       <button class="chip on" data-f="all">All</button>
       <button class="chip" data-f="active">Active</button>
       <button class="chip" data-f="suspended">Suspended</button>
     </div>
-    <div class="search-wrap" style="margin-left:auto;max-width:360px">
+    <div class="search-wrap">
       <i class="fas fa-search search-icon"></i>
       <input class="input" id="search" placeholder="Search name, email, department…">
     </div>
@@ -56,7 +157,13 @@
 
   <div class="table-wrap"><table>
     <thead><tr>
-      <th>Faculty</th><th>Department</th><th>Batches</th><th>Courses</th><th>Weekly classes</th><th>Status</th><th style="text-align:right">Actions</th>
+      <th>Faculty</th>
+      <th>Department</th>
+      <th>Batches</th>
+      <th>Courses</th>
+      <th>Weekly classes</th>
+      <th>Status</th>
+      <th style="text-align:right">Actions</th>
     </tr></thead>
     <tbody id="body"></tbody>
   </table></div>
@@ -92,12 +199,11 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   function renderStats() {
     const active = faculty.filter(f => f.is_active !== false).length;
     const susp = faculty.filter(f => f.is_active === false).length;
-    const totalClasses = tt.length;
     $('stats').innerHTML = `
       <div class="stat"><i class="fas fa-chalkboard-user stat-icon"></i><div class="stat-value">${faculty.length}</div><div class="stat-label">Total faculty</div></div>
       <div class="stat"><i class="fas fa-circle-check stat-icon" style="color:var(--success)"></i><div class="stat-value" style="color:var(--success)">${active}</div><div class="stat-label">Active</div></div>
       <div class="stat"><i class="fas fa-ban stat-icon" style="color:var(--danger)"></i><div class="stat-value" style="color:var(--danger)">${susp}</div><div class="stat-label">Suspended</div></div>
-      <div class="stat"><i class="fas fa-table stat-icon"></i><div class="stat-value">${totalClasses}</div><div class="stat-label">Classes scheduled</div></div>`;
+      <div class="stat"><i class="fas fa-table stat-icon"></i><div class="stat-value">${tt.length}</div><div class="stat-label">Classes scheduled</div></div>`;
   }
 
   function render() {
@@ -108,8 +214,10 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       const q = search.toLowerCase();
       list = list.filter(f => (f.full_name || '').toLowerCase().includes(q) || (f.email || '').toLowerCase().includes(q) || (f.department || '').toLowerCase().includes(q));
     }
-    if (!list.length) { $('body').innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-user-slash"></i>No faculty match</td></tr>'; return; }
-
+    if (!list.length) {
+      $('body').innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-user-slash"></i>No faculty match your filters</td></tr>';
+      return;
+    }
     $('body').innerHTML = list.map(f => {
       const init = ((f.full_name || f.email || '?').trim()[0] || '?').toUpperCase();
       const classes = tt.filter(t => t.faculty_id === f.id);
@@ -117,13 +225,21 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       const courses = new Set(classes.map(c => c.course_code).filter(Boolean));
       const susp = f.is_active === false;
       return `<tr>
-        <td><div style="display:flex;align-items:center;gap:10px"><span class="avatar-sm">${escapeHtml(init)}</span><div><div style="color:var(--text);font-weight:500">${escapeHtml(f.full_name || f.email)}</div><div style="font-size:11px;color:var(--text-muted)">${escapeHtml(f.email)}</div></div></div></td>
-        <td class="dim">${escapeHtml(f.department || '—')}</td>
-        <td>${batches.size} batch${batches.size === 1 ? '' : 'es'}</td>
-        <td>${courses.size} course${courses.size === 1 ? '' : 's'}</td>
-        <td>${classes.length} class${classes.length === 1 ? '' : 'es'}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="avatar-sm">${escapeHtml(init)}</span>
+            <div>
+              <div style="color:var(--text);font-weight:500;font-size:13px">${escapeHtml(f.full_name || f.email)}</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:1px">${escapeHtml(f.email)}</div>
+            </div>
+          </div>
+        </td>
+        <td class="dim" style="font-size:12px">${escapeHtml(f.department || '—')}</td>
+        <td style="font-size:13px"><strong style="color:var(--text)">${batches.size}</strong> <span style="color:var(--text-muted)">batch${batches.size === 1 ? '' : 'es'}</span></td>
+        <td style="font-size:13px"><strong style="color:var(--text)">${courses.size}</strong> <span style="color:var(--text-muted)">course${courses.size === 1 ? '' : 's'}</span></td>
+        <td style="font-size:13px"><strong style="color:var(--text)">${classes.length}</strong> <span style="color:var(--text-muted)">class${classes.length === 1 ? '' : 'es'}</span></td>
         <td>${susp ? '<span class="badge badge-rejected">suspended</span>' : '<span class="badge badge-approved">active</span>'}</td>
-        <td style="text-align:right;white-space:nowrap">
+        <td class="row-actions">
           <button class="btn btn-sm" data-view="${f.id}" title="View batches & students"><i class="fas fa-eye"></i></button>
           <button class="btn btn-sm" data-edit="${f.id}" title="Edit"><i class="fas fa-pen"></i></button>
           <button class="btn btn-sm ${susp ? 'btn-success' : 'btn-danger'}" data-toggle="${f.id}" data-active="${!susp}" title="${susp ? 'Activate' : 'Suspend'}"><i class="fas fa-${susp ? 'play' : 'ban'}"></i></button>
@@ -136,20 +252,16 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     document.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => toggle(b.dataset.toggle, b.dataset.active === 'true'));
   }
 
-  /* ============ VIEW — batch-wise students ============ */
+  /* ===== VIEW ===== */
   function view(id) {
     const f = faculty.find(x => x.id === id);
     if (!f) return;
     const classes = tt.filter(t => t.faculty_id === id);
     const batchIds = [...new Set(classes.map(c => c.section_id))];
-
-    // Group students by batch
     const studentsByBatch = new Map();
     batchIds.forEach(bid => {
       studentsByBatch.set(bid, users.filter(u => u.role === 'student' && u.section_id === bid));
     });
-
-    // Group classes by day for schedule
     const byDay = new Map();
     classes.forEach(c => { if (!byDay.has(c.day_of_week)) byDay.set(c.day_of_week, []); byDay.get(c.day_of_week).push(c); });
 
@@ -159,55 +271,76 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
           const students = studentsByBatch.get(bid) || [];
           const batchClasses = classes.filter(c => c.section_id === bid);
           const courseList = [...new Set(batchClasses.map(c => c.course_code).filter(Boolean))];
-          return `<div class="batch-section">
-            <div class="batch-section-head">
-              <div class="batch-section-title"><i class="fas fa-users-rectangle"></i>${escapeHtml(bid)}${sec ? ` — ${escapeHtml(sec.name)}` : ''}</div>
+          return `<div class="batch-block">
+            <div class="batch-block-header">
+              <div class="batch-block-title"><i class="fas fa-users-rectangle"></i>${escapeHtml(bid)}${sec ? ` — ${escapeHtml(sec.name)}` : ''}</div>
               <span class="badge badge-admin">${students.length} student${students.length === 1 ? '' : 's'}</span>
             </div>
-            ${courseList.length ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px"><strong>Courses:</strong> ${courseList.map(c => escapeHtml(c)).join(', ')}</div>` : ''}
-            <div>
-              ${students.length ? students.map(s => `<span class="student-chip"><span class="dot ${s.is_active === false ? 'bad' : 'ok'}"></span>${escapeHtml(s.full_name || s.email)}</span>`).join('') : '<span class="dim" style="font-size:12px">No students assigned to this batch</span>'}
+            ${courseList.length ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:10px"><strong style="color:var(--text)">Courses:</strong> ${courseList.map(c => escapeHtml(c)).join(', ')}</div>` : ''}
+            <div class="batch-student-chips">
+              ${students.length ? students.map(s => `<span class="batch-student-chip"><span class="dot ${s.is_active === false ? 'bad' : 'ok'}"></span>${escapeHtml(s.full_name || s.email)}</span>`).join('') : '<span class="dim" style="font-size:12px">No students in this batch</span>'}
             </div>
           </div>`;
         }).join('')
-      : '<div class="empty" style="padding:24px"><i class="fas fa-users-rectangle"></i><br>Not teaching any batch yet. Assign classes in the Timetable page.</div>';
+      : '<div class="empty" style="padding:28px;text-align:center"><i class="fas fa-users-rectangle"></i><div style="margin-top:8px;font-size:13px">Not teaching any batch yet</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Assign classes in the Timetable page.</div></div>';
 
     const schedHtml = [1,2,3,4,5,6,0].filter(d => byDay.has(d)).map(d => {
       const items = byDay.get(d).sort((a, b) => a.slot_id.localeCompare(b.slot_id));
-      return `<div style="margin-bottom:12px">
-        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">${DOW[d]}</div>
-        ${items.map(c => `<div style="padding:8px 10px;background:var(--surface-hover);border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;font-size:12px">
-          <div><span style="font-family:monospace;font-weight:700;color:var(--brand)">${escapeHtml(c.course_code || '—')}</span> · ${escapeHtml(c.section_id)} · ${escapeHtml(c.room_id)}</div>
-          <div style="color:var(--text-muted);font-family:monospace">${escapeHtml(c.slot_id)}</div>
+      return `<div class="schedule-day">
+        <div class="schedule-day-title">${DOW[d]}</div>
+        ${items.map(c => `<div class="schedule-item">
+          <div>
+            <div class="schedule-item-code">${escapeHtml(c.course_code || '—')}</div>
+            <div class="schedule-item-meta">${escapeHtml(c.section_id)} · ${escapeHtml(c.room_id)}</div>
+          </div>
+          <div class="schedule-item-slot">${escapeHtml(c.slot_id)}</div>
         </div>`).join('')}
       </div>`;
-    }).join('') || '<div class="empty" style="padding:16px">No classes assigned</div>';
+    }).join('') || '<div class="empty" style="padding:20px"><i class="fas fa-inbox"></i><br>No classes assigned</div>';
 
-    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
     dialog.innerHTML = `<div class="modal-content modal-wide">
       <div class="modal-header">
-        <div><div class="modal-title">${escapeHtml(f.full_name || f.email)}</div><div class="modal-sub">${escapeHtml(f.email)} · ${escapeHtml(f.department || 'No department')}</div></div>
+        <div>
+          <div class="modal-title">${escapeHtml(f.full_name || f.email)}</div>
+          <div class="modal-sub">${escapeHtml(f.email)} · ${escapeHtml(f.department || 'No department')}</div>
+        </div>
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:20px">
-          <div><div class="label-small">Batches teaching</div><div style="font-weight:600;font-size:15px;color:var(--text)">${batchIds.length}</div></div>
-          <div><div class="label-small">Total classes</div><div style="font-weight:600;font-size:15px;color:var(--text)">${classes.length}</div></div>
-          <div><div class="label-small">Courses</div><div style="font-weight:600;font-size:15px;color:var(--text)">${new Set(classes.map(c => c.course_code).filter(Boolean)).size}</div></div>
+        <div class="modal-metrics-grid">
+          <div>
+            <div class="modal-metric-label">Batches teaching</div>
+            <div class="modal-metric-value">${batchIds.length}</div>
+          </div>
+          <div>
+            <div class="modal-metric-label">Total classes</div>
+            <div class="modal-metric-value">${classes.length}</div>
+          </div>
+          <div>
+            <div class="modal-metric-label">Courses</div>
+            <div class="modal-metric-value">${new Set(classes.map(c => c.course_code).filter(Boolean)).size}</div>
+          </div>
         </div>
 
-        <h3 style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:10px"><i class="fas fa-users-rectangle" style="color:var(--brand)"></i> Batches & students</h3>
-        ${batchesHtml}
+        <div class="modal-section">
+          <h3 class="modal-section-title"><i class="fas fa-users-rectangle"></i>Batches &amp; students</h3>
+          ${batchesHtml}
+        </div>
 
-        <h3 style="font-size:14px;font-weight:600;color:var(--text);margin:20px 0 10px"><i class="fas fa-calendar-week" style="color:var(--brand)"></i> Weekly schedule</h3>
-        ${schedHtml}
+        <div class="modal-section">
+          <h3 class="modal-section-title"><i class="fas fa-calendar-week"></i>Weekly schedule</h3>
+          ${schedHtml}
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn" data-close>Close</button>
         <button class="btn btn-primary" id="editFromView"><i class="fas fa-pen"></i> Edit account</button>
       </div>
     </div>`;
-    document.body.appendChild(dialog); dialog.showModal();
+    document.body.appendChild(dialog);
+    dialog.showModal();
 
     dialog.querySelector('#editFromView').onclick = () => { dialog.close(); dialog.remove(); edit(id); };
     const close = () => { dialog.close(); dialog.remove(); };
@@ -216,22 +349,26 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  /* ============ ADD FACULTY ============ */
+  /* ===== ADD ===== */
   $('addBtn').onclick = () => {
-    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
     dialog.innerHTML = `<div class="modal-content">
       <div class="modal-header">
-        <div><div class="modal-title">Add new faculty</div><div class="modal-sub">Creates a login account with faculty role.</div></div>
+        <div>
+          <div class="modal-title">Add new faculty</div>
+          <div class="modal-sub">Creates a login account with faculty role.</div>
+        </div>
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
         <label class="field"><span>Full name *</span><input class="input" data-field="full_name" placeholder="Dr. Jane Smith" autofocus></label>
         <label class="field"><span>Email *</span><input class="input" type="email" data-field="email" placeholder="jane@lpu.in"></label>
-        <label class="field"><span>Password *</span><input class="input" type="text" data-field="password" value="${Math.random().toString(36).slice(-8)}"><div class="pw-hint">Share this with the faculty member.</div></label>
+        <label class="field"><span>Password *</span><input class="input" type="text" data-field="password" value="${Math.random().toString(36).slice(-8)}"><div style="font-size:11px;color:var(--text-muted);margin-top:4px">Share this with the faculty member.</div></label>
         <label class="field"><span>Department</span><input class="input" data-field="department" placeholder="CSE"></label>
         <label class="field"><span>Phone</span><input class="input" data-field="phone" placeholder="+91 ..."></label>
-        <div class="info-banner" style="padding:12px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);margin-top:8px">
-          <i class="fas fa-info-circle"></i> After creating, assign their classes in the <a href="admin-timetable.html" style="color:inherit;text-decoration:underline">Timetable</a> page.
+        <div style="padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);line-height:1.55">
+          <i class="fas fa-info-circle" style="margin-right:6px"></i>After creating, assign their classes in the <a href="admin-timetable.html" style="color:inherit;text-decoration:underline">Timetable</a> page.
         </div>
       </div>
       <div class="modal-footer">
@@ -239,7 +376,8 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         <button class="btn btn-primary" data-save><i class="fas fa-user-plus"></i> Create faculty</button>
       </div>
     </div>`;
-    document.body.appendChild(dialog); dialog.showModal();
+    document.body.appendChild(dialog);
+    dialog.showModal();
 
     dialog.querySelector('[data-save]').onclick = async () => {
       const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
@@ -248,7 +386,8 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       if (get('password').length < 6) return toast('Password must be 6+ characters', 'error');
 
       const btn = dialog.querySelector('[data-save]');
-      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
 
       const { data, error } = await supabase.rpc('admin_create_user', {
         p_email: get('email'),
@@ -274,14 +413,15 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     dialog.onclick = e => { if (e.target === dialog) close(); };
   };
 
-  /* ============ EDIT ============ */
+  /* ===== EDIT ===== */
   function edit(id) {
     const f = faculty.find(x => x.id === id);
     if (!f) return;
-    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
     dialog.innerHTML = `<div class="modal-content">
       <div class="modal-header">
-        <div><div class="modal-title">Edit ${escapeHtml(f.email)}</div></div>
+        <div class="modal-title">Edit ${escapeHtml(f.email)}</div>
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
@@ -294,7 +434,8 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         <button class="btn btn-primary" data-save><i class="fas fa-check"></i> Save</button>
       </div>
     </div>`;
-    document.body.appendChild(dialog); dialog.showModal();
+    document.body.appendChild(dialog);
+    dialog.showModal();
 
     dialog.querySelector('[data-save]').onclick = async () => {
       const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
