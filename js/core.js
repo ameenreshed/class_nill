@@ -1,11 +1,30 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 
-// Re-export so pages can `import { SUPABASE_URL } from './js/core.js'`
 export { SUPABASE_URL, SUPABASE_ANON_KEY };
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export const BASE = new URL('.', location.href).href;
+
+/* ---------- defensive: unregister any stale SW on every page load ---------- */
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations()
+    .then(regs => regs.forEach(r => r.unregister()))
+    .catch(() => {});
+}
+
+/* ---------- session helper: wait for it to be readable ---------- */
+export async function waitForSession(maxMs = 2500) {
+  const start = Date.now();
+  while (Date.now() - start < maxMs) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) return session;
+    } catch {}
+    await new Promise(r => setTimeout(r, 150));
+  }
+  return null;
+}
 
 /* ---------- helpers ---------- */
 export function escapeHtml(s) {
@@ -86,20 +105,20 @@ export function initTheme() {
 
 /* ---------- auth ---------- */
 export async function requireRole(allowed) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) { location.href = `${BASE}login.html`; return null; }
+  const session = await waitForSession(2500);
+  if (!session) { location.replace(`${BASE}login.html`); return null; }
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-  if (!profile) { location.href = `${BASE}login.html`; return null; }
+  if (!profile) { location.replace(`${BASE}login.html`); return null; }
 
   if (profile.is_active === false) {
     try { await supabase.auth.signOut(); } catch {}
-    location.href = `${BASE}login.html?err=suspended`;
+    location.replace(`${BASE}login.html?err=suspended`);
     return null;
   }
 
   if (allowed && !allowed.includes(profile.role)) {
-    location.href = `${BASE}${profile.role}.html`;
+    location.replace(`${BASE}${profile.role}.html`);
     return null;
   }
 
@@ -108,7 +127,7 @@ export async function requireRole(allowed) {
 
 export async function signOut() {
   try { await supabase.auth.signOut(); } catch {}
-  location.href = `${BASE}login.html`;
+  location.replace(`${BASE}login.html`);
 }
 
 /* ---------- nav bar ---------- */

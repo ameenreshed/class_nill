@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Sign in · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
@@ -63,7 +66,6 @@
       </form>
 
       <div id="errorMsg" class="login-error"></div>
-      <div id="infoMsg" class="login-info" style="display:none"></div>
 
       <p class="auth-hint">
         <span id="connStatus" style="font-size:11px;color:var(--text-muted)">
@@ -76,10 +78,8 @@
 </div>
 
 <script type="module">
-import { supabase, initTheme, SUPABASE_URL } from './js/core.js';
+import { supabase, initTheme, waitForSession, SUPABASE_URL } from './js/core.js';
 
-// ⚠️ Must match the domain used when creating users in Supabase.
-// Typing "11111111" here → Supabase email "11111111@lpu.in"
 const EMAIL_DOMAIN = 'lpu.in';
 
 initTheme();
@@ -94,7 +94,7 @@ const $ = id => document.getElementById(id);
       ? '<i class="fas fa-circle-check" style="color:var(--success)"></i> Connected to Supabase'
       : `<i class="fas fa-triangle-exclamation" style="color:var(--warning)"></i> Supabase HTTP ${res.status}`;
   } catch {
-    el.innerHTML = '<i class="fas fa-circle-xmark" style="color:var(--danger)"></i> Cannot reach Supabase — check config.js / internet';
+    el.innerHTML = '<i class="fas fa-circle-xmark" style="color:var(--danger)"></i> Cannot reach Supabase';
   }
 })();
 
@@ -106,12 +106,12 @@ if (new URLSearchParams(location.search).get('err') === 'suspended') {
 
 /* ---------- redirect if already signed in ---------- */
 (async () => {
-  const { data: { session } } = await supabase.auth.getSession();
+  const session = await waitForSession(1000);
   if (!session) return;
   const { data: profile } = await supabase
     .from('profiles').select('role, is_active').eq('id', session.user.id).single();
   if (profile?.is_active === false) { await supabase.auth.signOut(); return; }
-  location.href = `./${profile?.role ?? 'student'}.html`;
+  if (profile?.role) location.replace(`./${profile.role}.html`);
 })();
 
 /* ---------- helpers ---------- */
@@ -122,7 +122,6 @@ function showError(html) {
 }
 function clearError() {
   $('errorMsg').classList.remove('show');
-  $('infoMsg').style.display = 'none';
 }
 
 /* ---------- password visibility ---------- */
@@ -189,10 +188,9 @@ $('loginForm').onsubmit = async (e) => {
     if (m.includes('invalid login credentials'))
       friendly = `Incorrect registration number or password.<br>
         <small style="opacity:.8;display:block;margin-top:6px">
-        Expected user: <code style="background:rgba(0,0,0,.08);padding:1px 4px;border-radius:3px">${email}</code>
-        — check it exists in Supabase → Authentication → Users.</small>`;
+        Expected user: <code style="background:rgba(0,0,0,.08);padding:1px 4px;border-radius:3px">${email}</code></small>`;
     else if (m.includes('email not confirmed'))
-      friendly = 'This account has not been confirmed in Supabase. Confirm it in Authentication → Users.';
+      friendly = 'This account has not been confirmed in Supabase.';
     showError(friendly);
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
@@ -224,7 +222,7 @@ $('loginForm').onsubmit = async (e) => {
     return;
   }
 
-  location.href = `./${profile.role}.html`;
+  location.replace(`./${profile.role}.html`);
 };
 </script>
 </body>

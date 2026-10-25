@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
@@ -29,42 +32,34 @@
 </div>
 
 <script type="module">
-import { supabase } from './js/core.js';
+import { supabase, waitForSession } from './js/core.js';
 
 (async () => {
-  try {
-    // 1) Are we already signed in?
-    const { data: { session } } = await supabase.auth.getSession();
+  const session = await waitForSession(2500);
 
-    if (!session) {
-      location.replace('./login.html');
-      return;
-    }
-
-    // 2) Fetch role to decide which dashboard to open
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, is_active')
-      .eq('id', session.user.id)
-      .single();
-
-    if (!profile || profile.is_active === false) {
-      await supabase.auth.signOut();
-      location.replace('./login.html');
-      return;
-    }
-
-    // 3) Route by role
-    const target =
-      profile.role === 'admin'   ? './admin.html'   :
-      profile.role === 'faculty' ? './faculty.html' :
-                                   './student.html';
-
-    location.replace(target);
-  } catch {
-    // Network / config error → fall back to login
+  if (!session) {
     location.replace('./login.html');
+    return;
   }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, is_active')
+    .eq('id', session.user.id)
+    .single();
+
+  if (!profile || profile.is_active === false) {
+    try { await supabase.auth.signOut(); } catch {}
+    location.replace('./login.html');
+    return;
+  }
+
+  const target =
+    profile.role === 'admin'   ? './admin.html'   :
+    profile.role === 'faculty' ? './faculty.html' :
+                                 './student.html';
+
+  location.replace(target);
 })();
 </script>
 </body>
