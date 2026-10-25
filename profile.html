@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profile · LPU Scheduler</title>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav"></div>
+<div class="container" style="max-width:1000px">
+  <div class="page-header">
+    <div><h1 class="page-title"><i class="fas fa-user-circle"></i> Profile</h1>
+      <p class="page-subtitle">Manage your account and security.</p>
+    </div>
+  </div>
+
+  <div class="profile-header">
+    <div class="avatar-lg" id="avatar">?</div>
+    <div class="profile-info">
+      <div class="profile-name" id="displayName">Loading…</div>
+      <div class="profile-email" id="displayEmail"></div>
+      <div class="profile-badges" id="profileBadges"></div>
+    </div>
+  </div>
+
+  <div class="grid-auto mt-6">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-id-card"></i> Account</div>
+      <form id="accountForm">
+        <label class="field"><span>Full name</span><input class="input" id="fullNameInput"></label>
+        <label class="field"><span>Email</span><input class="input" id="emailDisplay" disabled><div class="dim" style="font-size:11px;margin-top:4px">Contact admin to change</div></label>
+        <label class="field"><span>Department</span><input class="input" id="departmentDisplay" disabled></label>
+        <label class="field"><span>Section</span><input class="input" id="sectionDisplay" disabled></label>
+        <label class="field"><span>Phone</span><input class="input" id="phoneInput" type="tel"></label>
+        <button class="btn btn-primary" type="submit" id="saveBtn"><i class="fas fa-check"></i> Save changes</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fas fa-lock"></i> Security</div>
+      <form id="passwordForm">
+        <label class="field"><span>Current password</span>
+          <div class="pwd-wrap"><input class="input" id="currentPwd" type="password" autocomplete="current-password">
+            <button type="button" class="pwd-toggle" data-for="currentPwd"><i class="fas fa-eye"></i></button>
+          </div>
+        </label>
+        <label class="field"><span>New password (min 8 chars)</span>
+          <div class="pwd-wrap"><input class="input" id="newPwd" type="password" minlength="8">
+            <button type="button" class="pwd-toggle" data-for="newPwd"><i class="fas fa-eye"></i></button>
+          </div>
+        </label>
+        <label class="field"><span>Confirm new password</span>
+          <div class="pwd-wrap"><input class="input" id="confirmPwd" type="password" minlength="8">
+            <button type="button" class="pwd-toggle" data-for="confirmPwd"><i class="fas fa-eye"></i></button>
+          </div>
+        </label>
+        <button class="btn btn-primary" type="submit" id="pwdBtn"><i class="fas fa-key"></i> Change password</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card mt-6">
+    <div class="card-title"><i class="fas fa-clock"></i> Session info</div>
+    <div class="grid-auto">
+      <div><div class="label-small">Member since</div><div id="createdAt" style="font-weight:500;font-size:14px">—</div></div>
+      <div><div class="label-small">Last active</div><div id="lastActive" style="font-weight:500;font-size:14px">—</div></div>
+      <div><div class="label-small">Password changed</div><div id="pwdChanged" style="font-weight:500;font-size:14px">Never</div></div>
+    </div>
+  </div>
+
+  <div class="card mt-4">
+    <div class="card-title"><i class="fas fa-history"></i> Recent activity</div>
+    <div id="activityList"><div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</div></div>
+  </div>
+
+  <div class="card mt-4" id="adminLinks" style="display:none">
+    <div class="card-title"><i class="fas fa-shield-halved"></i> Admin shortcuts</div>
+    <div class="chips">
+      <a href="admin.html" class="btn"><i class="fas fa-gauge-high"></i> Dashboard</a>
+      <a href="admin-bookings.html" class="btn"><i class="fas fa-calendar-check"></i> Bookings</a>
+      <a href="admin-timetable.html" class="btn"><i class="fas fa-table"></i> Timetable</a>
+      <a href="admin-users.html" class="btn"><i class="fas fa-users"></i> Users</a>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime, formatRelativeTime } from './js/core.js';
+
+(async () => {
+  const auth = await requireRole(['student', 'faculty', 'admin']);
+  if (!auth) return;
+  renderNav(auth.profile);
+
+  const $ = id => document.getElementById(id);
+  const p = auth.profile;
+
+  const initial = ((p.full_name || p.email || '?').trim()[0] || '?').toUpperCase();
+  $('avatar').textContent = initial;
+  $('displayName').textContent = p.full_name || p.email;
+  $('displayEmail').textContent = p.email;
+  $('fullNameInput').value = p.full_name || '';
+  $('emailDisplay').value = p.email;
+  $('departmentDisplay').value = p.department || '—';
+  $('sectionDisplay').value = p.section_id || '—';
+  $('phoneInput').value = p.phone || '';
+
+  const roleIcon = p.role === 'admin' ? 'shield-halved' : p.role === 'faculty' ? 'chalkboard-user' : 'graduation-cap';
+  $('profileBadges').innerHTML = `
+    <span class="badge badge-${p.role}"><i class="fas fa-${roleIcon}"></i>${p.role}</span>
+    <span class="badge badge-approved"><i class="fas fa-check"></i>active</span>
+    ${p.section_id ? `<span class="badge badge-gray"><i class="fas fa-users-rectangle"></i>${escapeHtml(p.section_id)}</span>` : ''}
+  `;
+
+  $('createdAt').textContent = formatDateTime(p.created_at);
+  $('lastActive').textContent = formatRelativeTime(p.last_active_at) || formatDateTime(p.last_active_at);
+  $('pwdChanged').textContent = p.password_changed_at ? formatDateTime(p.password_changed_at) : 'Never';
+  if (p.role === 'admin') $('adminLinks').style.display = 'block';
+
+  document.querySelectorAll('.pwd-toggle[data-for]').forEach(btn => {
+    btn.onclick = () => {
+      const input = $(btn.dataset.for);
+      const isPwd = input.type === 'password';
+      input.type = isPwd ? 'text' : 'password';
+      btn.innerHTML = isPwd ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+    };
+  });
+
+  $('accountForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = $('saveBtn');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+    const { error } = await supabase.from('profiles').update({
+      full_name: $('fullNameInput').value.trim() || null,
+      phone: $('phoneInput').value.trim() || null,
+    }).eq('id', p.id);
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Save changes';
+    if (error) return toast(error.message, 'error');
+    $('displayName').textContent = $('fullNameInput').value.trim() || p.email;
+    toast('Profile updated', 'success');
+  };
+
+  $('passwordForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const current = $('currentPwd').value, next = $('newPwd').value, confirm = $('confirmPwd').value;
+    if (!current || !next || !confirm) return toast('Fill all fields', 'error');
+    if (next.length < 8) return toast('Password must be 8+ chars', 'error');
+    if (next !== confirm) return toast('Passwords do not match', 'error');
+    if (next === current) return toast('New must differ from current', 'error');
+    const btn = $('pwdBtn');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating…';
+    const { error: verifyErr } = await supabase.auth.signInWithPassword({ email: p.email, password: current });
+    if (verifyErr) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-key"></i> Change password'; return toast('Current password is incorrect', 'error'); }
+    const { error } = await supabase.auth.updateUser({ password: next });
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-key"></i> Change password';
+    if (error) return toast(error.message, 'error');
+    $('currentPwd').value = ''; $('newPwd').value = ''; $('confirmPwd').value = '';
+    $('pwdChanged').textContent = formatDateTime(new Date().toISOString());
+    toast('Password updated', 'success');
+  };
+
+  try {
+    const { data: logs } = await supabase.from('activity_log').select('*').eq('user_id', p.id).order('created_at', { ascending: false }).limit(15);
+    if (!logs?.length) {
+      $('activityList').innerHTML = '<div class="empty"><i class="fas fa-inbox"></i>No recent activity</div>';
+    } else {
+      $('activityList').innerHTML = `
+        <div class="timeline">
+          ${logs.map(l => `
+            <div class="timeline-item">
+              <div class="timeline-marker"><i class="fas ${l.action === 'auth.login' ? 'fa-right-to-bracket' : l.action?.startsWith('user.') ? 'fa-user-pen' : l.action?.startsWith('room.') ? 'fa-door-open' : l.action?.startsWith('booking.') ? 'fa-calendar-check' : 'fa-circle'}"></i></div>
+              <div class="timeline-content">
+                <div class="timeline-title"><span class="mono" style="font-weight:500">${escapeHtml(l.action)}</span>${l.entity_id ? ` <span class="dim">${escapeHtml(l.entity_id)}</span>` : ''}</div>
+                <div class="timeline-meta">${formatRelativeTime(l.created_at)}</div>
+              </div>
+            </div>`).join('')}
+        </div>`;
+    }
+  } catch {
+    $('activityList').innerHTML = '<div class="empty"><i class="fas fa-exclamation-triangle"></i>Could not load activity</div>';
+  }
+})();
+</script>
+</body>
+</html>

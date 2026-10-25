@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rooms · LPU Scheduler</title>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fas fa-door-open"></i> Rooms</h1>
+      <p class="page-subtitle"><span id="roomCount">0</span> rooms · click room ID to copy</p>
+    </div>
+    <div class="row">
+      <button class="btn" id="exportBtn"><i class="fas fa-download"></i> Export</button>
+      <button class="btn btn-primary" id="addBtn"><i class="fas fa-plus"></i> Add room</button>
+    </div>
+  </div>
+
+  <div class="row" style="gap:8px;margin-bottom:16px">
+    <div class="chips" id="buildingFilter"></div>
+    <div class="search-wrap" style="margin-left:auto;max-width:320px">
+      <i class="fas fa-search search-icon"></i>
+      <input class="input" id="searchInput" placeholder="Search room, type, block…">
+    </div>
+  </div>
+
+  <div class="bulk-bar" id="bulkBar">
+    <span class="bulk-bar-count" id="bulkCount">0 selected</span>
+    <div class="bulk-bar-actions">
+      <button class="btn btn-sm" id="bulkDelete"><i class="fas fa-trash"></i> Delete</button>
+      <button class="btn btn-sm" id="bulkClear"><i class="fas fa-times"></i> Clear</button>
+    </div>
+  </div>
+
+  <div class="table-wrap mt-4">
+    <table>
+      <thead>
+        <tr>
+          <th class="checkbox-cell"><input type="checkbox" id="selectAll"></th>
+          <th>Room</th>
+          <th>Type</th>
+          <th>Capacity</th>
+          <th>Flags</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="body"><tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script type="module">
+import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.js';
+
+(async () => {
+  const auth = await requireRole(['admin']);
+  if (!auth) return;
+  renderNav(auth.profile);
+
+  const $ = id => document.getElementById(id);
+  let rooms = [], buildings = [], types = [];
+  let building = 'all', search = '';
+  let selected = new Set();
+
+  async function init() {
+    const [{ data: b }, { data: t }, { data: r }] = await Promise.all([
+      supabase.from('buildings').select('*').eq('is_active', true).order('sort_order'),
+      supabase.from('room_types').select('*').eq('is_active', true).order('sort_order'),
+      supabase.from('rooms').select('*').order('room_id'),
+    ]);
+    buildings = b ?? [];
+    types = t ?? [];
+    rooms = r ?? [];
+    renderTabs();
+    render();
+  }
+
+  function renderTabs() {
+    const el = $('buildingFilter');
+    el.innerHTML = `
+      <button class="chip ${building === 'all' ? 'on' : ''}" data-b="all"><i class="fas fa-layer-group"></i> All</button>
+      ${buildings.map(b => `<button class="chip ${building === b.id ? 'on' : ''}" data-b="${b.id}"><i class="fas fa-building"></i> ${escapeHtml(b.name || b.id)}</button>`).join('')}`;
+    el.querySelectorAll('[data-b]').forEach(btn => {
+      btn.onclick = () => { building = btn.dataset.b; renderTabs(); render(); };
+    });
+  }
+
+  function filtered() {
+    let list = building === 'all' ? rooms : rooms.filter(r => r.building === building);
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(r =>
+        r.display_name.toLowerCase().includes(q) ||
+        r.type.toLowerCase().includes(q) ||
+        r.room_id.toLowerCase().includes(q)
+      );
+    }
+    return [...list].sort((a, b) => a.room_id.localeCompare(b.room_id, undefined, { numeric: true }));
+  }
+
+  function render() {
+    const list = filtered();
+    $('roomCount').textContent = rooms.length;
+    updateBulkBar();
+    if (!list.length) {
+      $('body').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-door-closed"></i>No rooms match</td></tr>';
+      return;
+    }
+    const typeLabel = new Map(types.map(t => [t.id, t.label]));
+    $('body').innerHTML = list.map(r => `
+      <tr>
+        <td class="checkbox-cell"><input type="checkbox" data-cb="${escapeHtml(r.room_id)}" ${selected.has(r.room_id) ? 'checked' : ''}></td>
+        <td>
+          <div class="mono" style="color:var(--text);font-weight:500;cursor:pointer" data-copy="${escapeHtml(r.room_id)}">${escapeHtml(r.display_name)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Block ${r.building} · Floor ${r.floor}</div>
+        </td>
+        <td>${escapeHtml(typeLabel.get(r.type) || r.type)}</td>
+        <td>${r.capacity ?? '—'}</td>
+        <td>
+          ${r.bookable ? '<span class="badge badge-approved"><i class="fas fa-check"></i>bookable</span>' : '<span class="badge badge-gray"><i class="fas fa-eye-slash"></i>hidden</span>'}
+          ${r.weekend_open ? '<span class="badge badge-student" style="margin-left:4px">weekend</span>' : ''}
+        </td>
+        <td style="text-align:right;white-space:nowrap">
+          <button class="btn btn-sm" data-edit="${escapeHtml(r.room_id)}" title="Edit"><i class="fas fa-pen"></i></button>
+          <button class="btn btn-sm btn-danger" data-del="${escapeHtml(r.room_id)}" title="Delete"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`).join('');
+
+    document.querySelectorAll('[data-cb]').forEach(cb => {
+      cb.onchange = () => { cb.checked ? selected.add(cb.dataset.cb) : selected.delete(cb.dataset.cb); updateBulkBar(); };
+    });
+    document.querySelectorAll('[data-copy]').forEach(el => {
+      el.onclick = () => { navigator.clipboard.writeText(el.dataset.copy); toast('Copied', 'success'); };
+    });
+    document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openModal(b.dataset.edit));
+    document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => deleteRoom(b.dataset.del));
+  }
+
+  function updateBulkBar() {
+    if (selected.size > 0) {
+      $('bulkBar').classList.add('show');
+      $('bulkCount').textContent = `${selected.size} selected`;
+    } else $('bulkBar').classList.remove('show');
+  }
+
+  async function openModal(roomId) {
+    const existing = roomId ? rooms.find(r => r.room_id === roomId) : null;
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
+    dialog.innerHTML = `
+      <div class="modal-content modal-wide">
+        <div class="modal-header">
+          <div class="modal-title">${existing ? 'Edit ' + escapeHtml(existing.display_name) : 'Add room'}</div>
+          <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+            <label class="field"><span>Building</span>
+              <select class="input" data-field="building">
+                ${buildings.map(b => `<option value="${escapeHtml(b.id)}" ${existing?.building === b.id ? 'selected' : ''}>${escapeHtml(b.name || b.id)}</option>`).join('')}
+              </select>
+            </label>
+            <label class="field"><span>Floor</span><input class="input" type="number" min="1" max="20" data-field="floor" value="${existing?.floor || 1}"></label>
+            <label class="field"><span>Room number</span><input class="input" data-field="room_number" value="${escapeHtml(existing?.room_number || '01')}"></label>
+            <label class="field"><span>Suffix</span><input class="input" data-field="suffix" value="${escapeHtml(existing?.suffix || '')}" placeholder="A"></label>
+            <label class="field"><span>Type</span>
+              <select class="input" data-field="type">
+                ${types.map(t => `<option value="${escapeHtml(t.id)}" ${existing?.type === t.id ? 'selected' : ''}>${escapeHtml(t.label)}</option>`).join('')}
+              </select>
+            </label>
+            <label class="field"><span>Capacity</span><input class="input" type="number" data-field="capacity" value="${existing?.capacity ?? 60}"></label>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)">
+              <input type="checkbox" data-field="bookable" ${existing?.bookable !== false ? 'checked' : ''}> Bookable
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)">
+              <input type="checkbox" data-field="weekend_open" ${existing?.weekend_open ? 'checked' : ''}> Open weekends
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" data-close>Cancel</button>
+          <button class="btn btn-primary" data-save>${existing ? 'Save' : 'Add room'}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(dialog);
+    dialog.showModal();
+
+    const getVal = f => dialog.querySelector(`[data-field="${f}"]`).value;
+    const getCb = f => dialog.querySelector(`[data-field="${f}"]`).checked;
+
+    dialog.querySelector('[data-save]').onclick = async () => {
+      const building = getVal('building');
+      const floor = parseInt(getVal('floor')) || 1;
+      const rn = getVal('room_number').trim().padStart(2, '0');
+      const sfx = getVal('suffix').trim().toUpperCase();
+      const room_id = `${building}-${floor}${rn}${sfx}`;
+      const payload = {
+        room_id,
+        display_name: `${building}-${floor}${rn}${sfx ? ' ' + sfx : ''}`,
+        building, floor,
+        floor_digit: String(floor),
+        room_number: rn, suffix: sfx,
+        type: getVal('type'),
+        capacity: parseInt(getVal('capacity')) || null,
+        bookable: getCb('bookable'),
+        weekend_open: getCb('weekend_open'),
+      };
+      const { error } = existing
+        ? await supabase.from('rooms').update(payload).eq('room_id', existing.room_id)
+        : await supabase.from('rooms').insert(payload);
+      if (error) return toast(error.message, 'error');
+      toast(existing ? 'Room updated' : 'Room added', 'success');
+      dialog.close(); dialog.remove();
+      await init();
+    };
+
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+  }
+
+  async function deleteRoom(id) {
+    if (!confirm(`Delete ${id}? This cannot be undone.`)) return;
+    const { error } = await supabase.from('rooms').delete().eq('room_id', id);
+    if (error) return toast(error.message, 'error');
+    toast('Room deleted', 'success');
+    await init();
+  }
+
+  $('addBtn').onclick = () => openModal();
+  $('exportBtn').onclick = () => {
+    const csv = ['room_id,display_name,building,floor,type,capacity,bookable']
+      .concat(rooms.map(r => [r.room_id, r.display_name, r.building, r.floor, r.type, r.capacity ?? '', r.bookable].join(',')))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `rooms-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    toast('Exported', 'success');
+  };
+  $('searchInput').oninput = (e) => { search = e.target.value.trim(); render(); };
+  $('selectAll').onchange = (e) => {
+    if (e.target.checked) filtered().forEach(r => selected.add(r.room_id));
+    else selected.clear();
+    render();
+  };
+  $('bulkDelete').onclick = async () => {
+    if (!selected.size) return;
+    if (!confirm(`Delete ${selected.size} room(s)? This cannot be undone.`)) return;
+    const { error } = await supabase.from('rooms').delete().in('room_id', [...selected]);
+    if (error) return toast(error.message, 'error');
+    toast('Deleted', 'success');
+    await init();
+  };
+  $('bulkClear').onclick = () => { selected.clear(); render(); };
+
+  await init();
+})();
+</script>
+</body>
+</html>
