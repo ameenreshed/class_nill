@@ -13,8 +13,67 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 
-<!-- Turnstile: EXPLICIT rendering (no data-callback attributes needed) -->
+<!-- Turnstile: EXPLICIT rendering -->
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+
+<style>
+  .auth-help {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    text-align: center;
+  }
+  .auth-help a {
+    color: var(--brand);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .auth-help a:hover { text-decoration: underline; }
+  .auth-help .help-title {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .auth-help .help-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+  .auth-help .help-row i { font-size: 11px; opacity: 0.7; }
+
+  /* Clean credits text link */
+  .credits-link {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .credits-link a {
+    color: var(--text-muted);
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 160ms ease;
+  }
+  .credits-link a:hover {
+    color: var(--brand);
+    text-decoration: underline;
+  }
+  .credits-link i { font-size: 10px; color: var(--brand); }
+</style>
 </head>
 <body>
 
@@ -53,7 +112,7 @@
                  required maxlength="20" autofocus>
         </label>
 
-        <label class="field" style="margin-bottom:16px">
+        <label class="field" style="margin-bottom:8px">
           <span>Password</span>
           <div class="pwd-wrap">
             <input class="input" type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
@@ -61,7 +120,15 @@
           </div>
         </label>
 
-        <!-- Turnstile widget container (empty — rendered via JS) -->
+        <!-- Forgot password → UMS portal -->
+        <div style="text-align:right; margin-bottom:16px; font-size:13px">
+          <a href="https://ums.lpu.in/lpuums/forgetpassword.aspx"
+             style="color:var(--brand);font-weight:500;text-decoration:none">
+            Forgot password?
+          </a>
+        </div>
+
+        <!-- Turnstile widget container -->
         <div id="turnstile-container" style="margin-bottom:16px; min-height:65px;"></div>
 
         <button type="submit" class="btn btn-primary btn-block" id="loginBtn" style="min-height:44px" disabled>
@@ -70,7 +137,25 @@
       </form>
 
       <div id="errorMsg" class="login-error"></div>
-      <p class="auth-hint">Forgot your password? Contact your department administrator.</p>
+
+      <!-- Bottom help block -->
+      <div class="auth-help">
+        <div class="help-title">Need help signing in?</div>
+        <div class="help-row">
+          <i class="fas fa-circle-info"></i>
+          <span>Contact your administrator or visit the</span>
+          <a href="https://ums.lpu.in/lpuums/" target="_blank" rel="noopener noreferrer">
+            UMS Portal <i class="fas fa-arrow-up-right-from-square" style="font-size:10px;margin-left:2px"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Clean credits text link -->
+      <div class="credits-link">
+        <a href="credits.html">
+          <i class="fas fa-heart"></i> Credits
+        </a>
+      </div>
     </div>
   </main>
 </div>
@@ -137,12 +222,11 @@ if (new URLSearchParams(location.search).get('err') === 'suspended') {
 setLoginButton('loading');
 
 let pollAttempts = 0;
-const MAX_POLL_ATTEMPTS = 50; // ~10 seconds at 200ms
+const MAX_POLL_ATTEMPTS = 50;
 
 function initTurnstile() {
   pollAttempts++;
 
-  // 1. Wait for script to load
   if (!window.turnstile) {
     if (pollAttempts >= MAX_POLL_ATTEMPTS) {
       setLoginButton('waiting');
@@ -158,14 +242,12 @@ function initTurnstile() {
     return;
   }
 
-  // 2. Wait for container to exist
   const container = document.getElementById('turnstile-container');
   if (!container) {
     if (pollAttempts < MAX_POLL_ATTEMPTS) setTimeout(initTurnstile, 200);
     return;
   }
 
-  // 3. Render only once
   if (turnstileReady) return;
   turnstileReady = true;
 
@@ -174,21 +256,15 @@ function initTurnstile() {
       sitekey: TURNSTILE_SITE_KEY,
       theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
       size: 'normal',
-
-      // SUCCESS: enable the button
       callback: (token) => {
         turnstileToken = token;
         setLoginButton('ready');
         clearError();
       },
-
-      // TOKEN EXPIRED: disable the button again
       'expired-callback': () => {
         turnstileToken = null;
         setLoginButton('waiting');
       },
-
-      // ERROR: show a clear message and keep the button disabled
       'error-callback': (code) => {
         console.error('Turnstile error:', code);
         turnstileToken = null;
@@ -203,7 +279,6 @@ function initTurnstile() {
   }
 }
 
-// Kick off after DOM is ready
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
   initTurnstile();
 } else {
@@ -237,7 +312,6 @@ $('loginForm').onsubmit = async (e) => {
   e.preventDefault();
   clearError();
 
-  // Guard: require a fresh token
   if (!turnstileToken) {
     showError('Please complete the verification checkbox first.');
     return;
@@ -265,7 +339,7 @@ $('loginForm').onsubmit = async (e) => {
     result = await supabase.auth.signInWithPassword({
       email,
       password,
-      options: { captchaToken: turnstileToken } // ← Turnstile token sent here
+      options: { captchaToken: turnstileToken }
     });
   } catch (err) {
     setLoginButton('waiting');
@@ -285,7 +359,6 @@ $('loginForm').onsubmit = async (e) => {
       friendly = 'This account has not been confirmed. Contact your administrator.';
     } else if (m.includes('captcha')) {
       friendly = 'Verification failed or token expired. Please tick the checkbox again.';
-      // Reset the widget so the user can generate a fresh token
       if (window.turnstile && turnstileWidgetId !== null) {
         try { window.turnstile.reset(turnstileWidgetId); } catch {}
       }
@@ -303,7 +376,6 @@ $('loginForm').onsubmit = async (e) => {
     return;
   }
 
-  // Fetch profile to route correctly
   const { data: profile, error: profErr } = await supabase
     .from('profiles').select('role, is_active').eq('id', data.session.user.id).single();
 
