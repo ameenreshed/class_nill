@@ -204,6 +204,7 @@ export function renderNav(profile) {
     { href: 'admin-users.html', label: 'Users', icon: 'fa-users' },
     { href: 'admin-settings.html', label: 'Settings', icon: 'fa-gear' },
     { href: 'student.html', label: 'Free rooms', icon: 'fa-building' },
+    { href: 'admin-control.html', label: 'Control', icon: 'fa-sliders' },
   ] : profile.role === 'faculty' ? [
     { href: 'faculty.html', label: 'Dashboard', icon: 'fa-gauge-high' },
     { href: 'student.html', label: 'Free rooms', icon: 'fa-building' },
