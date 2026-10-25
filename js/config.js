@@ -1,3 +1,3 @@
 // Paste from Supabase → Project Settings → API
-export const SUPABASE_URL = 'https://qllbtxnfkyivjlwohton.supabase.co';
-export const SUPABASE_ANON_KEY = 'sb_publishable_ptop_aG2tEYgl_RucW_V3Q_jKo0npUe';
+export const SUPABASE_URL = 'https://kcpwoutzbntwmikhzhve.supabase.co';
+export const SUPABASE_ANON_KEY = 'sb_publishable_yW1g2hPk40zDmWaS92OTOw_G7wxuTx3';

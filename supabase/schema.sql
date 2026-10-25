@@ -1,6 +1,6 @@
 -- ============================================================
 -- LPU Scheduler — Complete schema
--- Run once in Supabase SQL editor
+-- Run once in Supabase SQL Editor
 -- ============================================================
 
 create extension if not exists pgcrypto;
@@ -23,7 +23,6 @@ create table if not exists profiles (
 
 create index if not exists profiles_active on profiles (is_active);
 create index if not exists profiles_role on profiles (role);
-create index if not exists profiles_last_active on profiles (last_active_at desc nulls last);
 
 create or replace function handle_new_user()
 returns trigger language plpgsql security definer as $$
@@ -157,7 +156,6 @@ create unique index if not exists bookings_no_overlap
 
 create index if not exists bookings_date_slot on bookings (book_date, slot_id, status);
 create index if not exists bookings_faculty on bookings (faculty_id, book_date);
-create index if not exists bookings_section on bookings (section_id, book_date);
 
 -- ---------- activity log ----------
 create table if not exists activity_log (
@@ -172,7 +170,6 @@ create table if not exists activity_log (
 );
 
 create index if not exists activity_log_created on activity_log (created_at desc);
-create index if not exists activity_log_user on activity_log (user_id);
 
 -- ---------- RLS ----------
 alter table profiles enable row level security;
@@ -197,9 +194,6 @@ create policy "profiles read" on profiles for select
 drop policy if exists "profiles admin write" on profiles;
 create policy "profiles admin write" on profiles for all
   using (my_role() = 'admin') with check (my_role() = 'admin');
-drop policy if exists "profiles self update" on profiles;
-create policy "profiles self update" on profiles for update
-  using (id = auth.uid()) with check (id = auth.uid());
 
 -- buildings / floors / types
 drop policy if exists "buildings read" on buildings;
@@ -296,10 +290,6 @@ begin
 end; $$;
 grant execute on function log_login(text) to authenticated;
 
-create or replace function server_now() returns timestamptz
-language sql stable as $$ select now(); $$;
-grant execute on function server_now() to authenticated, anon;
-
 -- ---------- logging triggers ----------
 create or replace function log_room_change()
 returns trigger language plpgsql security definer as $$
@@ -357,7 +347,7 @@ drop trigger if exists trg_log_profile on profiles;
 create trigger trg_log_profile after insert or update or delete on profiles
   for each row execute function log_profile_change();
 
--- ---------- Seed data ----------
+-- ---------- Seed rooms ----------
 insert into buildings (id, name) values
   ('25', 'Block 25'), ('26', 'Block 26'), ('27', 'Block 27'), ('28', 'Block 28')
 on conflict (id) do nothing;
@@ -377,4 +367,4 @@ insert into rooms (room_id, display_name, building, floor, floor_digit, room_num
   ('27-208', '27-208',   '27',2,'2','08','', 'lab',    30,true, false,'{computers,ac}')
 on conflict (room_id) do nothing;
 
-select 'Setup complete' as status;
+select 'Schema setup complete' as status;

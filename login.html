@@ -6,7 +6,6 @@
 <title>Sign in · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
-<link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -39,13 +38,15 @@
 
       <div class="auth-form-header">
         <h2 class="auth-form-title">Sign in</h2>
-        <p class="auth-form-sub">Use your university ID and password to continue.</p>
+        <p class="auth-form-sub">Enter your registration number and password to continue.</p>
       </div>
 
-      <form id="loginForm" autocomplete="on">
+      <form id="loginForm" autocomplete="on" novalidate>
         <label class="field">
-          <span>University ID</span>
-          <input class="input" type="email" id="email" placeholder="Enter your ID" autocomplete="username" required>
+          <span>Registration number</span>
+          <input class="input" type="text" id="regno" inputmode="numeric" pattern="[0-9]*"
+                 placeholder="Enter registration number" autocomplete="username"
+                 required maxlength="20" autofocus>
         </label>
 
         <label class="field" style="margin-bottom:20px">
@@ -64,75 +65,158 @@
       <div id="errorMsg" class="login-error"></div>
       <div id="infoMsg" class="login-info" style="display:none"></div>
 
+      <p class="auth-hint">
+        <span id="connStatus" style="font-size:11px;color:var(--text-muted)">
+          <i class="fas fa-circle-notch fa-spin"></i> Connecting…
+        </span>
+      </p>
       <p class="auth-hint">Forgot your password? Contact your department administrator.</p>
     </div>
   </main>
 </div>
 
 <script type="module">
-import { supabase, bootPWA, initTheme } from './js/core.js';
+import { supabase, initTheme, SUPABASE_URL } from './js/core.js';
+
+// ⚠️ Must match the domain used when creating users in Supabase.
+// Typing "11111111" here → Supabase email "11111111@lpu.in"
+const EMAIL_DOMAIN = 'lpu.in';
 
 initTheme();
-bootPWA();
-
 const $ = id => document.getElementById(id);
 
-if (new URLSearchParams(location.search).get('reset') === 'success') {
-  $('infoMsg').innerHTML = '<i class="fas fa-circle-check"></i><div>Password updated. Sign in with your new password.</div>';
-  $('infoMsg').style.display = 'flex';
-  history.replaceState({}, '', 'login.html');
-}
+/* ---------- connection status ---------- */
+(async () => {
+  const el = $('connStatus');
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/health`, { cache: 'no-store' });
+    el.innerHTML = res.ok
+      ? '<i class="fas fa-circle-check" style="color:var(--success)"></i> Connected to Supabase'
+      : `<i class="fas fa-triangle-exclamation" style="color:var(--warning)"></i> Supabase HTTP ${res.status}`;
+  } catch {
+    el.innerHTML = '<i class="fas fa-circle-xmark" style="color:var(--danger)"></i> Cannot reach Supabase — check config.js / internet';
+  }
+})();
+
+/* ---------- suspended banner ---------- */
 if (new URLSearchParams(location.search).get('err') === 'suspended') {
   showError('Your account has been suspended. Contact an administrator.');
   history.replaceState({}, '', 'login.html');
 }
 
+/* ---------- redirect if already signed in ---------- */
 (async () => {
   const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
-    const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', session.user.id).single();
-    if (profile?.is_active === false) { await supabase.auth.signOut(); return; }
-    location.href = `./${profile?.role ?? 'student'}.html`;
-  }
+  if (!session) return;
+  const { data: profile } = await supabase
+    .from('profiles').select('role, is_active').eq('id', session.user.id).single();
+  if (profile?.is_active === false) { await supabase.auth.signOut(); return; }
+  location.href = `./${profile?.role ?? 'student'}.html`;
 })();
 
-function showError(msg) {
+/* ---------- helpers ---------- */
+function showError(html) {
   const el = $('errorMsg');
-  el.innerHTML = `<i class="fas fa-circle-exclamation"></i><div>${msg}</div>`;
+  el.innerHTML = `<i class="fas fa-circle-exclamation"></i><div>${html}</div>`;
   el.classList.add('show');
 }
-function clearError() { $('errorMsg').classList.remove('show'); $('infoMsg').style.display = 'none'; }
+function clearError() {
+  $('errorMsg').classList.remove('show');
+  $('infoMsg').style.display = 'none';
+}
 
+/* ---------- password visibility ---------- */
 $('pwdToggle').onclick = () => {
   const pwd = $('password');
   const isPwd = pwd.type === 'password';
   pwd.type = isPwd ? 'text' : 'password';
   $('pwdToggle').innerHTML = isPwd ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
-  $('pwdToggle').setAttribute('aria-label', isPwd ? 'Hide password' : 'Show password');
 };
 
+/* ---------- digits-only input ---------- */
+const regnoEl = $('regno');
+regnoEl.addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 20);
+});
+regnoEl.addEventListener('keypress', e => {
+  if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+});
+regnoEl.addEventListener('paste', e => {
+  e.preventDefault();
+  const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+  regnoEl.value = text.replace(/\D/g, '').slice(0, 20);
+});
+
+/* ---------- login ---------- */
 $('loginForm').onsubmit = async (e) => {
   e.preventDefault();
-  const email = $('email').value.trim();
-  const password = $('password').value;
   clearError();
-  if (!email || !password) { showError('Enter your ID and password'); return; }
 
+  const regno = regnoEl.value.trim();
+  const password = $('password').value;
+
+  if (!/^\d{3,20}$/.test(regno)) {
+    showError('Enter a valid registration number (3–20 digits).');
+    regnoEl.focus();
+    return;
+  }
+  if (!password) {
+    showError('Enter your password.');
+    $('password').focus();
+    return;
+  }
+
+  const email = `${regno}@${EMAIL_DOMAIN}`;
   const btn = $('loginBtn');
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  let result;
+  try {
+    result = await supabase.auth.signInWithPassword({ email, password });
+  } catch (err) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
+    showError('Network error: ' + (err.message || err));
+    return;
+  }
+
+  const { data, error } = result;
+
   if (error) {
-    showError(error.message);
+    const m = (error.message || '').toLowerCase();
+    let friendly = error.message;
+    if (m.includes('invalid login credentials'))
+      friendly = `Incorrect registration number or password.<br>
+        <small style="opacity:.8;display:block;margin-top:6px">
+        Expected user: <code style="background:rgba(0,0,0,.08);padding:1px 4px;border-radius:3px">${email}</code>
+        — check it exists in Supabase → Authentication → Users.</small>`;
+    else if (m.includes('email not confirmed'))
+      friendly = 'This account has not been confirmed in Supabase. Confirm it in Authentication → Users.';
+    showError(friendly);
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
     return;
   }
 
-  const { data: { session } } = await supabase.auth.getSession();
-  const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', session.user.id).single();
-  if (profile?.is_active === false) {
+  if (!data?.session) {
+    showError('Sign-in returned no session. Try again.');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
+    return;
+  }
+
+  const { data: profile, error: profErr } = await supabase
+    .from('profiles').select('role, is_active').eq('id', data.session.user.id).single();
+
+  if (profErr || !profile) {
+    showError('Signed in, but no profile row exists. Run schema.sql + create-users.sql in Supabase.');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
+    return;
+  }
+
+  if (profile.is_active === false) {
     await supabase.auth.signOut();
     showError('Your account has been suspended. Contact an administrator.');
     btn.disabled = false;
@@ -140,8 +224,7 @@ $('loginForm').onsubmit = async (e) => {
     return;
   }
 
-  try { await supabase.rpc('log_login', { p_user_agent: navigator.userAgent }); } catch {}
-  location.href = `./${profile?.role ?? 'student'}.html`;
+  location.href = `./${profile.role}.html`;
 };
 </script>
 </body>

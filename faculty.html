@@ -6,7 +6,6 @@
 <title>Faculty · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
-<link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -15,13 +14,14 @@
 </head>
 <body>
 <div id="nav"></div>
+
 <div class="container">
   <div class="page-header">
     <div>
       <h1 class="page-title"><i class="fas fa-gauge-high"></i> Faculty dashboard</h1>
-      <p class="page-subtitle">Your upcoming classes and quick actions.</p>
+      <p class="page-subtitle">Welcome back, <strong id="welcomeName" style="color:var(--text)">…</strong></p>
     </div>
-    <a href="faculty-makeup.html" class="btn btn-primary"><i class="fas fa-plus"></i> New makeup class</a>
+    <button class="btn btn-primary" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
   </div>
 
   <div class="stats" id="stats">
@@ -30,73 +30,110 @@
     <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
   </div>
 
-  <h2 class="card-title mt-8" style="margin-bottom:16px"><i class="fas fa-calendar-day"></i> Upcoming bookings</h2>
-  <div id="bookingsList"></div>
+  <h2 class="card-title mt-8" style="margin-bottom:16px"><i class="fas fa-calendar-day"></i> My upcoming bookings</h2>
+  <div id="bookingsList">
+    <div class="card" style="padding:32px"><div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</div></div>
+  </div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, todayISO, escapeHtml } from './js/core.js';
+import { requireRole, renderNav, supabase, escapeHtml, todayISO } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['faculty', 'admin']);
   if (!auth) return;
-  renderNav(auth.profile, [
-    { label: 'Schedule makeup class', icon: 'fa-chalkboard-user', keywords: 'new book room', action: () => { location.href = 'faculty-makeup.html'; } },
-  ]);
+  renderNav(auth.profile);
+
   const $ = id => document.getElementById(id);
+  const displayName = auth.profile.full_name || auth.profile.email || 'Faculty';
+  $('welcomeName').textContent = displayName;
 
-  const { data: bookings } = await supabase.from('bookings').select('*')
-    .eq('faculty_id', auth.session.user.id).gte('book_date', todayISO())
-    .order('book_date', { ascending: true }).limit(50);
+  async function load() {
+    const today = todayISO();
 
-  const list = bookings ?? [];
-  const today = todayISO();
-  const todays = list.filter(b => b.book_date === today);
-  const approvedCount = list.filter(b => b.status === 'approved').length;
-  const pendingCount = list.filter(b => b.status === 'pending').length;
+    const { data: bookings } = await supabase.from('bookings')
+      .select('*')
+      .eq('faculty_id', auth.session.user.id)
+      .gte('book_date', today)
+      .order('book_date', { ascending: true })
+      .limit(50);
 
-  $('stats').innerHTML = `
-    <div class="stat"><i class="fas fa-calendar-day stat-icon"></i><div class="stat-value">${todays.length}</div><div class="stat-label">Today</div></div>
-    <div class="stat"><i class="fas fa-check stat-icon"></i><div class="stat-value">${approvedCount}</div><div class="stat-label">Approved</div></div>
-    <div class="stat"><i class="fas fa-hourglass-half stat-icon"></i><div class="stat-value">${pendingCount}</div><div class="stat-label">Pending</div></div>
-  `;
+    const list = bookings ?? [];
+    const todays = list.filter(b => b.book_date === today);
+    const approved = list.filter(b => b.status === 'approved');
+    const pending = list.filter(b => b.status === 'pending');
 
-  if (!list.length) {
-    $('bookingsList').innerHTML = `
-      <div class="card">
-        <div class="empty-action">
-          <div class="empty-action-icon"><i class="fas fa-calendar-xmark"></i></div>
-          <div class="empty-action-title">No upcoming bookings</div>
-          <div class="empty-action-sub">Schedule a makeup class and it will show up here once approved.</div>
-          <a href="faculty-makeup.html" class="btn btn-primary"><i class="fas fa-plus"></i> Schedule makeup class</a>
-        </div>
-      </div>`;
-    return;
+    $('stats').innerHTML = `
+      <div class="stat">
+        <i class="fas fa-calendar-day stat-icon"></i>
+        <div class="stat-value">${todays.length}</div>
+        <div class="stat-label">Today</div>
+      </div>
+      <div class="stat">
+        <i class="fas fa-circle-check stat-icon" style="color:var(--success)"></i>
+        <div class="stat-value" style="color:var(--success)">${approved.length}</div>
+        <div class="stat-label">Approved</div>
+      </div>
+      <div class="stat">
+        <i class="fas fa-hourglass-half stat-icon" style="color:var(--warning)"></i>
+        <div class="stat-value" style="color:var(--warning)">${pending.length}</div>
+        <div class="stat-label">Pending</div>
+      </div>
+    `;
+
+    if (!list.length) {
+      $('bookingsList').innerHTML = `
+        <div class="card">
+          <div class="empty-action">
+            <div class="empty-action-icon"><i class="fas fa-calendar-xmark"></i></div>
+            <div class="empty-action-title">No upcoming bookings</div>
+            <div class="empty-action-sub">Your approved and pending bookings will appear here.</div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    const roomIds = [...new Set(list.map(b => b.room_id))];
+    const slotIds = [...new Set(list.map(b => b.slot_id))];
+    const [{ data: rooms }, { data: slots }] = await Promise.all([
+      roomIds.length ? supabase.from('rooms').select('room_id,display_name').in('room_id', roomIds) : Promise.resolve({ data: [] }),
+      slotIds.length ? supabase.from('time_slots').select('slot_id,label,start_time,end_time').in('slot_id', slotIds) : Promise.resolve({ data: [] }),
+    ]);
+    const rm = new Map((rooms ?? []).map(r => [r.room_id, r.display_name]));
+    const sm = new Map((slots ?? []).map(s => [s.slot_id, s]));
+
+    $('bookingsList').innerHTML = list.map(b => {
+      const slot = sm.get(b.slot_id);
+      const badgeCls = b.status === 'approved' ? 'approved' : b.status === 'rejected' ? 'rejected' : 'pending';
+      const icon = b.status === 'approved' ? 'check' : b.status === 'rejected' ? 'xmark' : 'clock';
+      return `
+        <div class="card card-hover" style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+          <div style="display:flex;gap:16px;align-items:center;min-width:0;flex:1">
+            <div style="width:48px;height:48px;border-radius:12px;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
+              <i class="fas fa-door-open"></i>
+            </div>
+            <div style="min-width:0">
+              <div class="mono" style="color:var(--text);font-weight:500;font-size:14px">
+                ${escapeHtml(rm.get(b.room_id) || b.room_id)}
+              </div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+                <i class="fas fa-calendar-days" style="font-size:10px"></i>
+                ${b.book_date} · ${escapeHtml(slot?.label || b.slot_id)}
+                ${slot ? `(${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)})` : ''}
+              </div>
+            </div>
+          </div>
+          <span class="badge badge-${badgeCls}">
+            <i class="fas fa-${icon}"></i>${b.status}
+          </span>
+        </div>`;
+    }).join('');
   }
 
-  const roomIds = [...new Set(list.map(b => b.room_id))];
-  const slotIds = [...new Set(list.map(b => b.slot_id))];
-  const [{ data: rooms }, { data: slots }] = await Promise.all([
-    supabase.from('rooms').select('room_id,display_name').in('room_id', roomIds),
-    supabase.from('time_slots').select('slot_id,label,start_time,end_time').in('slot_id', slotIds),
-  ]);
-  const rm = new Map((rooms ?? []).map(r => [r.room_id, r.display_name]));
-  const sm = new Map((slots ?? []).map(s => [s.slot_id, s]));
-
-  $('bookingsList').innerHTML = list.map(b => {
-    const slot = sm.get(b.slot_id);
-    return `
-      <div class="card card-hover" style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
-        <div style="display:flex;gap:16px;align-items:center;min-width:0;flex:1">
-          <div style="width:48px;height:48px;border-radius:12px;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0"><i class="fas fa-door-open"></i></div>
-          <div style="min-width:0">
-            <div class="mono" style="color:var(--text);font-weight:500;font-size:14px">${escapeHtml(rm.get(b.room_id) || b.room_id)}</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:2px"><i class="fas fa-calendar-days" style="font-size:10px"></i> ${b.book_date} · ${escapeHtml(slot?.label || b.slot_id)} ${slot ? `(${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)})` : ''}</div>
-          </div>
-        </div>
-        <span class="badge badge-${b.status}"><i class="fas fa-${b.status === 'approved' ? 'check' : b.status === 'rejected' ? 'xmark' : 'clock'}"></i>${b.status}</span>
-      </div>`;
-  }).join('');
+  $('refreshBtn').onclick = load;
+  await load();
+  setInterval(() => { if (!document.hidden) load(); }, 60_000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
 })();
 </script>
 </body>

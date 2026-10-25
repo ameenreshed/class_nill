@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dashboard · LPU Scheduler</title>
+<title>Admin · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
-<link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -19,62 +18,23 @@
 <div class="container">
   <div class="page-header">
     <div>
-      <h1 class="page-title"><i class="fas fa-gauge-high"></i> Dashboard</h1>
+      <h1 class="page-title"><i class="fas fa-gauge-high"></i> Admin dashboard</h1>
       <p class="page-subtitle">
         Welcome back, <strong id="welcomeName" style="color:var(--text)">…</strong>
         · <span id="lastUpdated">just now</span>
       </p>
     </div>
-    <div class="row">
-      <button class="btn" id="refreshBtn">
-        <i class="fas fa-rotate-right"></i> Refresh
-      </button>
-      <a href="admin-add.html" class="btn btn-primary">
-        <i class="fas fa-bolt"></i> Quick add
-      </a>
-    </div>
+    <button class="btn btn-primary" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
   </div>
 
   <div class="stats" id="stats">
-    <div class="stat">
-      <div class="skeleton" style="height:20px;width:40%;margin-bottom:12px;border-radius:6px"></div>
-      <div class="skeleton" style="height:32px;width:50%;margin-bottom:8px;border-radius:6px"></div>
-      <div class="skeleton" style="height:10px;width:70%;border-radius:4px"></div>
-    </div>
-    <div class="stat">
-      <div class="skeleton" style="height:20px;width:40%;margin-bottom:12px;border-radius:6px"></div>
-      <div class="skeleton" style="height:32px;width:50%;margin-bottom:8px;border-radius:6px"></div>
-      <div class="skeleton" style="height:10px;width:70%;border-radius:4px"></div>
-    </div>
-    <div class="stat">
-      <div class="skeleton" style="height:20px;width:40%;margin-bottom:12px;border-radius:6px"></div>
-      <div class="skeleton" style="height:32px;width:50%;margin-bottom:8px;border-radius:6px"></div>
-      <div class="skeleton" style="height:10px;width:70%;border-radius:4px"></div>
-    </div>
-    <div class="stat">
-      <div class="skeleton" style="height:20px;width:40%;margin-bottom:12px;border-radius:6px"></div>
-      <div class="skeleton" style="height:32px;width:50%;margin-bottom:8px;border-radius:6px"></div>
-      <div class="skeleton" style="height:10px;width:70%;border-radius:4px"></div>
-    </div>
-    <div class="stat">
-      <div class="skeleton" style="height:20px;width:40%;margin-bottom:12px;border-radius:6px"></div>
-      <div class="skeleton" style="height:32px;width:50%;margin-bottom:8px;border-radius:6px"></div>
-      <div class="skeleton" style="height:10px;width:70%;border-radius:4px"></div>
-    </div>
+    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
+    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
+    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
+    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
   </div>
 
-  <div class="grid-auto mt-6">
-    <div class="card">
-      <div class="card-title"><i class="fas fa-chart-simple"></i> Bookings · last 7 days</div>
-      <div class="chart-bars" id="chartBars"></div>
-      <div id="chartEmpty" style="display:none">
-        <div class="empty" style="padding:32px 16px">
-          <i class="fas fa-chart-simple"></i>
-          No bookings in the last 7 days
-        </div>
-      </div>
-    </div>
-
+  <div class="grid-auto mt-6" style="grid-template-columns:1fr">
     <div class="card">
       <div class="card-title"><i class="fas fa-clock-rotate-left"></i> Recent activity</div>
       <div class="timeline" id="timeline">
@@ -82,201 +42,53 @@
       </div>
     </div>
   </div>
-
-  <h2 class="card-title mt-8" style="margin-bottom:16px"><i class="fas fa-bolt"></i> Quick actions</h2>
-  <div class="grid-auto">
-    <a href="admin-add.html" class="action-card">
-      <span class="ac-icon"><i class="fas fa-bolt"></i></span>
-      <div class="ac-body">
-        <div class="ac-title">Quick add rooms</div>
-        <div class="ac-sub">Fast offline entry while walking floors</div>
-      </div>
-    </a>
-    <a href="admin-bookings.html" class="action-card">
-      <span class="ac-icon"><i class="fas fa-calendar-check"></i></span>
-      <div class="ac-body">
-        <div class="ac-title">Review bookings</div>
-        <div class="ac-sub">Bulk approve or reject requests</div>
-      </div>
-    </a>
-    <a href="admin-rooms.html" class="action-card">
-      <span class="ac-icon"><i class="fas fa-door-open"></i></span>
-      <div class="ac-body">
-        <div class="ac-title">Manage rooms</div>
-        <div class="ac-sub">Search, edit, or export rooms</div>
-      </div>
-    </a>
-    <a href="admin-users.html" class="action-card">
-      <span class="ac-icon"><i class="fas fa-users"></i></span>
-      <div class="ac-body">
-        <div class="ac-title">Users</div>
-        <div class="ac-sub">Roles, suspension, password resets</div>
-      </div>
-    </a>
-    <a href="admin-settings.html" class="action-card">
-      <span class="ac-icon"><i class="fas fa-gear"></i></span>
-      <div class="ac-body">
-        <div class="ac-title">Settings</div>
-        <div class="ac-sub">Buildings, floors, types, time slots</div>
-      </div>
-    </a>
-    <a href="student.html" class="action-card">
-      <span class="ac-icon"><i class="fas fa-building"></i></span>
-      <div class="ac-body">
-        <div class="ac-title">Free rooms view</div>
-        <div class="ac-sub">See what students see, live</div>
-      </div>
-    </a>
-  </div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, todayISO, escapeHtml, formatRelativeTime, nowDate, toast } from './js/core.js';
+import { requireRole, renderNav, supabase, escapeHtml, todayISO, formatRelativeTime } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
   if (!auth) return;
-
-  renderNav(auth.profile, [
-    { label: 'Open bookings', icon: 'fa-calendar-check', keywords: 'approve pending review', action: () => { location.href = 'admin-bookings.html'; } },
-    { label: 'Add rooms fast', icon: 'fa-bolt', keywords: 'quick add bulk', action: () => { location.href = 'admin-add.html'; } },
-    { label: 'Manage users', icon: 'fa-users', keywords: 'roles suspend', action: () => { location.href = 'admin-users.html'; } },
-    { label: 'Settings', icon: 'fa-gear', keywords: 'buildings floors types slots', action: () => { location.href = 'admin-settings.html'; } },
-  ]);
+  renderNav(auth.profile);
 
   const $ = id => document.getElementById(id);
-
-  // Welcome message
-  const displayName = auth.profile.full_name || (auth.profile.email || '').split('@')[0] || 'Admin';
+  const displayName = auth.profile.full_name || auth.profile.email || 'Admin';
   $('welcomeName').textContent = displayName;
 
-  // Local date helper (avoids UTC drift)
-  function localDateStr(d) {
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  }
+  async function load() {
+    const today = todayISO();
 
-  async function getFreeRightNow() {
-    try {
-      const now = nowDate();
-      const nowTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:00`;
-      const { data: slots } = await supabase
-        .from('time_slots')
-        .select('slot_id,start_time,end_time')
-        .eq('is_active', true);
-      if (!slots?.length) return null;
-
-      const currentSlot = slots.find(s => nowTime >= s.start_time && nowTime < s.end_time);
-      if (!currentSlot) return null;
-
-      const [{ count: totalRooms }, { count: occupied }] = await Promise.all([
-        supabase.from('rooms').select('room_id', { count: 'exact', head: true }).eq('bookable', true),
-        supabase.from('bookings').select('id', { count: 'exact', head: true })
-          .eq('book_date', todayISO())
-          .eq('slot_id', currentSlot.slot_id)
-          .in('status', ['pending', 'approved']),
-      ]);
-
-      return {
-        free: (totalRooms ?? 0) - (occupied ?? 0),
-        total: totalRooms ?? 0,
-        slot: currentSlot.slot_id,
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  async function loadStats() {
-    const [rooms, pending, todayBookings, users, freeNow] = await Promise.all([
+    const [rooms, users, pending, todayBookings] = await Promise.all([
       supabase.from('rooms').select('room_id', { count: 'exact', head: true }),
-      supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('book_date', todayISO()),
       supabase.from('profiles').select('id', { count: 'exact', head: true }),
-      getFreeRightNow(),
+      supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('book_date', today),
     ]);
 
-    const freeNowValue = freeNow ? freeNow.free : '—';
-    const freeNowColor = freeNow
-      ? (freeNow.free > 0 ? 'var(--success)' : 'var(--danger)')
-      : 'var(--text-muted)';
-    const freeNowSub = freeNow
-      ? `out of ${freeNow.total} rooms · ${freeNow.slot}`
-      : 'No active period';
-
     $('stats').innerHTML = `
-      <a class="stat" href="admin-rooms.html">
+      <div class="stat">
         <i class="fas fa-door-open stat-icon"></i>
         <div class="stat-value">${rooms.count ?? 0}</div>
         <div class="stat-label">Total rooms</div>
-      </a>
-      <a class="stat" href="admin-bookings.html">
-        <i class="fas fa-hourglass-half stat-icon"></i>
-        <div class="stat-value">${pending.count ?? 0}</div>
-        <div class="stat-label">Pending approval</div>
-      </a>
-      <a class="stat" href="admin-bookings.html">
-        <i class="fas fa-calendar-day stat-icon"></i>
-        <div class="stat-value">${todayBookings.count ?? 0}</div>
-        <div class="stat-label">Today's bookings</div>
-      </a>
-      <a class="stat" href="student.html">
-        <i class="fas fa-door-open stat-icon" style="color:${freeNowColor}"></i>
-        <div class="stat-value" style="color:${freeNowColor}">${freeNowValue}</div>
-        <div class="stat-label">Free right now</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${freeNowSub}</div>
-      </a>
-      <a class="stat" href="admin-users.html">
+      </div>
+      <div class="stat">
         <i class="fas fa-users stat-icon"></i>
         <div class="stat-value">${users.count ?? 0}</div>
         <div class="stat-label">Total users</div>
-      </a>
+      </div>
+      <div class="stat">
+        <i class="fas fa-hourglass-half stat-icon" style="color:var(--warning)"></i>
+        <div class="stat-value" style="color:var(--warning)">${pending.count ?? 0}</div>
+        <div class="stat-label">Pending bookings</div>
+      </div>
+      <div class="stat">
+        <i class="fas fa-calendar-day stat-icon" style="color:var(--success)"></i>
+        <div class="stat-value" style="color:var(--success)">${todayBookings.count ?? 0}</div>
+        <div class="stat-label">Today's bookings</div>
+      </div>
     `;
-  }
 
-  async function loadChart() {
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      days.push(localDateStr(d));
-    }
-
-    const { data: recent } = await supabase
-      .from('bookings')
-      .select('book_date')
-      .in('book_date', days)
-      .in('status', ['approved', 'pending']);
-
-    const counts = days.map(d => ({
-      date: d,
-      count: (recent ?? []).filter(r => r.book_date === d).length,
-      label: new Date(d + 'T12:00:00').toLocaleDateString([], { weekday: 'short' }),
-    }));
-
-    const maxCount = Math.max(...counts.map(c => c.count), 1);
-    const totalBookings = counts.reduce((s, c) => s + c.count, 0);
-
-    if (totalBookings === 0) {
-      $('chartBars').style.display = 'none';
-      $('chartEmpty').style.display = 'block';
-      return;
-    }
-
-    $('chartBars').style.display = 'flex';
-    $('chartEmpty').style.display = 'none';
-
-    $('chartBars').innerHTML = counts.map(c => {
-      const height = Math.max(4, Math.round((c.count / maxCount) * 110));
-      return `
-        <div class="chart-bar-col">
-          <div class="chart-bar" style="height:${height}px" title="${c.count} booking${c.count === 1 ? '' : 's'} on ${c.label}, ${c.date}"></div>
-          <div class="chart-bar-label">${c.label}</div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  async function loadTimeline() {
     const { data: logs } = await supabase
       .from('activity_log')
       .select('*')
@@ -288,61 +100,44 @@ import { requireRole, renderNav, supabase, todayISO, escapeHtml, formatRelativeT
         <div class="empty" style="padding:32px 16px">
           <i class="fas fa-inbox"></i>
           No activity yet
-        </div>
-      `;
-      return;
-    }
-
-    $('timeline').innerHTML = logs.map(l => {
-      const icon = l.action === 'auth.login' ? 'fa-right-to-bracket'
-        : l.action?.startsWith('user.') ? 'fa-user-pen'
-        : l.action?.startsWith('room.') ? 'fa-door-open'
-        : l.action?.startsWith('booking.') ? 'fa-calendar-check'
-        : 'fa-circle';
-      const email = l.user_email || 'system';
-      return `
-        <div class="timeline-item">
-          <div class="timeline-marker"><i class="fas ${icon}"></i></div>
-          <div class="timeline-content">
-            <div class="timeline-title">
-              ${escapeHtml(l.action)}
-              ${l.entity_id ? `<span class="mono" style="color:var(--text-muted);margin-left:4px">${escapeHtml(l.entity_id)}</span>` : ''}
+        </div>`;
+    } else {
+      $('timeline').innerHTML = logs.map(l => {
+        const icon =
+          l.action === 'auth.login' ? 'fa-right-to-bracket' :
+          l.action?.startsWith('user.') ? 'fa-user-pen' :
+          l.action?.startsWith('room.') ? 'fa-door-open' :
+          l.action?.startsWith('booking.') ? 'fa-calendar-check' : 'fa-circle';
+        const email = l.user_email || 'system';
+        return `
+          <div class="timeline-item">
+            <div class="timeline-marker"><i class="fas ${icon}"></i></div>
+            <div class="timeline-content">
+              <div class="timeline-title">
+                ${escapeHtml(l.action)}
+                ${l.entity_id ? `<span class="mono" style="color:var(--text-muted);margin-left:4px">${escapeHtml(l.entity_id)}</span>` : ''}
+              </div>
+              <div class="timeline-meta">${escapeHtml(email)} · ${formatRelativeTime(l.created_at)}</div>
             </div>
-            <div class="timeline-meta">${escapeHtml(email)} · ${formatRelativeTime(l.created_at)}</div>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  async function loadAll(showToast = false) {
-    try {
-      await Promise.all([loadStats(), loadChart(), loadTimeline()]);
-      $('lastUpdated').textContent = 'updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      if (showToast) toast('Refreshed', 'success');
-    } catch (e) {
-      if (showToast) toast('Refresh failed: ' + e.message, 'error');
+          </div>`;
+      }).join('');
     }
+
+    $('lastUpdated').textContent = 'updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
   $('refreshBtn').onclick = async () => {
     const btn = $('refreshBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing…';
-    await loadAll(true);
+    await load();
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-rotate-right"></i> Refresh';
   };
 
-  await loadAll();
-
-  // Auto-refresh every 60s (in place, no page reload)
-  setInterval(() => { if (!document.hidden) loadAll(); }, 60_000);
-
-  // Refresh when tab becomes visible again
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) loadAll();
-  });
+  await load();
+  setInterval(() => { if (!document.hidden) load(); }, 60_000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
 })();
 </script>
 </body>

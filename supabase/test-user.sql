@@ -1,14 +1,15 @@
 -- ============================================================
--- LPU Scheduler — Test accounts
--- Run AFTER schema.sql
--- Passwords: admin123 / faculty123 / student123
+-- LPU Scheduler — demo users with numeric registration IDs
+-- Run AFTER schema.sql in Supabase SQL Editor
 -- ============================================================
 
 do $$
 declare uid uuid;
 begin
-  -- ADMIN
-  select id into uid from auth.users where email = 'admin@lpu.test';
+  -----------------------------------------------------------
+  -- ADMIN  —  11111111 / admin123
+  -----------------------------------------------------------
+  select id into uid from auth.users where email = '11111111@lpu.in';
   if uid is null then
     uid := gen_random_uuid();
     insert into auth.users (
@@ -19,22 +20,24 @@ begin
     ) values (
       '00000000-0000-0000-0000-000000000000',
       uid, 'authenticated', 'authenticated',
-      'admin@lpu.test', crypt('admin123', gen_salt('bf')),
+      '11111111@lpu.in', crypt('admin123', gen_salt('bf')),
       now(), now(), now(), '', '', '', '',
       '{"provider":"email","providers":["email"]}',
       '{"full_name":"Admin"}'
     );
     insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
     values (gen_random_uuid(), uid, uid::text, 'email',
-      jsonb_build_object('sub', uid::text, 'email', 'admin@lpu.test'),
+      jsonb_build_object('sub', uid::text, 'email', '11111111@lpu.in'),
       now(), now(), now());
   end if;
   insert into profiles (id, email, full_name, role, is_active)
-  values (uid, 'admin@lpu.test', 'Admin', 'admin', true)
+  values (uid, '11111111@lpu.in', 'Admin', 'admin', true)
   on conflict (id) do update set role = 'admin', is_active = true, full_name = 'Admin';
 
-  -- FACULTY
-  select id into uid from auth.users where email = 'faculty@lpu.test';
+  -----------------------------------------------------------
+  -- FACULTY  —  22222222 / faculty123
+  -----------------------------------------------------------
+  select id into uid from auth.users where email = '22222222@lpu.in';
   if uid is null then
     uid := gen_random_uuid();
     insert into auth.users (
@@ -45,22 +48,24 @@ begin
     ) values (
       '00000000-0000-0000-0000-000000000000',
       uid, 'authenticated', 'authenticated',
-      'faculty@lpu.test', crypt('faculty123', gen_salt('bf')),
+      '22222222@lpu.in', crypt('faculty123', gen_salt('bf')),
       now(), now(), now(), '', '', '', '',
       '{"provider":"email","providers":["email"]}',
       '{"full_name":"Faculty"}'
     );
     insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
     values (gen_random_uuid(), uid, uid::text, 'email',
-      jsonb_build_object('sub', uid::text, 'email', 'faculty@lpu.test'),
+      jsonb_build_object('sub', uid::text, 'email', '22222222@lpu.in'),
       now(), now(), now());
   end if;
   insert into profiles (id, email, full_name, role, is_active)
-  values (uid, 'faculty@lpu.test', 'Faculty', 'faculty', true)
+  values (uid, '22222222@lpu.in', 'Faculty', 'faculty', true)
   on conflict (id) do update set role = 'faculty', is_active = true, full_name = 'Faculty';
 
-  -- STUDENT
-  select id into uid from auth.users where email = 'student@lpu.test';
+  -----------------------------------------------------------
+  -- STUDENT  —  33333333 / student123
+  -----------------------------------------------------------
+  select id into uid from auth.users where email = '33333333@lpu.in';
   if uid is null then
     uid := gen_random_uuid();
     insert into auth.users (
@@ -71,19 +76,20 @@ begin
     ) values (
       '00000000-0000-0000-0000-000000000000',
       uid, 'authenticated', 'authenticated',
-      'student@lpu.test', crypt('student123', gen_salt('bf')),
+      '33333333@lpu.in', crypt('student123', gen_salt('bf')),
       now(), now(), now(), '', '', '', '',
       '{"provider":"email","providers":["email"]}',
       '{"full_name":"Student"}'
     );
     insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
     values (gen_random_uuid(), uid, uid::text, 'email',
-      jsonb_build_object('sub', uid::text, 'email', 'student@lpu.test'),
+      jsonb_build_object('sub', uid::text, 'email', '33333333@lpu.in'),
       now(), now(), now());
   end if;
   insert into profiles (id, email, full_name, role, is_active)
-  values (uid, 'student@lpu.test', 'Student', 'student', true)
+  values (uid, '33333333@lpu.in', 'Student', 'student', true)
   on conflict (id) do update set role = 'student', is_active = true, full_name = 'Student';
 end $$;
 
-select email, role, full_name from profiles order by role;
+-- verify
+select email, role, full_name, is_active from profiles order by role;
