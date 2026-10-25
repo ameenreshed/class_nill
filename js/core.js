@@ -183,9 +183,6 @@ export async function requireRole(allowed) {
 }
 export async function signOut() { try { await supabase.auth.signOut(); } catch {} location.replace(`${BASE}login.html`); }
 
-/* ============================================================
-   NAV — updated with links for every role
-   ============================================================ */
 export function renderNav(profile) {
   const el = document.getElementById('nav');
   if (!el || !profile) return;
@@ -194,17 +191,12 @@ export function renderNav(profile) {
   const initial = ((profile.full_name || profile.email || '?').trim()[0] || '?').toUpperCase();
   const roleIcon = profile.role === 'admin' ? 'shield-halved' : profile.role === 'faculty' ? 'chalkboard-user' : 'graduation-cap';
   const home = profile.role === 'admin' ? 'admin.html' : profile.role === 'faculty' ? 'faculty.html' : 'student.html';
-  const currentPage = location.pathname.split('/').pop() || 'index.html';
+  const currentPage = location.pathname.split('/').pop() || 'admin.html';
 
   const items = profile.role === 'admin' ? [
     { href: 'admin.html', label: 'Dashboard', icon: 'fa-gauge-high' },
-    { href: 'admin-bookings.html', label: 'Bookings', icon: 'fa-calendar-check' },
-    { href: 'admin-timetable.html', label: 'Timetable', icon: 'fa-table' },
-    { href: 'admin-rooms.html', label: 'Rooms', icon: 'fa-door-open' },
-    { href: 'admin-users.html', label: 'Users', icon: 'fa-users' },
-    { href: 'admin-settings.html', label: 'Settings', icon: 'fa-gear' },
+    { href: 'admin-control.html', label: 'Control Center', icon: 'fa-sliders' },
     { href: 'student.html', label: 'Free rooms', icon: 'fa-building' },
-    { href: 'admin-control.html', label: 'Control', icon: 'fa-sliders' },
   ] : profile.role === 'faculty' ? [
     { href: 'faculty.html', label: 'Dashboard', icon: 'fa-gauge-high' },
     { href: 'student.html', label: 'Free rooms', icon: 'fa-building' },

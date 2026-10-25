@@ -3,14 +3,59 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin · LPU Scheduler</title>
+<title>Dashboard · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
-<meta name="theme-color" content="#EA580C">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
+<style>
+  .dash-stats { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: 20px; }
+  .dash-stat { padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; transition: all 160ms ease; text-decoration: none; color: inherit; display: block; }
+  .dash-stat:hover { border-color: var(--brand); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .dash-stat-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--brand-soft); color: var(--brand); display: inline-flex; align-items: center; justify-content: center; font-size: 14px; margin-bottom: 12px; }
+  .dash-stat-val { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; color: var(--text); line-height: 1; }
+  .dash-stat-lbl { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+
+  .dash-grid-2 { display: grid; gap: 16px; grid-template-columns: 1.3fr 1fr; margin-bottom: 20px; }
+  @media (max-width: 900px) { .dash-grid-2 { grid-template-columns: 1fr; } }
+
+  .preview-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); gap: 12px; text-decoration: none; color: inherit; cursor: pointer; transition: background 120ms ease; }
+  .preview-row:hover { background: var(--surface-hover); text-decoration: none; color: inherit; padding-left: 16px; padding-right: 16px; margin-left: -16px; margin-right: -16px; border-radius: 6px; }
+  .preview-row:last-child { border-bottom: none; }
+  .preview-info { min-width: 0; flex: 1; }
+  .preview-title { font-weight: 500; color: var(--text); font-size: 13px; }
+  .preview-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .health-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; gap: 12px; }
+  .health-row:last-child { border-bottom: none; }
+  .health-row.clickable { cursor: pointer; transition: color 120ms; }
+  .health-row.clickable:hover { color: var(--brand); }
+  .health-row.clickable:hover .health-label { color: var(--brand); }
+  .health-label { color: var(--text-secondary); }
+  .health-value { font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .health-value.ok { color: var(--success); }
+  .health-value.warn { color: var(--warning); }
+  .health-value.bad { color: var(--danger); }
+
+  .live-banner { display: flex; align-items: center; gap: 16px; padding: 18px 22px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .live-indicator { display: flex; align-items: center; gap: 6px; color: var(--success); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: pulseDot 2s ease-in-out infinite; }
+  @keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.3); } }
+  .live-info-block { flex: 1; min-width: 200px; }
+  .live-slot-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .live-slot-time { font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+  .live-counts { display: flex; gap: 28px; }
+  .live-count { text-align: right; }
+  .live-count-val { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+  .live-count-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+
+  .quick-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  .quick-link { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; text-decoration: none; color: inherit; transition: all 140ms ease; }
+  .quick-link:hover { border-color: var(--brand); text-decoration: none; color: inherit; transform: translateX(2px); box-shadow: var(--shadow-sm); }
+  .quick-link-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--brand-soft); color: var(--brand); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .quick-link-title { font-weight: 600; font-size: 13px; color: var(--text); }
+  .quick-link-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+</style>
 </head>
 <body>
 <div id="nav"></div>
@@ -18,57 +63,112 @@
 <div class="container">
   <div class="page-header">
     <div>
-      <h1 class="page-title"><i class="fas fa-gauge-high"></i> Admin dashboard</h1>
+      <h1 class="page-title"><i class="fas fa-gauge-high"></i> Dashboard</h1>
       <p class="page-subtitle">
         Welcome back, <strong id="welcomeName" style="color:var(--text)">…</strong>
         · <span id="liveTime" class="mono">--:--:--</span>
       </p>
     </div>
-    <a href="admin-control.html" class="btn"><i class="fas fa-sliders"></i> Control Center</a>
-<button class="btn btn-primary" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
+    <a href="admin-control.html" class="btn btn-primary">
+      <i class="fas fa-sliders"></i> Open Control Center
+    </a>
   </div>
 
-  <div class="stats" id="stats">
-    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
-    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
-    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
-    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
+  <div class="live-banner" id="liveBanner">
+    <div class="live-indicator">
+      <span class="live-dot"></span>
+      <span>Live</span>
+    </div>
+    <div class="live-info-block">
+      <div class="live-slot-name" id="liveSlotName">No active period</div>
+      <div class="live-slot-time" id="liveSlotTime">—</div>
+    </div>
+    <div class="live-counts">
+      <div class="live-count">
+        <div class="live-count-val" id="liveFree" style="color:var(--success)">—</div>
+        <div class="live-count-lbl">Free now</div>
+      </div>
+      <div class="live-count">
+        <div class="live-count-val" id="liveBusy" style="color:var(--warning)">—</div>
+        <div class="live-count-lbl">Busy now</div>
+      </div>
+    </div>
   </div>
 
-  <div class="grid-auto mt-6" style="grid-template-columns:1.4fr 1fr">
+  <div class="dash-stats" id="stats"></div>
+
+  <div class="dash-grid-2">
     <div class="card">
       <div class="card-title">
-        <i class="fas fa-hourglass-half"></i> Pending approvals
+        <i class="fas fa-hourglass-half" style="color:var(--warning)"></i>
+        Pending bookings
         <span class="badge badge-pending" id="pendingCount" style="margin-left:auto">0</span>
       </div>
-      <div id="pendingList"><div class="empty" style="padding:20px"><i class="fas fa-spinner fa-spin"></i></div></div>
+      <div id="pendingPreview"><div class="empty" style="padding:24px"><i class="fas fa-spinner fa-spin"></i></div></div>
+      <a href="admin-control.html?panel=bookings" class="btn btn-block" style="margin-top:12px">
+        <i class="fas fa-arrow-right"></i> Review in Control Center
+      </a>
     </div>
 
     <div class="card">
-      <div class="card-title"><i class="fas fa-cloud-arrow-up"></i> Data sync</div>
-      <div id="syncStatus"><div class="empty" style="padding:20px"><i class="fas fa-spinner fa-spin"></i></div></div>
+      <div class="card-title"><i class="fas fa-heart-pulse"></i> System health</div>
+      <div id="health"><div class="empty" style="padding:24px"><i class="fas fa-spinner fa-spin"></i></div></div>
     </div>
   </div>
 
-  <div class="card mt-6">
-    <div class="card-title">
-      <i class="fas fa-triangle-exclamation" style="color:var(--warning)"></i>
-      Conflict detector
-      <span class="dim" style="font-size:12px;font-weight:400;margin-left:auto">Timetable overlapping bookings</span>
-    </div>
-    <div id="conflicts"><div class="empty" style="padding:20px"><i class="fas fa-spinner fa-spin"></i></div></div>
-  </div>
-
-  <div class="card mt-6">
+  <div class="card">
     <div class="card-title"><i class="fas fa-clock-rotate-left"></i> Recent activity</div>
-    <div class="timeline" id="timeline"><div class="empty" style="padding:20px"><i class="fas fa-spinner fa-spin"></i></div></div>
+    <div id="activity"><div class="empty" style="padding:24px"><i class="fas fa-spinner fa-spin"></i></div></div>
+  </div>
+
+  <div style="margin-top:24px">
+    <div class="card-title" style="margin-bottom:12px"><i class="fas fa-bolt"></i> Manage everything</div>
+    <div class="quick-grid">
+      <a href="admin-control.html?panel=faculty" class="quick-link">
+        <div class="quick-link-icon"><i class="fas fa-chalkboard-user"></i></div>
+        <div><div class="quick-link-title">Faculty</div><div class="quick-link-sub">Accounts, schedules, workload</div></div>
+      </a>
+      <a href="admin-control.html?panel=batches" class="quick-link">
+        <div class="quick-link-icon"><i class="fas fa-users-rectangle"></i></div>
+        <div><div class="quick-link-title">Batches</div><div class="quick-link-sub">Sections, students, courses</div></div>
+      </a>
+      <a href="admin-control.html?panel=courses" class="quick-link">
+        <div class="quick-link-icon"><i class="fas fa-book"></i></div>
+        <div><div class="quick-link-title">Courses</div><div class="quick-link-sub">Catalog, credits, departments</div></div>
+      </a>
+      <a href="admin-control.html?panel=timetable" class="quick-link">
+        <div class="quick-link-icon"><i class="fas fa-table"></i></div>
+        <div><div class="quick-link-title">Timetable</div><div class="quick-link-sub">Schedule, import, conflicts</div></div>
+      </a>
+      <a href="admin-control.html?panel=rooms" class="quick-link">
+        <div class="quick-link-icon"><i class="fas fa-door-open"></i></div>
+        <div><div class="quick-link-title">Rooms</div><div class="quick-link-sub">Capacity, type, schedules</div></div>
+      </a>
+      <a href="admin-control.html?panel=buildings" class="quick-link">
+        <div class="quick-link-icon"><i class="fas fa-building"></i></div>
+        <div><div class="quick-link-title">Buildings</div><div class="quick-link-sub">Blocks, floors, room counts</div></div>
+      </a>
+      <a href="admin-control.html?panel=slots" class="quick-link">
+        <div class="quick-link-icon"><i class="fas fa-clock"></i></div>
+        <div><div class="quick-link-title">Time slots</div><div class="quick-link-sub">Period definitions</div></div>
+      </a>
+      <a href="admin-control.html?panel=calendar" class="quick-link">
+        <div class="quick-link-icon"><i class="fas fa-calendar-days"></i></div>
+        <div><div class="quick-link-title">Calendar</div><div class="quick-link-sub">Holidays, exam weeks</div></div>
+      </a>
+      <a href="admin-control.html?panel=users" class="quick-link">
+        <div class="quick-link-icon"><i class="fas fa-users"></i></div>
+        <div><div class="quick-link-title">Users</div><div class="quick-link-sub">Roles, sections, access</div></div>
+      </a>
+    </div>
   </div>
 </div>
 
 <script type="module">
 import {
-  requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, formatTime,
-  dayOfWeekNum, humanDate, formatRelativeTime, toast, loadBaseData
+  requireRole, renderNav, supabase, escapeHtml,
+  todayISO, nowDate, formatTime, formatRelativeTime,
+  dayOfWeekNum, humanDate, loadBaseData
 } from './js/core.js';
 
 (async () => {
@@ -79,200 +179,163 @@ import {
   const $ = id => document.getElementById(id);
   $('welcomeName').textContent = auth.profile.full_name || auth.profile.email || 'Admin';
 
-  async function load() {
-    const today = todayISO();
-    const base = await loadBaseData();
+  let base = { rooms: [], slots: [], sections: [] };
 
-    // ---- Stats ----
-    const [rooms, users, pending, todayBookings, todaySlot] = await Promise.all([
-      supabase.from('rooms').select('room_id', { count: 'exact', head: true }),
-      supabase.from('profiles').select('id', { count: 'exact', head: true }),
-      supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('book_date', today),
-      Promise.resolve(base.slots.find(s => {
-        const now = formatTime(nowDate());
-        return now >= s.start_time && now < s.end_time;
-      })),
+  async function load() {
+    base = await loadBaseData();
+    const today = todayISO();
+    const dow = dayOfWeekNum(today);
+    const nowStr = formatTime(nowDate());
+    const currentSlot = base.slots.find(s => nowStr >= s.start_time && nowStr < s.end_time);
+
+    const [
+      { data: faculty }, { data: students }, { data: courses },
+      { data: timetableData }, { data: bookings },
+      { data: pendingBookings }, { data: todayBookings }
+    ] = await Promise.all([
+      supabase.from('profiles').select('id').eq('role', 'faculty'),
+      supabase.from('profiles').select('id').eq('role', 'student'),
+      supabase.from('courses').select('course_id'),
+      supabase.from('timetable').select('room_id,slot_id,faculty_id').eq('day_of_week', dow).eq('is_active', true),
+      supabase.from('bookings').select('*').eq('book_date', today).in('status', ['pending', 'approved']),
+      supabase.from('bookings').select('*').eq('status', 'pending').order('created_at', { ascending: false }).limit(5),
+      supabase.from('bookings').select('id').eq('book_date', today),
     ]);
 
-    // Count occupied rooms in current slot
-    let occupied = 0;
-    if (todaySlot) {
-      const [{ data: tt }, { data: bk }] = await Promise.all([
-        supabase.from('timetable').select('room_id').eq('day_of_week', dayOfWeekNum(today)).eq('slot_id', todaySlot.slot_id).eq('is_active', true),
-        supabase.from('bookings').select('room_id').eq('book_date', today).eq('slot_id', todaySlot.slot_id).in('status', ['pending','approved']),
-      ]);
-      const busy = new Set([...(tt ?? []).map(x => x.room_id), ...(bk ?? []).map(x => x.room_id)]);
-      occupied = busy.size;
-    }
-
     $('stats').innerHTML = `
-      <div class="stat">
-        <i class="fas fa-door-open stat-icon"></i>
-        <div class="stat-value">${rooms.count ?? 0}</div>
-        <div class="stat-label">Total rooms</div>
-      </div>
-      <div class="stat">
-        <i class="fas fa-users stat-icon"></i>
-        <div class="stat-value">${users.count ?? 0}</div>
-        <div class="stat-label">Total users</div>
-      </div>
-      <div class="stat">
-        <i class="fas fa-calendar-day stat-icon" style="color:var(--success)"></i>
-        <div class="stat-value" style="color:var(--success)">${todayBookings.count ?? 0}</div>
-        <div class="stat-label">Today's bookings</div>
-      </div>
-      <div class="stat">
-        <i class="fas fa-chart-simple stat-icon" style="color:var(--brand)"></i>
-        <div class="stat-value">${occupied}/${rooms.count ?? 0}</div>
-        <div class="stat-label">Rooms busy now</div>
-      </div>
+      <a href="admin-control.html?panel=faculty" class="dash-stat">
+        <div class="dash-stat-icon"><i class="fas fa-chalkboard-user"></i></div>
+        <div class="dash-stat-val">${faculty?.length ?? 0}</div>
+        <div class="dash-stat-lbl">Faculty</div>
+      </a>
+      <a href="admin-control.html?panel=batches" class="dash-stat">
+        <div class="dash-stat-icon"><i class="fas fa-users-rectangle"></i></div>
+        <div class="dash-stat-val">${base.sections.length}</div>
+        <div class="dash-stat-lbl">Batches</div>
+      </a>
+      <a href="admin-control.html?panel=courses" class="dash-stat">
+        <div class="dash-stat-icon"><i class="fas fa-book"></i></div>
+        <div class="dash-stat-val">${courses?.length ?? 0}</div>
+        <div class="dash-stat-lbl">Courses</div>
+      </a>
+      <a href="admin-control.html?panel=rooms" class="dash-stat">
+        <div class="dash-stat-icon"><i class="fas fa-door-open"></i></div>
+        <div class="dash-stat-val">${base.rooms.length}</div>
+        <div class="dash-stat-lbl">Rooms</div>
+      </a>
+      <a href="admin-control.html?panel=timetable" class="dash-stat">
+        <div class="dash-stat-icon"><i class="fas fa-table"></i></div>
+        <div class="dash-stat-val">${timetableData?.length ?? 0}</div>
+        <div class="dash-stat-lbl">Classes today</div>
+      </a>
+      <a href="admin-control.html?panel=users" class="dash-stat">
+        <div class="dash-stat-icon"><i class="fas fa-users"></i></div>
+        <div class="dash-stat-val">${students?.length ?? 0}</div>
+        <div class="dash-stat-lbl">Students</div>
+      </a>
+      <a href="admin-control.html?panel=bookings" class="dash-stat">
+        <div class="dash-stat-icon" style="background:var(--warning-soft);color:var(--warning)"><i class="fas fa-hourglass-half"></i></div>
+        <div class="dash-stat-val" style="color:var(--warning)">${pendingBookings?.length ?? 0}</div>
+        <div class="dash-stat-lbl">Pending</div>
+      </a>
+      <a href="admin-control.html?panel=bookings" class="dash-stat">
+        <div class="dash-stat-icon" style="background:var(--success-soft);color:var(--success)"><i class="fas fa-calendar-day"></i></div>
+        <div class="dash-stat-val" style="color:var(--success)">${todayBookings?.length ?? 0}</div>
+        <div class="dash-stat-lbl">Today's bookings</div>
+      </a>
     `;
 
-    // ---- Pending approvals ----
-    const { data: pendingList } = await supabase
-      .from('bookings').select('*').eq('status', 'pending')
-      .order('book_date', { ascending: true }).limit(10);
+    if (!currentSlot) {
+      $('liveSlotName').textContent = 'No active period';
+      $('liveSlotTime').textContent = 'Check back during class hours';
+      $('liveFree').textContent = '—';
+      $('liveBusy').textContent = '—';
+    } else {
+      const busyRooms = new Set();
+      (timetableData ?? []).filter(t => t.slot_id === currentSlot.slot_id).forEach(t => busyRooms.add(t.room_id));
+      (bookings ?? []).filter(b => b.slot_id === currentSlot.slot_id).forEach(b => busyRooms.add(b.room_id));
+      const free = base.rooms.length - busyRooms.size;
+      const mins = Math.max(0, Math.ceil((new Date(`${today}T${currentSlot.end_time}`) - nowDate()) / 60000));
+      $('liveSlotName').textContent = currentSlot.label || currentSlot.slot_id;
+      $('liveSlotTime').textContent = `${currentSlot.start_time.slice(0,5)}–${currentSlot.end_time.slice(0,5)} · ends in ${mins} min`;
+      $('liveFree').textContent = free;
+      $('liveBusy').textContent = busyRooms.size;
+    }
 
-    $('pendingCount').textContent = pendingList?.length ?? 0;
-
-    if (!pendingList?.length) {
-      $('pendingList').innerHTML = '<div class="empty" style="padding:24px"><i class="fas fa-inbox"></i>No pending approvals</div>';
+    $('pendingCount').textContent = pendingBookings?.length ?? 0;
+    if (!pendingBookings?.length) {
+      $('pendingPreview').innerHTML = `<div class="empty" style="padding:32px 16px">
+        <i class="fas fa-check-circle" style="color:var(--success)"></i>
+        <div style="margin-top:8px">All caught up — no pending requests</div>
+      </div>`;
     } else {
       const roomById = new Map(base.rooms.map(r => [r.room_id, r]));
       const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
-      $('pendingList').innerHTML = pendingList.map(b => `
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
-          <div style="min-width:0;flex:1">
-            <div style="font-weight:500;color:var(--text);font-size:13px">
-              <span class="mono">${escapeHtml(roomById.get(b.room_id)?.display_name || b.room_id)}</span>
-              <span class="badge badge-gray" style="margin-left:6px">${escapeHtml(b.type)}</span>
+      $('pendingPreview').innerHTML = pendingBookings.map(b => {
+        const room = roomById.get(b.room_id);
+        const slot = slotById.get(b.slot_id);
+        return `<a href="admin-control.html?panel=bookings" class="preview-row">
+          <div class="preview-info">
+            <div class="preview-title">
+              <span class="mono">${escapeHtml(room?.display_name || b.room_id)}</span>
+              <span class="badge badge-gray" style="margin-left:4px">${escapeHtml(b.type)}</span>
             </div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
-              ${humanDate(b.book_date)} · ${escapeHtml(slotById.get(b.slot_id)?.label || b.slot_id)}
+            <div class="preview-meta">
+              ${escapeHtml(b.section_id || '—')}${b.course_code ? ' · ' + escapeHtml(b.course_code) : ''} · ${humanDate(b.book_date)} · ${escapeHtml(slot?.label || b.slot_id)}
             </div>
           </div>
-          <div class="chips">
-            <button class="btn btn-sm btn-success" data-approve="${b.id}"><i class="fas fa-check"></i></button>
-            <button class="btn btn-sm btn-danger" data-reject="${b.id}"><i class="fas fa-xmark"></i></button>
-          </div>
-        </div>
-      `).join('');
-
-      document.querySelectorAll('[data-approve]').forEach(btn => {
-        btn.onclick = () => actionBooking(btn.dataset.approve, 'approved', btn);
-      });
-      document.querySelectorAll('[data-reject]').forEach(btn => {
-        btn.onclick = () => actionBooking(btn.dataset.reject, 'rejected', btn);
-      });
+          <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:11px"></i>
+        </a>`;
+      }).join('');
     }
 
-    // ---- Sync status ----
-    const { data: syncs } = await supabase.from('sync_log').select('*').order('created_at', { ascending: false }).limit(5);
-    const { data: ttCount } = await supabase.from('timetable').select('id', { count: 'exact', head: true });
-    const { data: secCount } = await supabase.from('sections').select('section_id', { count: 'exact', head: true });
+    const issues = [];
+    if (!base.rooms.length) issues.push({ label: 'No rooms configured', link: 'rooms', severity: 'bad' });
+    if (!base.sections.length) issues.push({ label: 'No batches configured', link: 'batches', severity: 'warn' });
+    if (!base.slots.length) issues.push({ label: 'No time slots configured', link: 'slots', severity: 'bad' });
+    if (!(courses?.length)) issues.push({ label: 'No courses in catalog', link: 'courses', severity: 'warn' });
 
-    $('syncStatus').innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
-        <div><div class="label-small">Sections</div><div style="font-size:20px;font-weight:600;color:var(--text)">${secCount?.length ?? 0}</div></div>
-        <div><div class="label-small">Timetable rows</div><div style="font-size:20px;font-weight:600;color:var(--text)">${ttCount?.length ?? 0}</div></div>
-      </div>
-      ${(syncs ?? []).length ? `
-        <div class="label-small" style="margin-bottom:6px">Last sync</div>
-        ${syncs.map(s => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
-            <div>
-              <span class="badge badge-${s.status === 'success' ? 'approved' : s.status === 'partial' ? 'pending' : 'rejected'}" style="margin-right:6px">${s.status}</span>
-              <span class="mono">${s.kind}</span> · ${s.records_count} rows
-            </div>
-            <div class="dim" style="font-size:11px">${formatRelativeTime(s.created_at)}</div>
-          </div>`).join('')}
-      ` : '<div class="dim" style="font-size:12px">No syncs yet. Run `seed-timetable.sql` or use the import function.</div>'}
-    `;
+    const { data: allStudents } = await supabase.from('profiles').select('section_id').eq('role', 'student');
+    const noBatch = (allStudents ?? []).filter(u => !u.section_id).length;
+    if (noBatch > 0) issues.push({ label: `${noBatch} student${noBatch === 1 ? '' : 's'} without batch`, link: 'users', severity: 'warn' });
 
-    // ---- Conflicts (timetable overlapping pending/approved bookings) ----
-    const { data: ttAll } = await supabase.from('timetable').select('*').eq('is_active', true);
-    const { data: bkAll } = await supabase.from('bookings').select('*').in('status', ['pending','approved']).gte('book_date', today).lte('book_date', todayISO(new Date(Date.now() + 7*86400000)));
-    const roomById2 = new Map(base.rooms.map(r => [r.room_id, r]));
-    const slotById2 = new Map(base.slots.map(s => [s.slot_id, s]));
-
-    const conflicts = [];
-    for (const b of (bkAll ?? [])) {
-      const dow = dayOfWeekNum(b.book_date);
-      const ttHit = (ttAll ?? []).find(t =>
-        t.room_id === b.room_id && t.slot_id === b.slot_id && t.day_of_week === dow
-      );
-      if (ttHit) {
-        conflicts.push({
-          booking: b,
-          class: ttHit,
-          room: roomById2.get(b.room_id)?.display_name || b.room_id,
-          slot: slotById2.get(b.slot_id)?.label || b.slot_id,
-        });
-      }
-    }
-
-    if (!conflicts.length) {
-      $('conflicts').innerHTML = '<div class="empty" style="padding:24px"><i class="fas fa-circle-check" style="color:var(--success)"></i>No conflicts — clean schedules</div>';
+    if (issues.length === 0) {
+      $('health').innerHTML = `<div class="health-row">
+        <div class="health-label" style="color:var(--success);font-weight:600"><i class="fas fa-circle-check"></i> All systems healthy</div>
+      </div>`;
     } else {
-      $('conflicts').innerHTML = conflicts.map(c => `
-        <div style="padding:12px;border-radius:8px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);margin-bottom:8px">
-          <div style="font-weight:500;color:var(--text);font-size:13px">
-            <i class="fas fa-triangle-exclamation" style="color:var(--warning)"></i>
-            ${escapeHtml(c.room)} · ${humanDate(c.booking.book_date)} · ${escapeHtml(c.slot)}
-          </div>
-          <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">
-            Booking <span class="badge badge-${c.booking.status === 'approved' ? 'approved' : 'pending'}" style="margin:0 4px">${c.booking.status}</span>
-            overlaps with regular class <strong>${escapeHtml(c.class.course_code || c.class.section_id)}</strong>
-          </div>
-        </div>
-      `).join('');
+      $('health').innerHTML = issues.map(i => `
+        <div class="health-row clickable" onclick="location.href='admin-control.html?panel=${i.link}'">
+          <div class="health-label">${escapeHtml(i.label)}</div>
+          <div class="health-value ${i.severity}"><i class="fas fa-arrow-right"></i></div>
+        </div>`).join('');
     }
 
-    // ---- Activity ----
-    const { data: logs } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(8);
+    const { data: logs } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(10);
     if (!logs?.length) {
-      $('timeline').innerHTML = '<div class="empty" style="padding:24px"><i class="fas fa-inbox"></i>No activity yet</div>';
+      $('activity').innerHTML = '<div class="empty" style="padding:24px"><i class="fas fa-inbox"></i>No activity yet</div>';
     } else {
-      $('timeline').innerHTML = logs.map(l => {
+      $('activity').innerHTML = logs.map(l => {
         const icon = l.action === 'auth.login' ? 'fa-right-to-bracket'
           : l.action?.startsWith('user.') ? 'fa-user-pen'
           : l.action?.startsWith('room.') ? 'fa-door-open'
           : l.action?.startsWith('booking.') ? 'fa-calendar-check' : 'fa-circle';
-        return `
-          <div class="timeline-item">
-            <div class="timeline-marker"><i class="fas ${icon}"></i></div>
-            <div class="timeline-content">
-              <div class="timeline-title">${escapeHtml(l.action)}${l.entity_id ? ` <span class="mono dim">${escapeHtml(l.entity_id)}</span>` : ''}</div>
-              <div class="timeline-meta">${escapeHtml(l.user_email || 'system')} · ${formatRelativeTime(l.created_at)}</div>
-            </div>
-          </div>`;
+        return `<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+          <div style="width:26px;height:26px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">
+            <i class="fas ${icon}"></i>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:500;color:var(--text)">${escapeHtml(l.action)}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${escapeHtml(l.user_email || 'system')} · ${formatRelativeTime(l.created_at)}</div>
+          </div>
+        </div>`;
       }).join('');
     }
   }
 
-  async function actionBooking(id, status, btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    const { error } = await supabase.from('bookings')
-      .update({ status, approved_by: auth.session.user.id })
-      .eq('id', id);
-    if (error) { toast(error.message, 'error'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i>'; return; }
-    toast(`Booking ${status}`, 'success');
-    await load();
-  }
-
   function tick() { $('liveTime').textContent = formatTime(nowDate()); }
-  setInterval(tick, 1000); tick();
-
-  $('refreshBtn').onclick = async () => {
-    const btn = $('refreshBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing…';
-    await load();
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-rotate-right"></i> Refresh';
-  };
+  setInterval(tick, 1000);
+  tick();
 
   await load();
   setInterval(() => { if (!document.hidden) load(); }, 60_000);
