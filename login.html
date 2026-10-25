@@ -78,23 +78,41 @@
 </div>
 
 <script type="module">
-import { supabase, initTheme, waitForSession, SUPABASE_URL } from './js/core.js';
+import { supabase, initTheme, waitForSession } from './js/core.js';
 
 const EMAIL_DOMAIN = 'lpu.in';
 
 initTheme();
 const $ = id => document.getElementById(id);
 
-/* ---------- connection status ---------- */
+/* ---------- connection status ----------
+   Uses the SDK directly. It attaches `apikey` + `Authorization` headers
+   automatically, so it can never produce a spurious 401 from a missing
+   header. This is more reliable than fetching /auth/v1/health manually. */
 (async () => {
   const el = $('connStatus');
   try {
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/health`, { cache: 'no-store' });
-    el.innerHTML = res.ok
-      ? '<i class="fas fa-circle-check" style="color:var(--success)"></i> Connected to Supabase'
-      : `<i class="fas fa-triangle-exclamation" style="color:var(--warning)"></i> Supabase HTTP ${res.status}`;
-  } catch {
-    el.innerHTML = '<i class="fas fa-circle-xmark" style="color:var(--danger)"></i> Cannot reach Supabase';
+    const { error } = await supabase
+      .from('time_slots')
+      .select('slot_id')
+      .limit(1);
+
+    if (error) {
+      // 42P01 = table does not exist → schema.sql not run
+      // PGRST301 / 401 = key problem
+      const msg = (error.message || '').toLowerCase();
+      if (msg.includes('does not exist') || error.code === '42P01') {
+        el.innerHTML = '<i class="fas fa-triangle-exclamation" style="color:var(--warning)"></i> Connected, but schema not installed — run schema.sql';
+      } else if (msg.includes('invalid api key') || msg.includes('jwt')) {
+        el.innerHTML = '<i class="fas fa-circle-xmark" style="color:var(--danger)"></i> Invalid Supabase key — check js/config.js';
+      } else {
+        el.innerHTML = `<i class="fas fa-triangle-exclamation" style="color:var(--warning)"></i> Supabase: ${error.message}`;
+      }
+    } else {
+      el.innerHTML = '<i class="fas fa-circle-check" style="color:var(--success)"></i> Connected to Supabase';
+    }
+  } catch (err) {
+    el.innerHTML = '<i class="fas fa-circle-xmark" style="color:var(--danger)"></i> Cannot reach Supabase — check internet / config.js';
   }
 })();
 
@@ -185,12 +203,15 @@ $('loginForm').onsubmit = async (e) => {
   if (error) {
     const m = (error.message || '').toLowerCase();
     let friendly = error.message;
-    if (m.includes('invalid login credentials'))
+    if (m.includes('invalid login credentials')) {
       friendly = `Incorrect registration number or password.<br>
         <small style="opacity:.8;display:block;margin-top:6px">
         Expected user: <code style="background:rgba(0,0,0,.08);padding:1px 4px;border-radius:3px">${email}</code></small>`;
-    else if (m.includes('email not confirmed'))
+    } else if (m.includes('email not confirmed')) {
       friendly = 'This account has not been confirmed in Supabase.';
+    } else if (m.includes('invalid api key') || m.includes('jwt')) {
+      friendly = 'Supabase key is invalid. Re‑copy the publishable key from Supabase → Settings → API into js/config.js.';
+    }
     showError(friendly);
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
