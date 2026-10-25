@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Batches · LPU Scheduler</title>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+  <div class="page-header">
+    <div><h1 class="page-title"><i class="fas fa-users-rectangle"></i> Batches</h1><p class="page-subtitle">Sections, students, courses, and schedules.</p></div>
+    <button class="btn btn-primary" id="addBtn"><i class="fas fa-plus"></i> Add batch</button>
+  </div>
+  <div class="admin-tabs">
+    <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-chalkboard-user"></i> Faculty</a>
+    <a href="admin-batches.html" class="admin-tab active"><i class="fas fa-users-rectangle"></i> Batches</a>
+    <a href="admin-courses.html" class="admin-tab"><i class="fas fa-book"></i> Courses</a>
+    <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
+    <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
+    <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
+    <a href="admin-buildings.html" class="admin-tab"><i class="fas fa-building"></i> Buildings</a>
+    <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
+    <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
+    <a href="admin-users.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
+  </div>
+  <div class="row" style="margin-bottom:16px"><div class="search-wrap" style="max-width:360px"><i class="fas fa-search search-icon"></i><input class="input" id="search" placeholder="Search batch ID, name, department…"></div></div>
+  <div class="grid-auto" id="grid"></div>
+</div>
+<script type="module">
+import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.js';
+(async () => {
+  const auth = await requireRole(['admin']); if (!auth) return;
+  renderNav(auth.profile);
+  const $ = id => document.getElementById(id);
+  const DOW = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  let sections = [], tt = [], users = [], search = '';
+
+  async function load() {
+    const [{ data: s }, { data: t }, { data: u }] = await Promise.all([
+      supabase.from('sections').select('*').order('section_id'),
+      supabase.from('timetable').select('*').eq('is_active', true),
+      supabase.from('profiles').select('id,role,section_id'),
+    ]);
+    sections = s ?? []; tt = t ?? []; users = u ?? [];
+    render();
+  }
+
+  function render() {
+    let list = sections;
+    if (search) { const q = search.toLowerCase(); list = list.filter(s => s.section_id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || (s.department || '').toLowerCase().includes(q)); }
+    if (!list.length) { $('grid').innerHTML = `<div class="card" style="grid-column:1/-1"><div class="empty-action"><div class="empty-action-icon"><i class="fas fa-users-rectangle"></i></div><div class="empty-action-title">No batches yet</div><div class="empty-action-sub">Click "Add batch" to create the first one.</div></div></div>`; return; }
+    $('grid').innerHTML = list.map(s => {
+      const classes = tt.filter(t => t.section_id === s.section_id);
+      const courses = new Set(classes.map(c => c.course_code).filter(Boolean)).size;
+      const enrolled = users.filter(u => u.role === 'student' && u.section_id === s.section_id).length;
+      return `<div class="card card-hover">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:12px">
+          <div><div style="font-weight:700;color:var(--text);font-size:15px;display:flex;align-items:center;gap:8px"><i class="fas fa-users-rectangle" style="color:var(--brand);font-size:12px"></i>${escapeHtml(s.section_id)}</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">${escapeHtml(s.name)}</div></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--text-muted);margin-bottom:12px">
+          <span><i class="fas fa-users"></i> ${enrolled}/${s.strength || '?'} students</span>
+          <span><i class="fas fa-book"></i> ${courses} course${courses === 1 ? '' : 's'}</span>
+          <span><i class="fas fa-table"></i> ${classes.length} class${classes.length === 1 ? '' : 'es'}</span>
+          ${s.department ? `<span><i class="fas fa-building-columns"></i> ${escapeHtml(s.department)}</span>` : ''}
+        </div>
+        <div class="chips" style="gap:6px">
+          <button class="btn btn-sm" data-view="${escapeHtml(s.section_id)}"><i class="fas fa-eye"></i> View</button>
+          <button class="btn btn-sm" data-edit="${escapeHtml(s.section_id)}"><i class="fas fa-pen"></i></button>
+          <button class="btn btn-sm btn-danger" data-del="${escapeHtml(s.section_id)}"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>`;
+    }).join('');
+    document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => view(b.dataset.view));
+    document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => edit(b.dataset.edit));
+    document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => del(b.dataset.del));
+  }
+
+  function view(id) {
+    const s = sections.find(x => x.section_id === id); if (!s) return;
+    const classes = tt.filter(t => t.section_id === id);
+    const students = users.filter(u => u.role === 'student' && u.section_id === id);
+    const byDay = new Map(); classes.forEach(c => { if (!byDay.has(c.day_of_week)) byDay.set(c.day_of_week, []); byDay.get(c.day_of_week).push(c); });
+    const sched = [1,2,3,4,5,6,0].filter(d => byDay.has(d)).map(d => `<div style="margin-bottom:14px"><div class="label-small" style="margin-bottom:6px">${DOW[d]}</div>${byDay.get(d).map(c => `<div style="padding:10px;background:var(--surface-hover);border-radius:8px;margin-bottom:4px"><div style="font-family:monospace;font-weight:600;color:var(--brand);font-size:12px">${escapeHtml(c.course_code || '—')}</div><div style="font-size:12px;color:var(--text);margin-top:2px">${escapeHtml(c.room_id)} · Slot ${escapeHtml(c.slot_id)}</div></div>`).join('')}</div>`).join('') || '<div class="empty">No classes scheduled</div>';
+    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content modal-wide"><div class="modal-header"><div><div class="modal-title">${escapeHtml(s.section_id)}</div><div class="modal-sub">${escapeHtml(s.name)} · ${students.length} students</div></div><button class="modal-close" data-close><i class="fas fa-xmark"></i></button></div><div class="modal-body"><div class="label-small" style="margin-bottom:8px">Weekly schedule</div>${sched}</div><div class="modal-footer"><button class="btn" data-close>Close</button></div></div>`;
+    document.body.appendChild(dialog); dialog.showModal();
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+  }
+
+  function edit(id) {
+    const s = id ? sections.find(x => x.section_id === id) : null;
+    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content"><div class="modal-header"><div class="modal-title">${s ? 'Edit ' + escapeHtml(s.section_id) : 'Add batch'}</div><button class="modal-close" data-close><i class="fas fa-xmark"></i></button></div><div class="modal-body"><label class="field"><span>Batch ID *</span><input class="input" data-field="section_id" value="${escapeHtml(s?.section_id || '')}" ${s ? 'disabled' : ''} placeholder="CSE-4A"></label><label class="field"><span>Display name *</span><input class="input" data-field="name" value="${escapeHtml(s?.name || '')}" placeholder="CSE 4th Year A"></label><label class="field"><span>Strength</span><input class="input" type="number" data-field="strength" value="${s?.strength || 60}"></label><label class="field"><span>Department</span><input class="input" data-field="department" value="${escapeHtml(s?.department || '')}"></label></div><div class="modal-footer"><button class="btn" data-close>Cancel</button><button class="btn btn-primary" data-save>Save</button></div></div>`;
+    document.body.appendChild(dialog); dialog.showModal();
+    dialog.querySelector('[data-save]').onclick = async () => {
+      const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
+      if (!get('section_id') || !get('name')) return toast('ID and name required', 'error');
+      const payload = { section_id: s?.section_id || get('section_id'), name: get('name'), strength: parseInt(get('strength')) || 60, department: get('department') || null };
+      const r = s ? await supabase.from('sections').update(payload).eq('section_id', s.section_id) : await supabase.from('sections').insert(payload);
+      if (r.error) return toast(r.error.message, 'error');
+      toast(s ? 'Updated' : 'Created', 'success'); dialog.close(); dialog.remove(); await load();
+    };
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+  }
+
+  async function del(id) {
+    const students = users.filter(u => u.section_id === id).length;
+    const classes = tt.filter(t => t.section_id === id).length;
+    let msg = `Delete ${id}?`;
+    if (students > 0) msg += `\n\n⚠️ ${students} student(s) will lose their batch.`;
+    if (classes > 0) msg += `\n⚠️ ${classes} timetable row(s) will be removed.`;
+    if (!confirm(msg)) return;
+    const { error } = await supabase.from('sections').delete().eq('section_id', id);
+    if (error) return toast(error.message, 'error');
+    toast('Deleted', 'success'); await load();
+  }
+
+  $('addBtn').onclick = () => edit();
+  $('search').oninput = e => { search = e.target.value.trim(); render(); };
+  await load();
+})();
+</script>
+</body>
+</html>

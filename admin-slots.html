@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Time slots · LPU Scheduler</title>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+  <div class="page-header">
+    <div><h1 class="page-title"><i class="fas fa-clock"></i> Time slots</h1><p class="page-subtitle">Period definitions used by the timetable and bookings.</p></div>
+    <button class="btn btn-primary" id="addBtn"><i class="fas fa-plus"></i> Add slot</button>
+  </div>
+  <div class="admin-tabs">
+    <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-chalkboard-user"></i> Faculty</a>
+    <a href="admin-batches.html" class="admin-tab"><i class="fas fa-users-rectangle"></i> Batches</a>
+    <a href="admin-courses.html" class="admin-tab"><i class="fas fa-book"></i> Courses</a>
+    <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
+    <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
+    <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
+    <a href="admin-buildings.html" class="admin-tab"><i class="fas fa-building"></i> Buildings</a>
+    <a href="admin-slots.html" class="admin-tab active"><i class="fas fa-clock"></i> Time slots</a>
+    <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
+    <a href="admin-users.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
+  </div>
+  <div class="table-wrap"><table><thead><tr><th>ID</th><th>Label</th><th>Start</th><th>End</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead><tbody id="body"></tbody></table></div>
+</div>
+<script type="module">
+import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.js';
+(async () => {
+  const auth = await requireRole(['admin']); if (!auth) return;
+  renderNav(auth.profile);
+  const $ = id => document.getElementById(id);
+  let slots = [];
+  async function load() {
+    const { data } = await supabase.from('time_slots').select('*').order('sort_order').order('start_time');
+    slots = data ?? []; render();
+  }
+  function render() {
+    if (!slots.length) { $('body').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-clock"></i>No slots configured</td></tr>'; return; }
+    $('body').innerHTML = slots.map(s => `<tr>
+      <td class="mono">${escapeHtml(s.slot_id)}</td>
+      <td style="font-weight:500">${escapeHtml(s.label || '—')}</td>
+      <td class="mono">${s.start_time.slice(0,5)}</td>
+      <td class="mono">${s.end_time.slice(0,5)}</td>
+      <td>${s.is_active !== false ? '<span class="badge badge-approved">active</span>' : '<span class="badge badge-rejected">hidden</span>'}</td>
+      <td style="text-align:right;white-space:nowrap"><button class="btn btn-sm" data-edit="${escapeHtml(s.slot_id)}"><i class="fas fa-pen"></i></button><button class="btn btn-sm btn-danger" data-del="${escapeHtml(s.slot_id)}"><i class="fas fa-trash"></i></button></td>
+    </tr>`).join('');
+    document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => edit(b.dataset.edit));
+    document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => del(b.dataset.del));
+  }
+  function edit(id) {
+    const s = id ? slots.find(x => x.slot_id === id) : null;
+    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content"><div class="modal-header"><div class="modal-title">${s ? 'Edit ' + escapeHtml(s.slot_id) : 'Add slot'}</div><button class="modal-close" data-close><i class="fas fa-xmark"></i></button></div><div class="modal-body"><label class="field"><span>Slot ID *</span><input class="input" data-field="slot_id" value="${escapeHtml(s?.slot_id || '')}" ${s ? 'disabled' : ''} placeholder="P8"></label><label class="field"><span>Label</span><input class="input" data-field="label" value="${escapeHtml(s?.label || '')}"></label><label class="field"><span>Start time</span><input class="input" type="time" data-field="start_time" value="${s?.start_time.slice(0,5) || '09:00'}"></label><label class="field"><span>End time</span><input class="input" type="time" data-field="end_time" value="${s?.end_time.slice(0,5) || '09:50'}"></label><label class="field"><span>Sort order</span><input class="input" type="number" data-field="sort_order" value="${s?.sort_order || 0}"></label></div><div class="modal-footer"><button class="btn" data-close>Cancel</button><button class="btn btn-primary" data-save>Save</button></div></div>`;
+    document.body.appendChild(dialog); dialog.showModal();
+    dialog.querySelector('[data-save]').onclick = async () => {
+      const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
+      if (!get('slot_id') || !get('start_time') || !get('end_time')) return toast('Required fields missing', 'error');
+      if (get('start_time') >= get('end_time')) return toast('End must be after start', 'error');
+      const payload = { slot_id: s?.slot_id || get('slot_id'), label: get('label') || null, start_time: get('start_time') + ':00', end_time: get('end_time') + ':00', sort_order: parseInt(get('sort_order')) || 0 };
+      const r = s ? await supabase.from('time_slots').update(payload).eq('slot_id', s.slot_id) : await supabase.from('time_slots').insert(payload);
+      if (r.error) return toast(r.error.message, 'error');
+      toast(s ? 'Updated' : 'Added', 'success'); dialog.close(); dialog.remove(); await load();
+    };
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+  }
+  async function del(id) {
+    if (!confirm(`Delete slot ${id}?`)) return;
+    const { error } = await supabase.from('time_slots').delete().eq('slot_id', id);
+    if (error) return toast('Cannot delete: bookings use this slot', 'error');
+    toast('Deleted', 'success'); await load();
+  }
+  $('addBtn').onclick = () => edit();
+  await load();
+})();
+</script>
+</body>
+</html>

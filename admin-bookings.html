@@ -8,243 +8,95 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
 <div id="nav"></div>
 <div class="container">
   <div class="page-header">
-    <div>
-      <h1 class="page-title"><i class="fas fa-calendar-check"></i> Bookings</h1>
-      <p class="page-subtitle">Approve or reject makeup requests across all sections.</p>
-    </div>
-    <button class="btn btn-primary" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
+    <div><h1 class="page-title"><i class="fas fa-calendar-check"></i> Bookings</h1><p class="page-subtitle">Approve or reject makeup requests from all batches.</p></div>
+    <button class="btn" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
   </div>
-
-  <div class="row" style="gap:8px;margin-bottom:16px">
-    <div class="chips" id="filterChips">
-      <button class="chip on" data-filter="pending"><i class="fas fa-clock"></i> Pending</button>
-      <button class="chip" data-filter="approved"><i class="fas fa-check"></i> Approved</button>
-      <button class="chip" data-filter="rejected"><i class="fas fa-xmark"></i> Rejected</button>
-      <button class="chip" data-filter="all"><i class="fas fa-list"></i> All</button>
-    </div>
-    <div class="search-wrap" style="margin-left:auto;max-width:320px">
-      <i class="fas fa-search search-icon"></i>
-      <input class="input" id="searchInput" placeholder="Search room, faculty, section…">
-    </div>
+  <div class="admin-tabs">
+    <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-chalkboard-user"></i> Faculty</a>
+    <a href="admin-batches.html" class="admin-tab"><i class="fas fa-users-rectangle"></i> Batches</a>
+    <a href="admin-courses.html" class="admin-tab"><i class="fas fa-book"></i> Courses</a>
+    <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
+    <a href="admin-bookings.html" class="admin-tab active"><i class="fas fa-calendar-check"></i> Bookings</a>
+    <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
+    <a href="admin-buildings.html" class="admin-tab"><i class="fas fa-building"></i> Buildings</a>
+    <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
+    <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
+    <a href="admin-users.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
   </div>
-
-  <div class="bulk-bar" id="bulkBar">
-    <span class="bulk-bar-count" id="bulkCount">0 selected</span>
-    <div class="bulk-bar-actions">
-      <button class="btn btn-sm" id="bulkApprove"><i class="fas fa-check"></i> Approve</button>
-      <button class="btn btn-sm" id="bulkReject"><i class="fas fa-xmark"></i> Reject</button>
-      <button class="btn btn-sm" id="bulkClear"><i class="fas fa-times"></i> Clear</button>
+  <div class="row" style="margin-bottom:16px">
+    <div class="chips" id="filters">
+      <button class="chip on" data-f="pending">Pending</button>
+      <button class="chip" data-f="approved">Approved</button>
+      <button class="chip" data-f="rejected">Rejected</button>
+      <button class="chip" data-f="all">All</button>
     </div>
+    <div class="search-wrap" style="margin-left:auto;max-width:360px"><i class="fas fa-search search-icon"></i><input class="input" id="search" placeholder="Search…"></div>
   </div>
-
-  <div class="table-wrap mt-4">
-    <table>
-      <thead>
-        <tr>
-          <th class="checkbox-cell"><input type="checkbox" id="selectAll"></th>
-          <th>Room · Slot</th>
-          <th>Section · Course</th>
-          <th>Faculty</th>
-          <th>Date</th>
-          <th>Status</th>
-          <th style="text-align:right">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="body"><tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</td></tr></tbody>
-    </table>
-  </div>
+  <div class="table-wrap"><table><thead><tr><th>Room · Slot</th><th>Batch · Course</th><th>Faculty</th><th>Date</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead><tbody id="body"></tbody></table></div>
 </div>
-
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime, humanDate, dayOfWeekNum } from './js/core.js';
-
+import { requireRole, renderNav, supabase, escapeHtml, toast, humanDate } from './js/core.js';
 (async () => {
-  const auth = await requireRole(['admin']);
-  if (!auth) return;
+  const auth = await requireRole(['admin']); if (!auth) return;
   renderNav(auth.profile);
-
   const $ = id => document.getElementById(id);
-  let rows = [];
-  let filter = 'pending';
-  let search = '';
-  let selected = new Set();
-  let maps = { rooms: new Map(), slots: new Map(), faculty: new Map() };
+  let bookings = [], rooms = [], slots = [], users = [], filter = 'pending', search = '';
 
   async function load() {
-    const [{ data: bookings }, { data: rooms }, { data: slots }, { data: facs }] = await Promise.all([
+    const [{ data: b }, { data: r }, { data: s }, { data: u }] = await Promise.all([
       supabase.from('bookings').select('*').order('book_date', { ascending: false }).limit(300),
       supabase.from('rooms').select('room_id,display_name'),
-      supabase.from('time_slots').select('slot_id,label,start_time,end_time'),
-      supabase.from('profiles').select('id,full_name,email').eq('role', 'faculty'),
+      supabase.from('time_slots').select('*'),
+      supabase.from('profiles').select('id,full_name,email'),
     ]);
-    rows = bookings ?? [];
-    maps.rooms = new Map((rooms ?? []).map(r => [r.room_id, r.display_name]));
-    maps.slots = new Map((slots ?? []).map(s => [s.slot_id, s]));
-    maps.faculty = new Map((facs ?? []).map(f => [f.id, f]));
-    selected.clear();
+    bookings = b ?? []; rooms = r ?? []; slots = s ?? []; users = u ?? [];
     render();
   }
 
   function render() {
-    let list = rows;
-    if (filter !== 'all') list = list.filter(r => r.status === filter);
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter(r => {
-        const room = maps.rooms.get(r.room_id) || '';
-        const fac = maps.faculty.get(r.faculty_id);
-        return (r.room_id + ' ' + room + ' ' + (r.section_id || '') + ' ' + (r.course_code || '') + ' ' + (fac?.full_name || '') + ' ' + (fac?.email || '')).toLowerCase().includes(q);
-      });
-    }
-
-    updateBulkBar();
-
-    if (!list.length) {
-      $('body').innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-inbox"></i>No bookings match</td></tr>';
-      return;
-    }
-
+    let list = bookings;
+    if (filter !== 'all') list = list.filter(b => b.status === filter);
+    if (search) { const q = search.toLowerCase(); list = list.filter(b => { const r = rooms.find(x => x.room_id === b.room_id); const f = users.find(x => x.id === b.faculty_id); return (r?.display_name || '').toLowerCase().includes(q) || (b.section_id || '').toLowerCase().includes(q) || (b.course_code || '').toLowerCase().includes(q) || (f?.full_name || '').toLowerCase().includes(q); }); }
+    const roomMap = new Map(rooms.map(r => [r.room_id, r.display_name]));
+    const slotMap = new Map(slots.map(s => [s.slot_id, s]));
+    const userMap = new Map(users.map(u => [u.id, u]));
+    if (!list.length) { $('body').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-inbox"></i>No bookings match</td></tr>'; return; }
     $('body').innerHTML = list.map(b => {
-      const room = maps.rooms.get(b.room_id) || b.room_id;
-      const slot = maps.slots.get(b.slot_id);
-      const fac = maps.faculty.get(b.faculty_id);
-      const badgeCls = b.status === 'approved' ? 'approved' : b.status === 'rejected' ? 'rejected' : 'pending';
+      const slot = slotMap.get(b.slot_id);
+      const fac = userMap.get(b.faculty_id);
+      const badge = b.status === 'approved' ? 'approved' : b.status === 'rejected' ? 'rejected' : 'pending';
       const icon = b.status === 'approved' ? 'check' : b.status === 'rejected' ? 'xmark' : 'clock';
-      return `
-        <tr>
-          <td class="checkbox-cell"><input type="checkbox" data-cb="${b.id}" ${selected.has(b.id) ? 'checked' : ''}></td>
-          <td>
-            <div class="mono" style="font-weight:500;color:var(--text)">${escapeHtml(room)}</div>
-            <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(slot?.label || b.slot_id)} · ${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)}</div>
-          </td>
-          <td>
-            <div style="font-size:13px;color:var(--text);font-weight:500">${escapeHtml(b.section_id || '—')}</div>
-            <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(b.course_code || b.type)}</div>
-          </td>
-          <td>
-            <div style="font-size:13px;color:var(--text)">${escapeHtml(fac?.full_name || fac?.email || '—')}</div>
-            <div style="font-size:11px;color:var(--text-muted)">${formatRelativeTime(b.created_at)}</div>
-          </td>
-          <td>
-            <div style="font-size:13px;color:var(--text);font-weight:500">${humanDate(b.book_date)}</div>
-          </td>
-          <td><span class="badge badge-${badgeCls}"><i class="fas fa-${icon}"></i>${b.status}</span></td>
-          <td style="text-align:right;white-space:nowrap">
-            ${b.status === 'pending' ? `
-              <button class="btn btn-sm btn-success" data-approve="${b.id}" title="Approve"><i class="fas fa-check"></i></button>
-              <button class="btn btn-sm btn-danger" data-reject="${b.id}" title="Reject"><i class="fas fa-xmark"></i></button>
-            ` : ''}
-            <button class="btn btn-sm" data-view="${b.id}" title="Details"><i class="fas fa-eye"></i></button>
-          </td>
-        </tr>`;
+      return `<tr>
+        <td><div class="mono" style="font-weight:500;color:var(--text)">${escapeHtml(roomMap.get(b.room_id) || b.room_id)}</div><div style="font-size:11px;color:var(--text-muted)">${escapeHtml(slot?.label || b.slot_id)} · ${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)}</div></td>
+        <td><div style="font-size:13px;font-weight:500">${escapeHtml(b.section_id || '—')}</div><div style="font-size:11px;color:var(--text-muted)">${escapeHtml(b.course_code || b.type)}</div></td>
+        <td class="dim" style="font-size:12px">${escapeHtml(fac?.full_name || fac?.email || '—')}</td>
+        <td style="font-weight:500">${humanDate(b.book_date)}</td>
+        <td><span class="badge badge-${badge}"><i class="fas fa-${icon}"></i>${b.status}</span></td>
+        <td style="text-align:right;white-space:nowrap">
+          ${b.status === 'pending' ? `<button class="btn btn-sm btn-success" data-a="${b.id}"><i class="fas fa-check"></i></button><button class="btn btn-sm btn-danger" data-r="${b.id}"><i class="fas fa-xmark"></i></button>` : ''}
+        </td>
+      </tr>`;
     }).join('');
-
-    document.querySelectorAll('[data-cb]').forEach(cb => {
-      cb.onchange = () => { cb.checked ? selected.add(cb.dataset.cb) : selected.delete(cb.dataset.cb); updateBulkBar(); };
-    });
-    document.querySelectorAll('[data-approve]').forEach(b => b.onclick = () => action(b.dataset.approve, 'approved'));
-    document.querySelectorAll('[data-reject]').forEach(b => b.onclick = () => action(b.dataset.reject, 'rejected'));
-    document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => view(b.dataset.view));
-  }
-
-  function updateBulkBar() {
-    if (selected.size > 0) {
-      $('bulkBar').classList.add('show');
-      $('bulkCount').textContent = `${selected.size} selected`;
-    } else $('bulkBar').classList.remove('show');
+    document.querySelectorAll('[data-a]').forEach(x => x.onclick = () => action(x.dataset.a, 'approved'));
+    document.querySelectorAll('[data-r]').forEach(x => x.onclick = () => action(x.dataset.r, 'rejected'));
   }
 
   async function action(id, status) {
     const { error } = await supabase.from('bookings').update({ status, approved_by: auth.session.user.id }).eq('id', id);
     if (error) return toast(error.message, 'error');
-    toast(`Booking ${status}`, 'success');
-    await load();
+    toast(`Booking ${status}`, 'success'); await load();
   }
 
-  async function view(id) {
-    const b = rows.find(r => r.id === id);
-    if (!b) return;
-    const room = maps.rooms.get(b.room_id) || b.room_id;
-    const slot = maps.slots.get(b.slot_id);
-    const fac = maps.faculty.get(b.faculty_id);
-    const dialog = document.createElement('dialog');
-    dialog.className = 'modal-dialog';
-    dialog.innerHTML = `
-      <div class="modal-content">
-        <div class="modal-header">
-          <div><div class="modal-title">Booking details</div><div class="modal-sub">${escapeHtml(room)} · ${humanDate(b.book_date)}</div></div>
-          <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
-        </div>
-        <div class="modal-body">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-            <div><div class="label-small">Room</div><div class="mono">${escapeHtml(room)}</div></div>
-            <div><div class="label-small">Slot</div><div>${escapeHtml(slot?.label || b.slot_id)} (${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)})</div></div>
-            <div><div class="label-small">Date</div><div>${humanDate(b.book_date)}</div></div>
-            <div><div class="label-small">Section</div><div>${escapeHtml(b.section_id || '—')}</div></div>
-            <div><div class="label-small">Course</div><div>${escapeHtml(b.course_code || '—')}</div></div>
-            <div><div class="label-small">Faculty</div><div>${escapeHtml(fac?.full_name || fac?.email || '—')}</div></div>
-            <div><div class="label-small">Status</div><div><span class="badge badge-${b.status}">${b.status}</span></div></div>
-            <div><div class="label-small">Requested</div><div>${formatRelativeTime(b.created_at)}</div></div>
-          </div>
-          ${b.reason ? `<div style="margin-top:16px"><div class="label-small">Reason</div><div style="padding:10px 12px;background:var(--surface-hover);border-radius:8px;font-size:13px;color:var(--text-secondary);line-height:1.5">${escapeHtml(b.reason)}</div></div>` : ''}
-        </div>
-        <div class="modal-footer">
-          <button class="btn" data-close>Close</button>
-          ${b.status === 'pending' ? `
-            <button class="btn btn-danger" data-rej>Reject</button>
-            <button class="btn btn-success" data-app>Approve</button>` : ''}
-        </div>
-      </div>`;
-    document.body.appendChild(dialog);
-    dialog.showModal();
-    const close = () => { dialog.close(); dialog.remove(); };
-    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
-    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
-    dialog.onclick = e => { if (e.target === dialog) close(); };
-    dialog.querySelector('[data-app]')?.addEventListener('click', async () => { await action(id, 'approved'); close(); });
-    dialog.querySelector('[data-rej]')?.addEventListener('click', async () => { await action(id, 'rejected'); close(); });
-  }
-
-  document.querySelectorAll('[data-filter]').forEach(btn => {
-    btn.onclick = () => {
-      filter = btn.dataset.filter;
-      document.querySelectorAll('[data-filter]').forEach(b => b.classList.toggle('on', b === btn));
-      render();
-    };
-  });
-
-  $('searchInput').oninput = (e) => { search = e.target.value.trim(); render(); };
-  $('selectAll').onchange = (e) => {
-    if (e.target.checked) rows.filter(r => r.status === 'pending').forEach(r => selected.add(r.id));
-    else selected.clear();
-    render();
-  };
-  $('bulkApprove').onclick = async () => {
-    if (!selected.size) return;
-    const ids = [...selected];
-    const { error } = await supabase.from('bookings').update({ status: 'approved', approved_by: auth.session.user.id }).in('id', ids);
-    if (error) return toast(error.message, 'error');
-    toast(`${ids.length} approved`, 'success');
-    await load();
-  };
-  $('bulkReject').onclick = async () => {
-    if (!selected.size) return;
-    const ids = [...selected];
-    const { error } = await supabase.from('bookings').update({ status: 'rejected', approved_by: auth.session.user.id }).in('id', ids);
-    if (error) return toast(error.message, 'error');
-    toast(`${ids.length} rejected`, 'success');
-    await load();
-  };
-  $('bulkClear').onclick = () => { selected.clear(); render(); };
+  document.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filter = b.dataset.f; document.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === b)); render(); });
+  $('search').oninput = e => { search = e.target.value.trim(); render(); };
   $('refreshBtn').onclick = load;
-
   await load();
-  setInterval(() => { if (!document.hidden) load(); }, 60_000);
 })();
 </script>
 </body>

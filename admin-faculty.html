@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Faculty · LPU Scheduler</title>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+  <div class="page-header">
+    <div><h1 class="page-title"><i class="fas fa-chalkboard-user"></i> Faculty</h1><p class="page-subtitle">Manage faculty accounts, view workload, edit details.</p></div>
+  </div>
+  <div class="admin-tabs">
+    <a href="admin-faculty.html" class="admin-tab active"><i class="fas fa-chalkboard-user"></i> Faculty</a>
+    <a href="admin-batches.html" class="admin-tab"><i class="fas fa-users-rectangle"></i> Batches</a>
+    <a href="admin-courses.html" class="admin-tab"><i class="fas fa-book"></i> Courses</a>
+    <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
+    <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
+    <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
+    <a href="admin-buildings.html" class="admin-tab"><i class="fas fa-building"></i> Buildings</a>
+    <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
+    <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
+    <a href="admin-users.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="row" style="margin-bottom:16px">
+    <div class="chips" id="filters">
+      <button class="chip on" data-f="all">All</button>
+      <button class="chip" data-f="active">Active</button>
+      <button class="chip" data-f="suspended">Suspended</button>
+    </div>
+    <div class="search-wrap" style="margin-left:auto;max-width:360px"><i class="fas fa-search search-icon"></i><input class="input" id="search" placeholder="Search name, email, department…"></div>
+  </div>
+  <div class="table-wrap"><table><thead><tr><th>Faculty</th><th>Department</th><th>Courses</th><th>Weekly classes</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead><tbody id="body"></tbody></table></div>
+</div>
+<script type="module">
+import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.js';
+(async () => {
+  const auth = await requireRole(['admin']); if (!auth) return;
+  renderNav(auth.profile);
+  const $ = id => document.getElementById(id);
+  const DOW = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  let faculty = [], tt = [], filter = 'all', search = '';
+
+  async function load() {
+    const [{ data: f }, { data: t }] = await Promise.all([
+      supabase.from('profiles').select('*').eq('role', 'faculty').order('full_name'),
+      supabase.from('timetable').select('*').eq('is_active', true),
+    ]);
+    faculty = f ?? []; tt = t ?? [];
+    renderStats(); render();
+  }
+
+  function renderStats() {
+    const active = faculty.filter(f => f.is_active !== false).length;
+    const susp = faculty.filter(f => f.is_active === false).length;
+    $('stats').innerHTML = `
+      <div class="stat"><i class="fas fa-chalkboard-user stat-icon"></i><div class="stat-value">${faculty.length}</div><div class="stat-label">Total</div></div>
+      <div class="stat"><i class="fas fa-circle-check stat-icon" style="color:var(--success)"></i><div class="stat-value" style="color:var(--success)">${active}</div><div class="stat-label">Active</div></div>
+      <div class="stat"><i class="fas fa-ban stat-icon" style="color:var(--danger)"></i><div class="stat-value" style="color:var(--danger)">${susp}</div><div class="stat-label">Suspended</div></div>
+      <div class="stat"><i class="fas fa-table stat-icon"></i><div class="stat-value">${tt.length}</div><div class="stat-label">Classes scheduled</div></div>`;
+  }
+
+  function render() {
+    let list = faculty;
+    if (filter === 'active') list = list.filter(f => f.is_active !== false);
+    else if (filter === 'suspended') list = list.filter(f => f.is_active === false);
+    if (search) { const q = search.toLowerCase(); list = list.filter(f => (f.full_name || '').toLowerCase().includes(q) || (f.email || '').toLowerCase().includes(q) || (f.department || '').toLowerCase().includes(q)); }
+    if (!list.length) { $('body').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-user-slash"></i>No faculty found</td></tr>'; return; }
+    $('body').innerHTML = list.map(f => {
+      const init = ((f.full_name || f.email || '?').trim()[0] || '?').toUpperCase();
+      const classes = tt.filter(t => t.faculty_id === f.id);
+      const courses = new Set(classes.map(c => c.course_code).filter(Boolean)).size;
+      const susp = f.is_active === false;
+      return `<tr>
+        <td><div style="display:flex;align-items:center;gap:10px"><span class="avatar-sm">${escapeHtml(init)}</span><div><div style="color:var(--text);font-weight:500">${escapeHtml(f.full_name || f.email)}</div><div style="font-size:11px;color:var(--text-muted)">${escapeHtml(f.email)}</div></div></div></td>
+        <td class="dim">${escapeHtml(f.department || '—')}</td>
+        <td>${courses} course${courses === 1 ? '' : 's'}</td>
+        <td>${classes.length} class${classes.length === 1 ? '' : 'es'}</td>
+        <td>${susp ? '<span class="badge badge-rejected">suspended</span>' : '<span class="badge badge-approved">active</span>'}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <button class="btn btn-sm" data-view="${f.id}" title="View schedule"><i class="fas fa-eye"></i></button>
+          <button class="btn btn-sm" data-edit="${f.id}" title="Edit"><i class="fas fa-pen"></i></button>
+          <button class="btn btn-sm ${susp ? 'btn-success' : 'btn-danger'}" data-toggle="${f.id}" data-active="${!susp}"><i class="fas fa-${susp ? 'play' : 'ban'}"></i></button>
+        </td></tr>`;
+    }).join('');
+    document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => view(b.dataset.view));
+    document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => edit(b.dataset.edit));
+    document.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => toggle(b.dataset.toggle, b.dataset.active === 'true'));
+  }
+
+  function view(id) {
+    const f = faculty.find(x => x.id === id); if (!f) return;
+    const classes = tt.filter(t => t.faculty_id === id);
+    const byDay = new Map(); classes.forEach(c => { if (!byDay.has(c.day_of_week)) byDay.set(c.day_of_week, []); byDay.get(c.day_of_week).push(c); });
+    const sched = [1,2,3,4,5,6,0].filter(d => byDay.has(d)).map(d => `<div style="margin-bottom:14px"><div class="label-small" style="margin-bottom:6px">${DOW[d]}</div>${byDay.get(d).sort((a,b) => a.slot_id.localeCompare(b.slot_id)).map(c => `<div style="padding:10px;background:var(--surface-hover);border-radius:8px;margin-bottom:4px"><div style="font-family:monospace;font-weight:600;color:var(--brand);font-size:12px">${escapeHtml(c.course_code || '—')}</div><div style="font-size:12px;color:var(--text);margin-top:2px">${escapeHtml(c.section_id)} · ${escapeHtml(c.room_id)}</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">Slot ${escapeHtml(c.slot_id)}</div></div>`).join('')}</div>`).join('') || '<div class="empty">No classes assigned</div>';
+    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content modal-wide"><div class="modal-header"><div><div class="modal-title">${escapeHtml(f.full_name || f.email)}</div><div class="modal-sub">${escapeHtml(f.email)}</div></div><button class="modal-close" data-close><i class="fas fa-xmark"></i></button></div><div class="modal-body"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px"><div><div class="label-small">Department</div><div style="font-weight:500">${escapeHtml(f.department || '—')}</div></div><div><div class="label-small">Phone</div><div style="font-weight:500">${escapeHtml(f.phone || '—')}</div></div><div><div class="label-small">Weekly classes</div><div style="font-weight:500">${classes.length}</div></div></div><div class="label-small" style="margin-bottom:8px">Weekly schedule</div>${sched}</div><div class="modal-footer"><button class="btn" data-close>Close</button></div></div>`;
+    document.body.appendChild(dialog); dialog.showModal();
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+  }
+
+  function edit(id) {
+    const f = faculty.find(x => x.id === id); if (!f) return;
+    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content"><div class="modal-header"><div class="modal-title">Edit ${escapeHtml(f.email)}</div><button class="modal-close" data-close><i class="fas fa-xmark"></i></button></div><div class="modal-body"><label class="field"><span>Full name</span><input class="input" data-field="full_name" value="${escapeHtml(f.full_name || '')}"></label><label class="field"><span>Department</span><input class="input" data-field="department" value="${escapeHtml(f.department || '')}"></label><label class="field"><span>Phone</span><input class="input" data-field="phone" value="${escapeHtml(f.phone || '')}"></label><label class="field"><span>Role</span><select class="input" data-field="role"><option value="faculty" ${f.role === 'faculty' ? 'selected' : ''}>faculty</option><option value="admin" ${f.role === 'admin' ? 'selected' : ''}>admin</option></select></label></div><div class="modal-footer"><button class="btn" data-close>Cancel</button><button class="btn btn-primary" data-save>Save</button></div></div>`;
+    document.body.appendChild(dialog); dialog.showModal();
+    dialog.querySelector('[data-save]').onclick = async () => {
+      const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
+      const { error } = await supabase.from('profiles').update({ full_name: get('full_name') || null, department: get('department') || null, phone: get('phone') || null, role: get('role') }).eq('id', id);
+      if (error) return toast(error.message, 'error');
+      toast('Updated', 'success'); dialog.close(); dialog.remove(); await load();
+    };
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+  }
+
+  async function toggle(id, active) {
+    const { error } = await supabase.from('profiles').update({ is_active: !active, suspended_at: active ? new Date().toISOString() : null, suspended_reason: active ? 'Suspended by admin' : null }).eq('id', id);
+    if (error) return toast(error.message, 'error');
+    toast(active ? 'Suspended' : 'Reactivated', 'success'); await load();
+  }
+
+  document.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filter = b.dataset.f; document.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === b)); render(); });
+  $('search').oninput = e => { search = e.target.value.trim(); render(); };
+  await load();
+})();
+</script>
+</body>
+</html>

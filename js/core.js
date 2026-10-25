@@ -1,7 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 export { SUPABASE_URL, SUPABASE_ANON_KEY };
-
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export const BASE = new URL('.', location.href).href;
 
@@ -70,11 +69,6 @@ export function currentSlot(slots, dateStr = todayISO()) {
   const nowStr = formatTime(nowDate());
   return slots.find(s => nowStr >= s.start_time && nowStr < s.end_time) || null;
 }
-export function nextSlot(slots, dateStr = todayISO()) {
-  if (dateStr !== todayISO()) return null;
-  const nowStr = formatTime(nowDate());
-  return slots.find(s => s.start_time > nowStr) || null;
-}
 export function classifyCell({ roomId, slotId, dateStr, timetable, bookings, calendarEntry }) {
   if (calendarEntry && calendarEntry.kind === 'holiday') {
     return { state: 'holiday', label: 'Holiday', reason: calendarEntry.label || 'Holiday' };
@@ -88,10 +82,7 @@ export function classifyCell({ roomId, slotId, dateStr, timetable, bookings, cal
   const bk = bookings.find(b => b.room_id === roomId && b.slot_id === slotId && (b.status === 'pending' || b.status === 'approved'));
   if (bk) {
     const labelMap = { makeup: 'Makeup', exam: 'Exam', event: 'Event', maintenance: 'Maint', regular: 'Class' };
-    return {
-      state: bk.type === 'makeup' ? 'makeup' : bk.type === 'exam' ? 'exam' : bk.type === 'event' ? 'exam' : bk.type === 'maintenance' ? 'maint' : 'class',
-      label: labelMap[bk.type] || 'Booked', reason: bk.reason || labelMap[bk.type] || 'Booked', detail: bk,
-    };
+    return { state: bk.type === 'makeup' ? 'makeup' : bk.type === 'exam' ? 'exam' : bk.type === 'event' ? 'exam' : bk.type === 'maintenance' ? 'maint' : 'class', label: labelMap[bk.type] || 'Booked', reason: bk.reason || labelMap[bk.type] || 'Booked', detail: bk };
   }
   return { state: 'free', label: 'Free', reason: 'No class, no booking' };
 }
@@ -113,18 +104,6 @@ export async function loadDataForDate(dateStr) {
     supabase.from('academic_calendar').select('*').eq('date', dateStr).maybeSingle(),
   ]);
   return { timetable: tt ?? [], bookings: bk ?? [], calendarEntry: cal ?? null };
-}
-export async function roomsFreeRightNow() {
-  const base = await loadBaseData();
-  const today = todayISO();
-  const slot = currentSlot(base.slots, today);
-  if (!slot) return { slot: null, free: [], total: base.rooms.length };
-  const { timetable, bookings, calendarEntry } = await loadDataForDate(today);
-  const free = base.rooms.filter(r => {
-    const c = classifyCell({ roomId: r.room_id, slotId: slot.slot_id, dateStr: today, timetable, bookings, calendarEntry });
-    return c.state === 'free';
-  });
-  return { slot, free, total: base.rooms.length };
 }
 export function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
@@ -192,20 +171,21 @@ export function renderNav(profile) {
   const roleIcon = profile.role === 'admin' ? 'shield-halved' : profile.role === 'faculty' ? 'chalkboard-user' : 'graduation-cap';
   const home = profile.role === 'admin' ? 'admin.html' : profile.role === 'faculty' ? 'faculty.html' : 'student.html';
   const currentPage = location.pathname.split('/').pop() || 'admin.html';
+  const isManagePage = currentPage.startsWith('admin-') && currentPage !== 'admin.html';
 
   const items = profile.role === 'admin' ? [
-    { href: 'admin.html', label: 'Dashboard', icon: 'fa-gauge-high' },
-    { href: 'admin-control.html', label: 'Control Center', icon: 'fa-sliders' },
-    { href: 'student.html', label: 'Free rooms', icon: 'fa-building' },
+    { href: 'admin.html', label: 'Dashboard', icon: 'fa-gauge-high', active: currentPage === 'admin.html' },
+    { href: 'admin-faculty.html', label: 'Manage', icon: 'fa-sliders', active: isManagePage },
+    { href: 'student.html', label: 'Free rooms', icon: 'fa-building', active: currentPage === 'student.html' },
   ] : profile.role === 'faculty' ? [
-    { href: 'faculty.html', label: 'Dashboard', icon: 'fa-gauge-high' },
-    { href: 'student.html', label: 'Free rooms', icon: 'fa-building' },
-    { href: 'student-timetable.html', label: 'All timetable', icon: 'fa-table' },
-    { href: 'profile.html', label: 'Profile', icon: 'fa-user' },
+    { href: 'faculty.html', label: 'Dashboard', icon: 'fa-gauge-high', active: currentPage === 'faculty.html' },
+    { href: 'student.html', label: 'Free rooms', icon: 'fa-building', active: currentPage === 'student.html' },
+    { href: 'student-timetable.html', label: 'All timetable', icon: 'fa-table', active: currentPage === 'student-timetable.html' },
+    { href: 'profile.html', label: 'Profile', icon: 'fa-user', active: currentPage === 'profile.html' },
   ] : [
-    { href: 'student.html', label: 'Free rooms', icon: 'fa-building' },
-    { href: 'student-timetable.html', label: 'My timetable', icon: 'fa-table' },
-    { href: 'profile.html', label: 'Profile', icon: 'fa-user' },
+    { href: 'student.html', label: 'Free rooms', icon: 'fa-building', active: currentPage === 'student.html' },
+    { href: 'student-timetable.html', label: 'My timetable', icon: 'fa-table', active: currentPage === 'student-timetable.html' },
+    { href: 'profile.html', label: 'Profile', icon: 'fa-user', active: currentPage === 'profile.html' },
   ];
 
   el.innerHTML = `
@@ -213,7 +193,7 @@ export function renderNav(profile) {
       <div class="nav-inner">
         <a href="${home}" class="nav-brand">LPU<span class="nav-brand-dot">.</span>Scheduler</a>
         <div class="nav-links">
-          ${items.map(l => `<a href="${l.href}" class="nav-link ${currentPage === l.href ? 'active' : ''}"><i class="fas ${l.icon}"></i>${l.label}</a>`).join('')}
+          ${items.map(l => `<a href="${l.href}" class="nav-link ${l.active ? 'active' : ''}"><i class="fas ${l.icon}"></i>${l.label}</a>`).join('')}
         </div>
         <div class="nav-actions">
           <button class="nav-icon-btn" data-theme-toggle aria-label="Toggle theme"></button>

@@ -8,134 +8,92 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+<style>
+.conflict-box{padding:10px 12px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:8px;color:var(--warning-text);font-size:12px;margin-top:8px;line-height:1.5}
+.conflict-box ul{margin:4px 0 0 18px}
+.import-help{padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);margin-bottom:14px;line-height:1.5}
+.import-help code{background:rgba(0,0,0,0.08);padding:1px 5px;border-radius:3px;font-family:monospace}
+.import-ta{width:100%;padding:14px;font-family:monospace;font-size:12px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text);resize:vertical;min-height:180px}
+.import-ta:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+</style>
 </head>
 <body>
 <div id="nav"></div>
 <div class="container">
   <div class="page-header">
-    <div>
-      <h1 class="page-title"><i class="fas fa-table"></i> Timetable</h1>
-      <p class="page-subtitle">Import live data from your university — or add rows one by one.</p>
-    </div>
+    <div><h1 class="page-title"><i class="fas fa-table"></i> Timetable</h1><p class="page-subtitle">Manage class schedules. Conflicts detected automatically.</p></div>
     <div class="row">
-      <button class="btn" id="importBtn"><i class="fas fa-file-import"></i> Bulk import</button>
+      <button class="btn" id="exportBtn"><i class="fas fa-download"></i> Export</button>
+      <button class="btn" id="importBtn"><i class="fas fa-file-import"></i> Import CSV</button>
       <button class="btn btn-primary" id="addBtn"><i class="fas fa-plus"></i> Add row</button>
     </div>
   </div>
-
-  <div class="row" style="gap:8px;margin-bottom:16px">
-    <select class="input" id="sectionFilter" style="max-width:220px"><option value="">All sections</option></select>
-    <select class="input" id="dayFilter" style="max-width:160px">
-      <option value="">All days</option>
-      <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
-      <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option>
-      <option value="0">Sunday</option>
-    </select>
-    <div class="search-wrap" style="margin-left:auto;max-width:320px">
-      <i class="fas fa-search search-icon"></i>
-      <input class="input" id="searchInput" placeholder="Search course, room, section…">
-    </div>
+  <div class="admin-tabs">
+    <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-chalkboard-user"></i> Faculty</a>
+    <a href="admin-batches.html" class="admin-tab"><i class="fas fa-users-rectangle"></i> Batches</a>
+    <a href="admin-courses.html" class="admin-tab"><i class="fas fa-book"></i> Courses</a>
+    <a href="admin-timetable.html" class="admin-tab active"><i class="fas fa-table"></i> Timetable</a>
+    <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
+    <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
+    <a href="admin-buildings.html" class="admin-tab"><i class="fas fa-building"></i> Buildings</a>
+    <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
+    <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
+    <a href="admin-users.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
   </div>
-
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Section</th>
-          <th>Day</th>
-          <th>Slot</th>
-          <th>Room</th>
-          <th>Course</th>
-          <th>Faculty</th>
-          <th style="text-align:right">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="body"><tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</td></tr></tbody>
-    </table>
+  <div class="row" style="margin-bottom:16px;gap:8px">
+    <select class="input" id="secFilter" style="max-width:200px"><option value="">All batches</option></select>
+    <select class="input" id="dayFilter" style="max-width:160px"><option value="">All days</option><option value="1">Mon</option><option value="2">Tue</option><option value="3">Wed</option><option value="4">Thu</option><option value="5">Fri</option><option value="6">Sat</option><option value="0">Sun</option></select>
+    <div class="search-wrap" style="margin-left:auto;max-width:360px"><i class="fas fa-search search-icon"></i><input class="input" id="search" placeholder="Search course, room, faculty…"></div>
   </div>
+  <div class="table-wrap"><table><thead><tr><th>Batch</th><th>Day</th><th>Slot</th><th>Room</th><th>Course</th><th>Faculty</th><th style="text-align:right">Actions</th></tr></thead><tbody id="body"></tbody></table></div>
 </div>
-
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.js';
-
+import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from './js/core.js';
 (async () => {
-  const auth = await requireRole(['admin']);
-  if (!auth) return;
+  const auth = await requireRole(['admin']); if (!auth) return;
   renderNav(auth.profile);
-
   const $ = id => document.getElementById(id);
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  let rows = [];
-  let secs = [], slots = [], rooms = [], faculty = [];
-  let sectionFilter = '', dayFilter = '', search = '';
+  const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let tt = [], slots = [], rooms = [], sections = [], users = [], courses = [], sec = '', day = '', search = '';
 
   async function load() {
-    const [{ data: t }, { data: s }, { data: sl }, { data: r }, { data: f }] = await Promise.all([
+    const [{ data: t }, { data: s }, { data: r }, { data: se }, { data: u }, { data: c }] = await Promise.all([
       supabase.from('timetable').select('*').order('section_id').order('day_of_week'),
-      supabase.from('sections').select('*').order('section_id'),
       supabase.from('time_slots').select('*').eq('is_active', true).order('sort_order'),
-      supabase.from('rooms').select('room_id,display_name').order('display_name'),
-      supabase.from('profiles').select('id,full_name,email').eq('role', 'faculty').order('full_name'),
+      supabase.from('rooms').select('room_id,display_name'),
+      supabase.from('sections').select('*').order('section_id'),
+      supabase.from('profiles').select('id,full_name,email').in('role', ['faculty', 'admin']),
+      supabase.from('courses').select('*').order('course_id'),
     ]);
-    rows = t ?? [];
-    secs = s ?? [];
-    slots = sl ?? [];
-    rooms = r ?? [];
-    faculty = f ?? [];
-
-    $('sectionFilter').innerHTML = `<option value="">All sections</option>${secs.map(x => `<option value="${escapeHtml(x.section_id)}">${escapeHtml(x.section_id)} — ${escapeHtml(x.name)}</option>`).join('')}`;
+    tt = t ?? []; slots = s ?? []; rooms = r ?? []; sections = se ?? []; users = u ?? []; courses = c ?? [];
+    $('secFilter').innerHTML = `<option value="">All batches</option>${sections.map(x => `<option value="${escapeHtml(x.section_id)}" ${sec === x.section_id ? 'selected' : ''}>${escapeHtml(x.section_id)}</option>`).join('')}`;
     render();
   }
 
-  function filtered() {
-    let list = rows;
-    if (sectionFilter) list = list.filter(r => r.section_id === sectionFilter);
-    if (dayFilter !== '') list = list.filter(r => r.day_of_week === parseInt(dayFilter));
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter(r =>
-        (r.course_code || '').toLowerCase().includes(q) ||
-        (r.course_name || '').toLowerCase().includes(q) ||
-        r.room_id.toLowerCase().includes(q) ||
-        r.section_id.toLowerCase().includes(q)
-      );
-    }
-    return list;
-  }
-
   function render() {
-    const list = filtered();
-    if (!list.length) {
-      $('body').innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-inbox"></i>No timetable rows</td></tr>';
-      return;
-    }
-    const slotById = new Map(slots.map(s => [s.slot_id, s]));
-    const roomById = new Map(rooms.map(r => [r.room_id, r.display_name]));
-    const facById = new Map(faculty.map(f => [f.id, f]));
-
+    let list = tt;
+    if (sec) list = list.filter(r => r.section_id === sec);
+    if (day !== '') list = list.filter(r => r.day_of_week === parseInt(day));
+    if (search) { const q = search.toLowerCase(); list = list.filter(r => (r.course_code || '').toLowerCase().includes(q) || (r.course_name || '').toLowerCase().includes(q) || r.room_id.toLowerCase().includes(q) || r.section_id.toLowerCase().includes(q)); }
+    const slotMap = new Map(slots.map(s => [s.slot_id, s]));
+    const roomMap = new Map(rooms.map(r => [r.room_id, r.display_name]));
+    const userMap = new Map(users.map(u => [u.id, u]));
+    if (!list.length) { $('body').innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-inbox"></i>No rows match</td></tr>'; return; }
     $('body').innerHTML = list.map(r => {
-      const slot = slotById.get(r.slot_id);
-      const fac = facById.get(r.faculty_id);
-      return `
-        <tr>
-          <td><span class="badge badge-admin">${escapeHtml(r.section_id)}</span></td>
-          <td>${dayNames[r.day_of_week]}</td>
-          <td>
-            <div class="mono" style="font-size:12px">${escapeHtml(slot?.label || r.slot_id)}</div>
-            <div style="font-size:10px;color:var(--text-muted)">${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)}</div>
-          </td>
-          <td class="mono">${escapeHtml(roomById.get(r.room_id) || r.room_id)}</td>
-          <td>
-            <div style="font-size:12px;font-weight:600;color:var(--text)">${escapeHtml(r.course_code || '—')}</div>
-            <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(r.course_name || '')}</div>
-          </td>
-          <td class="dim" style="font-size:12px">${escapeHtml(fac?.full_name || fac?.email || '—')}</td>
-          <td style="text-align:right;white-space:nowrap">
-            <button class="btn btn-sm btn-danger" data-del="${r.id}"><i class="fas fa-trash"></i></button>
-          </td>
-        </tr>`;
+      const slot = slotMap.get(r.slot_id);
+      const fac = userMap.get(r.faculty_id);
+      return `<tr>
+        <td><span class="badge badge-admin">${escapeHtml(r.section_id)}</span></td>
+        <td style="font-weight:500">${DOW[r.day_of_week]}</td>
+        <td><div class="mono" style="font-size:12px">${escapeHtml(slot?.label || r.slot_id)}</div><div style="font-size:10px;color:var(--text-muted)">${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)}</div></td>
+        <td class="mono">${escapeHtml(roomMap.get(r.room_id) || r.room_id)}</td>
+        <td><div style="font-size:12px;font-weight:600">${escapeHtml(r.course_code || '—')}</div><div style="font-size:11px;color:var(--text-muted)">${escapeHtml(r.course_name || '')}</div></td>
+        <td class="dim" style="font-size:12px">${escapeHtml(fac?.full_name || fac?.email || '—')}</td>
+        <td style="text-align:right;white-space:nowrap"><button class="btn btn-sm" data-edit="${r.id}"><i class="fas fa-pen"></i></button><button class="btn btn-sm btn-danger" data-del="${r.id}"><i class="fas fa-trash"></i></button></td>
+      </tr>`;
     }).join('');
-
+    document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => edit(tt.find(x => x.id === b.dataset.edit)));
     document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
       if (!confirm('Delete this row?')) return;
       const { error } = await supabase.from('timetable').delete().eq('id', b.dataset.del);
@@ -144,198 +102,83 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     });
   }
 
-  /* ==== ADD ONE ROW ==== */
-  $('addBtn').onclick = () => {
-    const dialog = document.createElement('dialog');
-    dialog.className = 'modal-dialog';
-    dialog.innerHTML = `
-      <div class="modal-content modal-wide">
-        <div class="modal-header">
-          <div class="modal-title">Add timetable row</div>
-          <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
-        </div>
-        <div class="modal-body">
-          <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
-            <label class="field"><span>Section</span>
-              <select class="input" data-field="section_id">
-                ${secs.map(s => `<option value="${escapeHtml(s.section_id)}">${escapeHtml(s.section_id)} — ${escapeHtml(s.name)}</option>`).join('')}
-              </select>
-            </label>
-            <label class="field"><span>Day</span>
-              <select class="input" data-field="day_of_week">
-                <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
-                <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option>
-                <option value="0">Sunday</option>
-              </select>
-            </label>
-            <label class="field"><span>Slot</span>
-              <select class="input" data-field="slot_id">
-                ${slots.map(s => `<option value="${escapeHtml(s.slot_id)}">${escapeHtml(s.label || s.slot_id)} (${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)})</option>`).join('')}
-              </select>
-            </label>
-            <label class="field"><span>Room</span>
-              <select class="input" data-field="room_id">
-                ${rooms.map(r => `<option value="${escapeHtml(r.room_id)}">${escapeHtml(r.display_name)}</option>`).join('')}
-              </select>
-            </label>
-            <label class="field"><span>Faculty</span>
-              <select class="input" data-field="faculty_id">
-                <option value="">— none —</option>
-                ${faculty.map(f => `<option value="${f.id}">${escapeHtml(f.full_name || f.email)}</option>`).join('')}
-              </select>
-            </label>
-            <label class="field"><span>Course code</span><input class="input" data-field="course_code" placeholder="CS401"></label>
-            <label class="field"><span>Course name</span><input class="input" data-field="course_name" placeholder="Compiler Design"></label>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn" data-close>Cancel</button>
-          <button class="btn btn-primary" data-save>Add row</button>
-        </div>
-      </div>`;
-    document.body.appendChild(dialog);
-    dialog.showModal();
-
+  function edit(existing) {
+    if (!sections.length) return toast('Create a batch first', 'error');
+    if (!slots.length) return toast('Create a time slot first', 'error');
+    if (!rooms.length) return toast('Create a room first', 'error');
+    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content modal-wide"><div class="modal-header"><div class="modal-title">${existing ? 'Edit' : 'Add'} timetable row</div><button class="modal-close" data-close><i class="fas fa-xmark"></i></button></div><div class="modal-body"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px"><label class="field"><span>Batch *</span><select class="input" data-field="section_id">${sections.map(s => `<option value="${escapeHtml(s.section_id)}" ${existing?.section_id === s.section_id ? 'selected' : ''}>${escapeHtml(s.section_id)} — ${escapeHtml(s.name)}</option>`).join('')}</select></label><label class="field"><span>Day *</span><select class="input" data-field="day_of_week">${[1,2,3,4,5,6,0].map(d => `<option value="${d}" ${existing?.day_of_week === d ? 'selected' : ''}>${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d]}</option>`).join('')}</select></label><label class="field"><span>Slot *</span><select class="input" data-field="slot_id">${slots.map(s => `<option value="${escapeHtml(s.slot_id)}" ${existing?.slot_id === s.slot_id ? 'selected' : ''}>${escapeHtml(s.label || s.slot_id)}</option>`).join('')}</select></label><label class="field"><span>Room *</span><select class="input" data-field="room_id">${rooms.map(r => `<option value="${escapeHtml(r.room_id)}" ${existing?.room_id === r.room_id ? 'selected' : ''}>${escapeHtml(r.display_name)}</option>`).join('')}</select></label><label class="field"><span>Faculty</span><select class="input" data-field="faculty_id"><option value="">— none —</option>${users.map(u => `<option value="${u.id}" ${existing?.faculty_id === u.id ? 'selected' : ''}>${escapeHtml(u.full_name || u.email)}</option>`).join('')}</select></label><label class="field"><span>Course</span><select class="input" data-field="course_code"><option value="">— none —</option>${courses.map(c => `<option value="${escapeHtml(c.course_id)}" ${existing?.course_code === c.course_id ? 'selected' : ''}>${escapeHtml(c.course_id)} — ${escapeHtml(c.name)}</option>`).join('')}</select></label></div><div id="conflictZone"></div></div><div class="modal-footer"><button class="btn" data-close>Cancel</button><button class="btn btn-primary" data-save>Save</button></div></div>`;
+    document.body.appendChild(dialog); dialog.showModal();
     dialog.querySelector('[data-save]').onclick = async () => {
       const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
-      const payload = {
-        section_id: get('section_id'),
-        day_of_week: parseInt(get('day_of_week')),
-        slot_id: get('slot_id'),
-        room_id: get('room_id'),
-        faculty_id: get('faculty_id') || null,
-        course_code: get('course_code') || null,
-        course_name: get('course_name') || null,
-        is_active: true,
-      };
-      const { error } = await supabase.from('timetable').upsert(payload, { onConflict: 'section_id,day_of_week,slot_id' });
-      if (error) return toast(error.message, 'error');
-      toast('Added', 'success');
-      dialog.close(); dialog.remove();
-      await load();
+      const sec = get('section_id'), dow = parseInt(get('day_of_week')), slot = get('slot_id'), room = get('room_id'), fac = get('faculty_id') || null, code = get('course_code') || null;
+      const conflicts = [];
+      const rClash = tt.find(t => t.room_id === room && t.day_of_week === dow && t.slot_id === slot && t.id !== existing?.id);
+      if (rClash) conflicts.push(`Room ${room} taken by ${rClash.section_id}`);
+      if (fac) { const fClash = tt.find(t => t.faculty_id === fac && t.day_of_week === dow && t.slot_id === slot && t.id !== existing?.id); if (fClash) conflicts.push(`Faculty teaching ${fClash.section_id} at this time`); }
+      const bClash = tt.find(t => t.section_id === sec && t.day_of_week === dow && t.slot_id === slot && t.id !== existing?.id);
+      if (bClash) conflicts.push(`Batch ${sec} already has a class at this time`);
+      if (conflicts.length) { dialog.querySelector('#conflictZone').innerHTML = `<div class="conflict-box"><strong><i class="fas fa-triangle-exclamation"></i> Conflicts detected</strong><ul>${conflicts.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul></div>`; return; }
+      const payload = { section_id: sec, day_of_week: dow, slot_id: slot, room_id: room, faculty_id: fac, course_code: code, is_active: true };
+      if (code) { const cat = courses.find(c => c.course_id === code); if (cat) payload.course_name = cat.name; }
+      const r = existing ? await supabase.from('timetable').update(payload).eq('id', existing.id) : await supabase.from('timetable').upsert(payload, { onConflict: 'section_id,day_of_week,slot_id' });
+      if (r.error) return toast(r.error.message, 'error');
+      toast(existing ? 'Updated' : 'Added', 'success'); dialog.close(); dialog.remove(); await load();
     };
-
     const close = () => { dialog.close(); dialog.remove(); };
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
     dialog.onclick = e => { if (e.target === dialog) close(); };
+  }
+
+  $('secFilter').onchange = e => { sec = e.target.value; render(); };
+  $('dayFilter').onchange = e => { day = e.target.value; render(); };
+  $('search').oninput = e => { search = e.target.value.trim(); render(); };
+  $('addBtn').onclick = () => edit();
+
+  $('exportBtn').onclick = () => {
+    const userMap = new Map(users.map(u => [u.id, u]));
+    const csv = ['section_id,day_of_week,slot_id,room_id,faculty_email,course_code,course_name'].concat(tt.map(r => [r.section_id, r.day_of_week, r.slot_id, r.room_id, userMap.get(r.faculty_id)?.email || '', r.course_code || '', `"${(r.course_name || '').replace(/"/g, '""')}"`].join(','))).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `timetable-${todayISO()}.csv`; a.click();
+    toast('Exported', 'success');
   };
 
-  /* ==== BULK IMPORT ==== */
   $('importBtn').onclick = () => {
-    const dialog = document.createElement('dialog');
-    dialog.className = 'modal-dialog';
-    dialog.innerHTML = `
-      <div class="modal-content modal-wide">
-        <div class="modal-header">
-          <div>
-            <div class="modal-title">Bulk import timetable</div>
-            <div class="modal-sub">Paste CSV — one row per class. Existing rows for the same section + day + slot are updated.</div>
-          </div>
-          <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
-        </div>
-        <div class="modal-body">
-          <div class="info-note" style="padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:10px;font-size:12px;color:var(--info-text);margin-bottom:16px">
-            <i class="fas fa-circle-info"></i>
-            <div><strong>Format:</strong> <code>section_id,day_of_week,slot_id,room_id,faculty_email,course_code,course_name</code><br>
-            day_of_week: 1=Mon … 6=Sat, 0=Sun. faculty_email is optional. Comma or tab separated.</div>
-          </div>
-          <textarea id="csvInput" class="input" rows="14" style="font-family:'JetBrains Mono',monospace;font-size:12px;width:100%" placeholder="section_id,day_of_week,slot_id,room_id,faculty_email,course_code,course_name
-CSE-4A,1,P1,27-107,faculty1@lpu.in,CS401,Compiler Design
-CSE-4A,1,P2,27-107,faculty2@lpu.in,CS402,Computer Networks"></textarea>
-          <div id="preview" style="margin-top:16px"></div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn" data-close>Cancel</button>
-          <button class="btn btn-primary" id="parseBtn"><i class="fas fa-eye"></i> Preview</button>
-          <button class="btn btn-success" id="importNow" disabled><i class="fas fa-upload"></i> Import</button>
-        </div>
-      </div>`;
-    document.body.appendChild(dialog);
-    dialog.showModal();
-
+    const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content modal-wide"><div class="modal-header"><div><div class="modal-title">Bulk import timetable</div><div class="modal-sub">Paste CSV — existing rows for same batch+day+slot are updated</div></div><button class="modal-close" data-close><i class="fas fa-xmark"></i></button></div><div class="modal-body"><div class="import-help"><strong>Format:</strong> <code>section_id,day_of_week,slot_id,room_id,faculty_email,course_code,course_name</code><br>• day_of_week: 1=Mon … 6=Sat, 0=Sun<br>• faculty_email optional</div><textarea id="csvInput" class="import-ta" placeholder="section_id,day_of_week,slot_id,room_id,faculty_email,course_code,course_name
+CSE-4A,1,P1,27-107,22222222@lpu.in,CS401,Compiler Design"></textarea><div id="preview"></div></div><div class="modal-footer"><button class="btn" data-close>Cancel</button><button class="btn btn-primary" id="parseBtn"><i class="fas fa-eye"></i> Preview</button><button class="btn btn-success" id="importNow" disabled><i class="fas fa-upload"></i> Import</button></div></div>`;
+    document.body.appendChild(dialog); dialog.showModal();
     let parsed = [];
-
-    dialog.querySelector('#parseBtn').onclick = async () => {
-      const raw = dialog.querySelector('#csvInput').value.trim();
-      if (!raw) return toast('Paste CSV first', 'error');
-      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
-      if (lines.length < 2) return toast('Need header + at least one row', 'error');
-
-      const delim = lines[0].includes('\t') ? '\t' : ',';
-      const header = lines[0].split(delim).map(x => x.trim().toLowerCase());
+    dialog.querySelector('#parseBtn').onclick = () => {
+      const raw = dialog.querySelector('#csvInput').value.trim(); if (!raw) return toast('Paste CSV first', 'error');
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean); if (lines.length < 2) return toast('Need header + row', 'error');
+      const delim = lines[0].includes('\t') ? '\t' : ','; const header = lines[0].split(delim).map(x => x.trim().toLowerCase());
       const idx = k => header.indexOf(k);
-
-      const need = ['section_id', 'day_of_week', 'slot_id', 'room_id'];
-      const missing = need.filter(k => idx(k) < 0);
-      if (missing.length) return toast('Missing columns: ' + missing.join(', '), 'error');
-
-      // Build email→uuid map for faculty
-      const emailToId = new Map(faculty.map(f => [f.email.toLowerCase(), f.id]));
-
-      parsed = [];
-      const errs = [];
+      const req = ['section_id','day_of_week','slot_id','room_id']; const miss = req.filter(k => idx(k) < 0);
+      if (miss.length) return toast('Missing: ' + miss.join(', '), 'error');
+      const emailMap = new Map(users.map(u => [u.email.toLowerCase(), u.id]));
+      parsed = []; const errs = [];
       for (let i = 1; i < lines.length; i++) {
-        const parts = lines[i].split(delim).map(x => x.trim());
-        const row = {
-          section_id: parts[idx('section_id')],
-          day_of_week: parseInt(parts[idx('day_of_week')]),
-          slot_id: parts[idx('slot_id')],
-          room_id: parts[idx('room_id')],
-          faculty_id: idx('faculty_email') >= 0 ? (emailToId.get((parts[idx('faculty_email')] || '').toLowerCase()) || null) : null,
-          course_code: idx('course_code') >= 0 ? (parts[idx('course_code')] || null) : null,
-          course_name: idx('course_name') >= 0 ? (parts[idx('course_name')] || null) : null,
-          is_active: true,
-        };
-        if (!row.section_id || isNaN(row.day_of_week) || !row.slot_id || !row.room_id) {
-          errs.push(`Row ${i + 1}: missing required field`);
-          continue;
-        }
+        const p = lines[i].split(delim).map(x => x.trim());
+        const row = { section_id: p[idx('section_id')], day_of_week: parseInt(p[idx('day_of_week')]), slot_id: p[idx('slot_id')], room_id: p[idx('room_id')], faculty_id: idx('faculty_email') >= 0 ? (emailMap.get((p[idx('faculty_email')] || '').toLowerCase()) || null) : null, course_code: idx('course_code') >= 0 ? (p[idx('course_code')] || null) : null, course_name: idx('course_name') >= 0 ? (p[idx('course_name')] || null) : null, is_active: true };
+        if (!row.section_id || isNaN(row.day_of_week) || !row.slot_id || !row.room_id) { errs.push(`Row ${i + 1}`); continue; }
         parsed.push(row);
       }
-
-      const preview = dialog.querySelector('#preview');
-      preview.innerHTML = `
-        <div class="info-note" style="padding:12px;background:${errs.length ? 'var(--warning-soft)' : 'var(--success-soft)'};border:1px solid ${errs.length ? 'var(--warning-soft-border)' : 'var(--success-soft-border)'};border-radius:10px;color:${errs.length ? 'var(--warning-text)' : 'var(--success-text)'};font-size:13px">
-          <strong>${parsed.length}</strong> rows ready${errs.length ? ` · <strong>${errs.length}</strong> errors` : ''}
-          ${errs.length ? '<ul style="margin:6px 0 0 18px;font-size:12px">' + errs.slice(0, 5).map(e => `<li>${escapeHtml(e)}</li>`).join('') + '</ul>' : ''}
-        </div>`;
-
-      dialog.querySelector('#importNow').disabled = parsed.length === 0;
+      dialog.querySelector('#preview').innerHTML = `<div style="margin-top:14px;padding:12px;border-radius:8px;font-size:13px;${errs.length ? 'background:var(--warning-soft);color:var(--warning-text)' : 'background:var(--success-soft);color:var(--success-text)'}"><strong>${parsed.length}</strong> ready${errs.length ? ` · ${errs.length} errors` : ''}</div>`;
+      dialog.querySelector('#importNow').disabled = !parsed.length;
     };
-
     dialog.querySelector('#importNow').onclick = async () => {
-      const btn = dialog.querySelector('#importNow');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing…';
+      const btn = dialog.querySelector('#importNow'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing…';
       const { error } = await supabase.from('timetable').upsert(parsed, { onConflict: 'section_id,day_of_week,slot_id' });
-      if (error) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-upload"></i> Import';
-        return toast(error.message, 'error');
-      }
-      // Log the sync
-      try {
-        await supabase.from('sync_log').insert({
-          source: 'csv_upload', kind: 'timetable',
-          records_count: parsed.length, status: 'success',
-          synced_by: auth.session.user.id,
-        });
-      } catch {}
-      toast(`Imported ${parsed.length} rows`, 'success');
-      dialog.close(); dialog.remove();
-      await load();
+      if (error) { btn.disabled = false; btn.innerHTML = 'Import'; return toast(error.message, 'error'); }
+      toast(`Imported ${parsed.length} rows`, 'success'); dialog.close(); dialog.remove(); await load();
     };
-
     const close = () => { dialog.close(); dialog.remove(); };
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
     dialog.onclick = e => { if (e.target === dialog) close(); };
   };
-
-  $('sectionFilter').onchange = (e) => { sectionFilter = e.target.value; render(); };
-  $('dayFilter').onchange = (e) => { dayFilter = e.target.value; render(); };
-  $('searchInput').oninput = (e) => { search = e.target.value.trim(); render(); };
 
   await load();
 })();

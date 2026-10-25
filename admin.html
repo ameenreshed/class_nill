@@ -5,93 +5,71 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dashboard · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 <style>
-  .dash-stats { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: 20px; }
-  .dash-stat { padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; transition: all 160ms ease; text-decoration: none; color: inherit; display: block; }
-  .dash-stat:hover { border-color: var(--brand); transform: translateY(-2px); box-shadow: var(--shadow-md); }
-  .dash-stat-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--brand-soft); color: var(--brand); display: inline-flex; align-items: center; justify-content: center; font-size: 14px; margin-bottom: 12px; }
-  .dash-stat-val { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; color: var(--text); line-height: 1; }
-  .dash-stat-lbl { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
-
-  .dash-grid-2 { display: grid; gap: 16px; grid-template-columns: 1.3fr 1fr; margin-bottom: 20px; }
-  @media (max-width: 900px) { .dash-grid-2 { grid-template-columns: 1fr; } }
-
-  .preview-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); gap: 12px; text-decoration: none; color: inherit; cursor: pointer; transition: background 120ms ease; }
-  .preview-row:hover { background: var(--surface-hover); text-decoration: none; color: inherit; padding-left: 16px; padding-right: 16px; margin-left: -16px; margin-right: -16px; border-radius: 6px; }
-  .preview-row:last-child { border-bottom: none; }
-  .preview-info { min-width: 0; flex: 1; }
-  .preview-title { font-weight: 500; color: var(--text); font-size: 13px; }
-  .preview-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-
-  .health-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; gap: 12px; }
-  .health-row:last-child { border-bottom: none; }
-  .health-row.clickable { cursor: pointer; transition: color 120ms; }
-  .health-row.clickable:hover { color: var(--brand); }
-  .health-row.clickable:hover .health-label { color: var(--brand); }
-  .health-label { color: var(--text-secondary); }
-  .health-value { font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
-  .health-value.ok { color: var(--success); }
-  .health-value.warn { color: var(--warning); }
-  .health-value.bad { color: var(--danger); }
-
-  .live-banner { display: flex; align-items: center; gap: 16px; padding: 18px 22px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-  .live-indicator { display: flex; align-items: center; gap: 6px; color: var(--success); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: pulseDot 2s ease-in-out infinite; }
-  @keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.3); } }
-  .live-info-block { flex: 1; min-width: 200px; }
-  .live-slot-name { font-size: 15px; font-weight: 600; color: var(--text); }
-  .live-slot-time { font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
-  .live-counts { display: flex; gap: 28px; }
-  .live-count { text-align: right; }
-  .live-count-val { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
-  .live-count-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
-
-  .quick-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-  .quick-link { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; text-decoration: none; color: inherit; transition: all 140ms ease; }
-  .quick-link:hover { border-color: var(--brand); text-decoration: none; color: inherit; transform: translateX(2px); box-shadow: var(--shadow-sm); }
-  .quick-link-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--brand-soft); color: var(--brand); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
-  .quick-link-title { font-weight: 600; font-size: 13px; color: var(--text); }
-  .quick-link-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.dash-stats{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:20px}
+.dash-stat{padding:18px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:all 160ms ease;text-decoration:none;color:inherit;display:block}
+.dash-stat:hover{border-color:var(--brand);transform:translateY(-2px);box-shadow:var(--shadow-md);text-decoration:none;color:inherit}
+.dash-stat-icon{width:36px;height:36px;border-radius:10px;background:var(--brand-soft);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:12px}
+.dash-stat-val{font-size:26px;font-weight:700;letter-spacing:-0.03em;color:var(--text);line-height:1}
+.dash-stat-lbl{font-size:11px;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:0.05em;font-weight:500}
+.dash-grid-2{display:grid;gap:16px;grid-template-columns:1.3fr 1fr;margin-bottom:20px}
+@media(max-width:900px){.dash-grid-2{grid-template-columns:1fr}}
+.preview-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);gap:12px;text-decoration:none;color:inherit;cursor:pointer;transition:background 120ms ease}
+.preview-row:hover{background:var(--surface-hover);text-decoration:none;color:inherit;padding-left:16px;padding-right:16px;margin-left:-16px;margin-right:-16px;border-radius:6px}
+.preview-row:last-child{border-bottom:none}
+.preview-info{min-width:0;flex:1}
+.preview-title{font-weight:500;color:var(--text);font-size:13px}
+.preview-meta{font-size:11px;color:var(--text-muted);margin-top:2px}
+.health-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;gap:12px;text-decoration:none;color:inherit}
+.health-row:last-child{border-bottom:none}
+.health-row:hover{color:var(--brand);text-decoration:none}
+.health-label{color:var(--text-secondary)}
+.health-value{font-weight:600;font-family:'JetBrains Mono',monospace;font-size:12px}
+.health-value.ok{color:var(--success)}
+.health-value.warn{color:var(--warning)}
+.health-value.bad{color:var(--danger)}
+.live-banner{display:flex;align-items:center;gap:16px;padding:18px 22px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;flex-wrap:wrap}
+.live-indicator{display:flex;align-items:center;gap:6px;color:var(--success);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.05em}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulseDot 2s ease-in-out infinite}
+@keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+.live-info-block{flex:1;min-width:200px}
+.live-slot-name{font-size:15px;font-weight:600;color:var(--text)}
+.live-slot-time{font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.live-counts{display:flex;gap:28px}
+.live-count{text-align:right}
+.live-count-val{font-size:22px;font-weight:700;letter-spacing:-0.02em;line-height:1}
+.live-count-lbl{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px}
+.quick-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.quick-link{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:inherit;transition:all 140ms ease}
+.quick-link:hover{border-color:var(--brand);text-decoration:none;color:inherit;transform:translateX(2px);box-shadow:var(--shadow-sm)}
+.quick-link-icon{width:36px;height:36px;border-radius:8px;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.quick-link-title{font-weight:600;font-size:13px;color:var(--text)}
+.quick-link-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
 </style>
 </head>
 <body>
 <div id="nav"></div>
-
 <div class="container">
   <div class="page-header">
     <div>
       <h1 class="page-title"><i class="fas fa-gauge-high"></i> Dashboard</h1>
-      <p class="page-subtitle">
-        Welcome back, <strong id="welcomeName" style="color:var(--text)">…</strong>
-        · <span id="liveTime" class="mono">--:--:--</span>
-      </p>
+      <p class="page-subtitle">Welcome back, <strong id="welcomeName" style="color:var(--text)">…</strong> · <span id="liveTime" class="mono">--:--:--</span></p>
     </div>
-    <a href="admin-control.html" class="btn btn-primary">
-      <i class="fas fa-sliders"></i> Open Control Center
-    </a>
+    <a href="admin-faculty.html" class="btn btn-primary"><i class="fas fa-sliders"></i> Manage</a>
   </div>
 
-  <div class="live-banner" id="liveBanner">
-    <div class="live-indicator">
-      <span class="live-dot"></span>
-      <span>Live</span>
-    </div>
+  <div class="live-banner">
+    <div class="live-indicator"><span class="live-dot"></span><span>Live</span></div>
     <div class="live-info-block">
       <div class="live-slot-name" id="liveSlotName">No active period</div>
       <div class="live-slot-time" id="liveSlotTime">—</div>
     </div>
     <div class="live-counts">
-      <div class="live-count">
-        <div class="live-count-val" id="liveFree" style="color:var(--success)">—</div>
-        <div class="live-count-lbl">Free now</div>
-      </div>
-      <div class="live-count">
-        <div class="live-count-val" id="liveBusy" style="color:var(--warning)">—</div>
-        <div class="live-count-lbl">Busy now</div>
-      </div>
+      <div class="live-count"><div class="live-count-val" id="liveFree" style="color:var(--success)">—</div><div class="live-count-lbl">Free now</div></div>
+      <div class="live-count"><div class="live-count-val" id="liveBusy" style="color:var(--warning)">—</div><div class="live-count-lbl">Busy now</div></div>
     </div>
   </div>
 
@@ -99,77 +77,39 @@
 
   <div class="dash-grid-2">
     <div class="card">
-      <div class="card-title">
-        <i class="fas fa-hourglass-half" style="color:var(--warning)"></i>
-        Pending bookings
-        <span class="badge badge-pending" id="pendingCount" style="margin-left:auto">0</span>
-      </div>
-      <div id="pendingPreview"><div class="empty" style="padding:24px"><i class="fas fa-spinner fa-spin"></i></div></div>
-      <a href="admin-control.html?panel=bookings" class="btn btn-block" style="margin-top:12px">
-        <i class="fas fa-arrow-right"></i> Review in Control Center
-      </a>
+      <div class="card-title"><i class="fas fa-hourglass-half" style="color:var(--warning)"></i> Pending bookings <span class="badge badge-pending" id="pendingCount" style="margin-left:auto">0</span></div>
+      <div id="pendingPreview"></div>
+      <a href="admin-bookings.html" class="btn btn-block" style="margin-top:12px"><i class="fas fa-arrow-right"></i> Review bookings</a>
     </div>
-
     <div class="card">
       <div class="card-title"><i class="fas fa-heart-pulse"></i> System health</div>
-      <div id="health"><div class="empty" style="padding:24px"><i class="fas fa-spinner fa-spin"></i></div></div>
+      <div id="health"></div>
     </div>
   </div>
 
   <div class="card">
     <div class="card-title"><i class="fas fa-clock-rotate-left"></i> Recent activity</div>
-    <div id="activity"><div class="empty" style="padding:24px"><i class="fas fa-spinner fa-spin"></i></div></div>
+    <div id="activity"></div>
   </div>
 
   <div style="margin-top:24px">
     <div class="card-title" style="margin-bottom:12px"><i class="fas fa-bolt"></i> Manage everything</div>
     <div class="quick-grid">
-      <a href="admin-control.html?panel=faculty" class="quick-link">
-        <div class="quick-link-icon"><i class="fas fa-chalkboard-user"></i></div>
-        <div><div class="quick-link-title">Faculty</div><div class="quick-link-sub">Accounts, schedules, workload</div></div>
-      </a>
-      <a href="admin-control.html?panel=batches" class="quick-link">
-        <div class="quick-link-icon"><i class="fas fa-users-rectangle"></i></div>
-        <div><div class="quick-link-title">Batches</div><div class="quick-link-sub">Sections, students, courses</div></div>
-      </a>
-      <a href="admin-control.html?panel=courses" class="quick-link">
-        <div class="quick-link-icon"><i class="fas fa-book"></i></div>
-        <div><div class="quick-link-title">Courses</div><div class="quick-link-sub">Catalog, credits, departments</div></div>
-      </a>
-      <a href="admin-control.html?panel=timetable" class="quick-link">
-        <div class="quick-link-icon"><i class="fas fa-table"></i></div>
-        <div><div class="quick-link-title">Timetable</div><div class="quick-link-sub">Schedule, import, conflicts</div></div>
-      </a>
-      <a href="admin-control.html?panel=rooms" class="quick-link">
-        <div class="quick-link-icon"><i class="fas fa-door-open"></i></div>
-        <div><div class="quick-link-title">Rooms</div><div class="quick-link-sub">Capacity, type, schedules</div></div>
-      </a>
-      <a href="admin-control.html?panel=buildings" class="quick-link">
-        <div class="quick-link-icon"><i class="fas fa-building"></i></div>
-        <div><div class="quick-link-title">Buildings</div><div class="quick-link-sub">Blocks, floors, room counts</div></div>
-      </a>
-      <a href="admin-control.html?panel=slots" class="quick-link">
-        <div class="quick-link-icon"><i class="fas fa-clock"></i></div>
-        <div><div class="quick-link-title">Time slots</div><div class="quick-link-sub">Period definitions</div></div>
-      </a>
-      <a href="admin-control.html?panel=calendar" class="quick-link">
-        <div class="quick-link-icon"><i class="fas fa-calendar-days"></i></div>
-        <div><div class="quick-link-title">Calendar</div><div class="quick-link-sub">Holidays, exam weeks</div></div>
-      </a>
-      <a href="admin-control.html?panel=users" class="quick-link">
-        <div class="quick-link-icon"><i class="fas fa-users"></i></div>
-        <div><div class="quick-link-title">Users</div><div class="quick-link-sub">Roles, sections, access</div></div>
-      </a>
+      <a href="admin-faculty.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-chalkboard-user"></i></div><div><div class="quick-link-title">Faculty</div><div class="quick-link-sub">Accounts, schedules, workload</div></div></a>
+      <a href="admin-batches.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-users-rectangle"></i></div><div><div class="quick-link-title">Batches</div><div class="quick-link-sub">Sections, students, courses</div></div></a>
+      <a href="admin-courses.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-book"></i></div><div><div class="quick-link-title">Courses</div><div class="quick-link-sub">Catalog, credits, departments</div></div></a>
+      <a href="admin-timetable.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-table"></i></div><div><div class="quick-link-title">Timetable</div><div class="quick-link-sub">Schedule, import, conflicts</div></div></a>
+      <a href="admin-rooms.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-door-open"></i></div><div><div class="quick-link-title">Rooms</div><div class="quick-link-sub">Capacity, type, schedules</div></div></a>
+      <a href="admin-buildings.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-building"></i></div><div><div class="quick-link-title">Buildings</div><div class="quick-link-sub">Blocks, floors, room counts</div></div></a>
+      <a href="admin-slots.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-clock"></i></div><div><div class="quick-link-title">Time slots</div><div class="quick-link-sub">Period definitions</div></div></a>
+      <a href="admin-calendar.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-calendar-days"></i></div><div><div class="quick-link-title">Calendar</div><div class="quick-link-sub">Holidays, exam weeks</div></div></a>
+      <a href="admin-users.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-users"></i></div><div><div class="quick-link-title">Users</div><div class="quick-link-sub">Roles, sections, access</div></div></a>
     </div>
   </div>
 </div>
 
 <script type="module">
-import {
-  requireRole, renderNav, supabase, escapeHtml,
-  todayISO, nowDate, formatTime, formatRelativeTime,
-  dayOfWeekNum, humanDate, loadBaseData
-} from './js/core.js';
+import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, formatTime, formatRelativeTime, dayOfWeekNum, humanDate, loadBaseData } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
@@ -186,129 +126,65 @@ import {
     const today = todayISO();
     const dow = dayOfWeekNum(today);
     const nowStr = formatTime(nowDate());
-    const currentSlot = base.slots.find(s => nowStr >= s.start_time && nowStr < s.end_time);
+    const cur = base.slots.find(s => nowStr >= s.start_time && nowStr < s.end_time);
 
-    const [
-      { data: faculty }, { data: students }, { data: courses },
-      { data: timetableData }, { data: bookings },
-      { data: pendingBookings }, { data: todayBookings }
-    ] = await Promise.all([
+    const [{ data: fac }, { data: stu }, { data: co }, { data: tt }, { data: bk }, { data: pending }, { data: todayBk }] = await Promise.all([
       supabase.from('profiles').select('id').eq('role', 'faculty'),
       supabase.from('profiles').select('id').eq('role', 'student'),
       supabase.from('courses').select('course_id'),
-      supabase.from('timetable').select('room_id,slot_id,faculty_id').eq('day_of_week', dow).eq('is_active', true),
-      supabase.from('bookings').select('*').eq('book_date', today).in('status', ['pending', 'approved']),
+      supabase.from('timetable').select('room_id,slot_id').eq('day_of_week', dow).eq('is_active', true),
+      supabase.from('bookings').select('room_id,slot_id').eq('book_date', today).in('status', ['pending', 'approved']),
       supabase.from('bookings').select('*').eq('status', 'pending').order('created_at', { ascending: false }).limit(5),
       supabase.from('bookings').select('id').eq('book_date', today),
     ]);
 
     $('stats').innerHTML = `
-      <a href="admin-control.html?panel=faculty" class="dash-stat">
-        <div class="dash-stat-icon"><i class="fas fa-chalkboard-user"></i></div>
-        <div class="dash-stat-val">${faculty?.length ?? 0}</div>
-        <div class="dash-stat-lbl">Faculty</div>
-      </a>
-      <a href="admin-control.html?panel=batches" class="dash-stat">
-        <div class="dash-stat-icon"><i class="fas fa-users-rectangle"></i></div>
-        <div class="dash-stat-val">${base.sections.length}</div>
-        <div class="dash-stat-lbl">Batches</div>
-      </a>
-      <a href="admin-control.html?panel=courses" class="dash-stat">
-        <div class="dash-stat-icon"><i class="fas fa-book"></i></div>
-        <div class="dash-stat-val">${courses?.length ?? 0}</div>
-        <div class="dash-stat-lbl">Courses</div>
-      </a>
-      <a href="admin-control.html?panel=rooms" class="dash-stat">
-        <div class="dash-stat-icon"><i class="fas fa-door-open"></i></div>
-        <div class="dash-stat-val">${base.rooms.length}</div>
-        <div class="dash-stat-lbl">Rooms</div>
-      </a>
-      <a href="admin-control.html?panel=timetable" class="dash-stat">
-        <div class="dash-stat-icon"><i class="fas fa-table"></i></div>
-        <div class="dash-stat-val">${timetableData?.length ?? 0}</div>
-        <div class="dash-stat-lbl">Classes today</div>
-      </a>
-      <a href="admin-control.html?panel=users" class="dash-stat">
-        <div class="dash-stat-icon"><i class="fas fa-users"></i></div>
-        <div class="dash-stat-val">${students?.length ?? 0}</div>
-        <div class="dash-stat-lbl">Students</div>
-      </a>
-      <a href="admin-control.html?panel=bookings" class="dash-stat">
-        <div class="dash-stat-icon" style="background:var(--warning-soft);color:var(--warning)"><i class="fas fa-hourglass-half"></i></div>
-        <div class="dash-stat-val" style="color:var(--warning)">${pendingBookings?.length ?? 0}</div>
-        <div class="dash-stat-lbl">Pending</div>
-      </a>
-      <a href="admin-control.html?panel=bookings" class="dash-stat">
-        <div class="dash-stat-icon" style="background:var(--success-soft);color:var(--success)"><i class="fas fa-calendar-day"></i></div>
-        <div class="dash-stat-val" style="color:var(--success)">${todayBookings?.length ?? 0}</div>
-        <div class="dash-stat-lbl">Today's bookings</div>
-      </a>
-    `;
+      <a href="admin-faculty.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-chalkboard-user"></i></div><div class="dash-stat-val">${fac?.length ?? 0}</div><div class="dash-stat-lbl">Faculty</div></a>
+      <a href="admin-batches.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-users-rectangle"></i></div><div class="dash-stat-val">${base.sections.length}</div><div class="dash-stat-lbl">Batches</div></a>
+      <a href="admin-courses.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-book"></i></div><div class="dash-stat-val">${co?.length ?? 0}</div><div class="dash-stat-lbl">Courses</div></a>
+      <a href="admin-rooms.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-door-open"></i></div><div class="dash-stat-val">${base.rooms.length}</div><div class="dash-stat-lbl">Rooms</div></a>
+      <a href="admin-timetable.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-table"></i></div><div class="dash-stat-val">${tt?.length ?? 0}</div><div class="dash-stat-lbl">Classes today</div></a>
+      <a href="admin-users.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-users"></i></div><div class="dash-stat-val">${stu?.length ?? 0}</div><div class="dash-stat-lbl">Students</div></a>
+      <a href="admin-bookings.html" class="dash-stat"><div class="dash-stat-icon" style="background:var(--warning-soft);color:var(--warning)"><i class="fas fa-hourglass-half"></i></div><div class="dash-stat-val" style="color:var(--warning)">${pending?.length ?? 0}</div><div class="dash-stat-lbl">Pending</div></a>
+      <a href="admin-bookings.html" class="dash-stat"><div class="dash-stat-icon" style="background:var(--success-soft);color:var(--success)"><i class="fas fa-calendar-day"></i></div><div class="dash-stat-val" style="color:var(--success)">${todayBk?.length ?? 0}</div><div class="dash-stat-lbl">Today's bookings</div></a>`;
 
-    if (!currentSlot) {
+    if (!cur) {
       $('liveSlotName').textContent = 'No active period';
       $('liveSlotTime').textContent = 'Check back during class hours';
-      $('liveFree').textContent = '—';
-      $('liveBusy').textContent = '—';
+      $('liveFree').textContent = '—'; $('liveBusy').textContent = '—';
     } else {
-      const busyRooms = new Set();
-      (timetableData ?? []).filter(t => t.slot_id === currentSlot.slot_id).forEach(t => busyRooms.add(t.room_id));
-      (bookings ?? []).filter(b => b.slot_id === currentSlot.slot_id).forEach(b => busyRooms.add(b.room_id));
-      const free = base.rooms.length - busyRooms.size;
-      const mins = Math.max(0, Math.ceil((new Date(`${today}T${currentSlot.end_time}`) - nowDate()) / 60000));
-      $('liveSlotName').textContent = currentSlot.label || currentSlot.slot_id;
-      $('liveSlotTime').textContent = `${currentSlot.start_time.slice(0,5)}–${currentSlot.end_time.slice(0,5)} · ends in ${mins} min`;
-      $('liveFree').textContent = free;
-      $('liveBusy').textContent = busyRooms.size;
+      const busy = new Set();
+      (tt ?? []).filter(t => t.slot_id === cur.slot_id).forEach(t => busy.add(t.room_id));
+      (bk ?? []).filter(b => b.slot_id === cur.slot_id).forEach(b => busy.add(b.room_id));
+      const mins = Math.max(0, Math.ceil((new Date(`${today}T${cur.end_time}`) - nowDate()) / 60000));
+      $('liveSlotName').textContent = cur.label || cur.slot_id;
+      $('liveSlotTime').textContent = `${cur.start_time.slice(0,5)}–${cur.end_time.slice(0,5)} · ends in ${mins} min`;
+      $('liveFree').textContent = base.rooms.length - busy.size;
+      $('liveBusy').textContent = busy.size;
     }
 
-    $('pendingCount').textContent = pendingBookings?.length ?? 0;
-    if (!pendingBookings?.length) {
-      $('pendingPreview').innerHTML = `<div class="empty" style="padding:32px 16px">
-        <i class="fas fa-check-circle" style="color:var(--success)"></i>
-        <div style="margin-top:8px">All caught up — no pending requests</div>
-      </div>`;
+    $('pendingCount').textContent = pending?.length ?? 0;
+    if (!pending?.length) {
+      $('pendingPreview').innerHTML = '<div class="empty" style="padding:32px 16px"><i class="fas fa-check-circle" style="color:var(--success)"></i><div style="margin-top:8px">All caught up — no pending requests</div></div>';
     } else {
-      const roomById = new Map(base.rooms.map(r => [r.room_id, r]));
-      const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
-      $('pendingPreview').innerHTML = pendingBookings.map(b => {
-        const room = roomById.get(b.room_id);
-        const slot = slotById.get(b.slot_id);
-        return `<a href="admin-control.html?panel=bookings" class="preview-row">
-          <div class="preview-info">
-            <div class="preview-title">
-              <span class="mono">${escapeHtml(room?.display_name || b.room_id)}</span>
-              <span class="badge badge-gray" style="margin-left:4px">${escapeHtml(b.type)}</span>
-            </div>
-            <div class="preview-meta">
-              ${escapeHtml(b.section_id || '—')}${b.course_code ? ' · ' + escapeHtml(b.course_code) : ''} · ${humanDate(b.book_date)} · ${escapeHtml(slot?.label || b.slot_id)}
-            </div>
-          </div>
-          <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:11px"></i>
-        </a>`;
+      const roomMap = new Map(base.rooms.map(r => [r.room_id, r.display_name]));
+      const slotMap = new Map(base.slots.map(s => [s.slot_id, s]));
+      $('pendingPreview').innerHTML = pending.map(b => {
+        const slot = slotMap.get(b.slot_id);
+        return `<a href="admin-bookings.html" class="preview-row"><div class="preview-info"><div class="preview-title"><span class="mono">${escapeHtml(roomMap.get(b.room_id) || b.room_id)}</span> <span class="badge badge-gray" style="margin-left:4px">${escapeHtml(b.type)}</span></div><div class="preview-meta">${escapeHtml(b.section_id || '—')}${b.course_code ? ' · ' + escapeHtml(b.course_code) : ''} · ${humanDate(b.book_date)} · ${escapeHtml(slot?.label || b.slot_id)}</div></div><i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:11px"></i></a>`;
       }).join('');
     }
 
     const issues = [];
-    if (!base.rooms.length) issues.push({ label: 'No rooms configured', link: 'rooms', severity: 'bad' });
-    if (!base.sections.length) issues.push({ label: 'No batches configured', link: 'batches', severity: 'warn' });
-    if (!base.slots.length) issues.push({ label: 'No time slots configured', link: 'slots', severity: 'bad' });
-    if (!(courses?.length)) issues.push({ label: 'No courses in catalog', link: 'courses', severity: 'warn' });
+    if (!base.rooms.length) issues.push({ label: 'No rooms configured', link: 'admin-rooms.html', sev: 'bad' });
+    if (!base.sections.length) issues.push({ label: 'No batches configured', link: 'admin-batches.html', sev: 'warn' });
+    if (!base.slots.length) issues.push({ label: 'No time slots configured', link: 'admin-slots.html', sev: 'bad' });
+    if (!(co?.length)) issues.push({ label: 'No courses in catalog', link: 'admin-courses.html', sev: 'warn' });
 
-    const { data: allStudents } = await supabase.from('profiles').select('section_id').eq('role', 'student');
-    const noBatch = (allStudents ?? []).filter(u => !u.section_id).length;
-    if (noBatch > 0) issues.push({ label: `${noBatch} student${noBatch === 1 ? '' : 's'} without batch`, link: 'users', severity: 'warn' });
-
-    if (issues.length === 0) {
-      $('health').innerHTML = `<div class="health-row">
-        <div class="health-label" style="color:var(--success);font-weight:600"><i class="fas fa-circle-check"></i> All systems healthy</div>
-      </div>`;
+    if (!issues.length) {
+      $('health').innerHTML = '<div class="health-row"><div class="health-label" style="color:var(--success);font-weight:600"><i class="fas fa-circle-check"></i> All systems healthy</div></div>';
     } else {
-      $('health').innerHTML = issues.map(i => `
-        <div class="health-row clickable" onclick="location.href='admin-control.html?panel=${i.link}'">
-          <div class="health-label">${escapeHtml(i.label)}</div>
-          <div class="health-value ${i.severity}"><i class="fas fa-arrow-right"></i></div>
-        </div>`).join('');
+      $('health').innerHTML = issues.map(i => `<a href="${i.link}" class="health-row"><div class="health-label">${escapeHtml(i.label)}</div><div class="health-value ${i.sev}"><i class="fas fa-arrow-right"></i></div></a>`).join('');
     }
 
     const { data: logs } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(10);
@@ -316,30 +192,17 @@ import {
       $('activity').innerHTML = '<div class="empty" style="padding:24px"><i class="fas fa-inbox"></i>No activity yet</div>';
     } else {
       $('activity').innerHTML = logs.map(l => {
-        const icon = l.action === 'auth.login' ? 'fa-right-to-bracket'
-          : l.action?.startsWith('user.') ? 'fa-user-pen'
-          : l.action?.startsWith('room.') ? 'fa-door-open'
-          : l.action?.startsWith('booking.') ? 'fa-calendar-check' : 'fa-circle';
-        return `<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-          <div style="width:26px;height:26px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">
-            <i class="fas ${icon}"></i>
-          </div>
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:500;color:var(--text)">${escapeHtml(l.action)}</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${escapeHtml(l.user_email || 'system')} · ${formatRelativeTime(l.created_at)}</div>
-          </div>
-        </div>`;
+        const icon = l.action === 'auth.login' ? 'fa-right-to-bracket' : l.action?.startsWith('user.') ? 'fa-user-pen' : l.action?.startsWith('room.') ? 'fa-door-open' : l.action?.startsWith('booking.') ? 'fa-calendar-check' : 'fa-circle';
+        return `<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><div style="width:26px;height:26px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0"><i class="fas ${icon}"></i></div><div style="flex:1;min-width:0"><div style="font-weight:500;color:var(--text)">${escapeHtml(l.action)}</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">${escapeHtml(l.user_email || 'system')} · ${formatRelativeTime(l.created_at)}</div></div></div>`;
       }).join('');
     }
   }
 
   function tick() { $('liveTime').textContent = formatTime(nowDate()); }
-  setInterval(tick, 1000);
-  tick();
+  setInterval(tick, 1000); tick();
 
   await load();
   setInterval(() => { if (!document.hidden) load(); }, 60_000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
 })();
 </script>
 </body>
