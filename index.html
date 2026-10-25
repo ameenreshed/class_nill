@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LPU Scheduler</title>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+<meta name="theme-color" content="#EA580C">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center">
+  <div>
+    <div style="width:56px;height:56px;border-radius:14px;background:var(--brand);color:var(--brand-contrast);display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px">
+      <i class="fas fa-calendar-check"></i>
+    </div>
+    <h1 style="font-size:24px;font-weight:600;letter-spacing:-0.025em;margin-bottom:4px">
+      LPU<span style="color:var(--brand)">.</span>Scheduler
+    </h1>
+    <p style="color:var(--text-muted);font-size:14px">
+      <i class="fas fa-spinner fa-spin"></i> Loading…
+    </p>
+  </div>
+</div>
+
+<script type="module">
+import { supabase } from './js/core.js';
+
+(async () => {
+  try {
+    // 1) Are we already signed in?
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      location.replace('./login.html');
+      return;
+    }
+
+    // 2) Fetch role to decide which dashboard to open
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, is_active')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!profile || profile.is_active === false) {
+      await supabase.auth.signOut();
+      location.replace('./login.html');
+      return;
+    }
+
+    // 3) Route by role
+    const target =
+      profile.role === 'admin'   ? './admin.html'   :
+      profile.role === 'faculty' ? './faculty.html' :
+                                   './student.html';
+
+    location.replace(target);
+  } catch {
+    // Network / config error → fall back to login
+    location.replace('./login.html');
+  }
+})();
+</script>
+</body>
+</html>
