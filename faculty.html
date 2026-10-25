@@ -19,9 +19,9 @@
   <div class="page-header">
     <div>
       <h1 class="page-title"><i class="fas fa-gauge-high"></i> Faculty dashboard</h1>
-      <p class="page-subtitle">Welcome back, <strong id="welcomeName" style="color:var(--text)">…</strong></p>
+      <p class="page-subtitle">Welcome back, <strong id="welcomeName" style="color:var(--text)">…</strong> · <span id="liveTime" class="mono">--:--</span></p>
     </div>
-    <button class="btn btn-primary" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
+    <button class="btn btn-primary" id="makeupBtn"><i class="fas fa-plus"></i> Request makeup</button>
   </div>
 
   <div class="stats" id="stats">
@@ -30,14 +30,19 @@
     <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
   </div>
 
-  <h2 class="card-title mt-8" style="margin-bottom:16px"><i class="fas fa-calendar-day"></i> My upcoming bookings</h2>
-  <div id="bookingsList">
-    <div class="card" style="padding:32px"><div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</div></div>
-  </div>
+  <h2 class="card-title mt-8" style="margin-bottom:16px"><i class="fas fa-calendar-day"></i> My classes today</h2>
+  <div id="todaySchedule"></div>
+
+  <h2 class="card-title mt-8" style="margin-bottom:16px"><i class="fas fa-calendar-check"></i> My bookings</h2>
+  <div id="bookingsList"></div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, todayISO } from './js/core.js';
+import {
+  requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, formatTime,
+  dayOfWeekNum, dayName, humanDate, loadBaseData, loadDataForDate, classifyCell,
+  minutesUntilStart, currentSlot, toast
+} from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['faculty', 'admin']);
@@ -48,89 +53,248 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO } from './js/cor
   const displayName = auth.profile.full_name || auth.profile.email || 'Faculty';
   $('welcomeName').textContent = displayName;
 
+  let base = { rooms: [], slots: [], sections: [] };
+
   async function load() {
+    base = await loadBaseData();
     const today = todayISO();
 
-    const { data: bookings } = await supabase.from('bookings')
+    // My regular classes from timetable (today's weekday)
+    const dow = dayOfWeekNum(today);
+    const { data: myClasses } = await supabase
+      .from('timetable')
+      .select('*')
+      .eq('faculty_id', auth.session.user.id)
+      .eq('day_of_week', dow)
+      .eq('is_active', true);
+
+    // My bookings (upcoming)
+    const { data: bookings } = await supabase
+      .from('bookings')
       .select('*')
       .eq('faculty_id', auth.session.user.id)
       .gte('book_date', today)
       .order('book_date', { ascending: true })
-      .limit(50);
+      .limit(30);
+
+    const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
+    const roomById = new Map(base.rooms.map(r => [r.room_id, r]));
+
+    const classes = (myClasses ?? []).sort((a,b) =>
+      (slotById.get(a.slot_id)?.start_time || '').localeCompare(slotById.get(b.slot_id)?.start_time || '')
+    );
 
     const list = bookings ?? [];
-    const todays = list.filter(b => b.book_date === today);
     const approved = list.filter(b => b.status === 'approved');
     const pending = list.filter(b => b.status === 'pending');
 
+    const nowSlot = currentSlot(base.slots);
+
+    // Stats
+    const todaysClasses = classes.length;
+    const teachingNow = classes.filter(c => c.slot_id === nowSlot?.slot_id).length;
     $('stats').innerHTML = `
       <div class="stat">
-        <i class="fas fa-calendar-day stat-icon"></i>
-        <div class="stat-value">${todays.length}</div>
-        <div class="stat-label">Today</div>
+        <i class="fas fa-chalkboard-user stat-icon"></i>
+        <div class="stat-value">${todaysClasses}</div>
+        <div class="stat-label">Classes today</div>
       </div>
       <div class="stat">
-        <i class="fas fa-circle-check stat-icon" style="color:var(--success)"></i>
-        <div class="stat-value" style="color:var(--success)">${approved.length}</div>
-        <div class="stat-label">Approved</div>
+        <i class="fas fa-circle-check stat-icon" style="color:${teachingNow > 0 ? 'var(--success)' : 'var(--text-muted)'}"></i>
+        <div class="stat-value" style="color:${teachingNow > 0 ? 'var(--success)' : 'var(--text-muted)'}">${teachingNow > 0 ? 'In class' : 'Free'}</div>
+        <div class="stat-label">Status now</div>
       </div>
       <div class="stat">
         <i class="fas fa-hourglass-half stat-icon" style="color:var(--warning)"></i>
         <div class="stat-value" style="color:var(--warning)">${pending.length}</div>
-        <div class="stat-label">Pending</div>
+        <div class="stat-label">Pending requests</div>
       </div>
     `;
 
-    if (!list.length) {
-      $('bookingsList').innerHTML = `
-        <div class="card">
-          <div class="empty-action">
-            <div class="empty-action-icon"><i class="fas fa-calendar-xmark"></i></div>
-            <div class="empty-action-title">No upcoming bookings</div>
-            <div class="empty-action-sub">Your approved and pending bookings will appear here.</div>
-          </div>
-        </div>`;
-      return;
+    // Today's schedule
+    if (!classes.length) {
+      $('todaySchedule').innerHTML = `
+        <div class="card"><div class="empty-action">
+          <div class="empty-action-icon"><i class="fas fa-mug-hot"></i></div>
+          <div class="empty-action-title">No classes scheduled today</div>
+          <div class="empty-action-sub">Enjoy the free day — or book a room for a makeup class.</div>
+        </div></div>`;
+    } else {
+      $('todaySchedule').innerHTML = classes.map(c => {
+        const slot = slotById.get(c.slot_id);
+        const room = roomById.get(c.room_id);
+        const mins = minutesUntilStart(slot, today);
+        const isNow = slot?.slot_id === nowSlot?.slot_id;
+        return `
+          <div class="card ${isNow ? 'card-hover' : ''}" style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;${isNow ? 'border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)' : ''}">
+            <div style="display:flex;gap:16px;align-items:center;min-width:0;flex:1">
+              <div style="width:48px;height:48px;border-radius:12px;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
+                <i class="fas fa-book"></i>
+              </div>
+              <div style="min-width:0">
+                <div style="color:var(--text);font-weight:600;font-size:14px">
+                  ${escapeHtml(c.course_name || c.course_code || 'Class')}
+                  <span class="badge badge-gray" style="margin-left:6px">${escapeHtml(c.section_id)}</span>
+                </div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+                  <i class="fas fa-door-open"></i> ${escapeHtml(room?.display_name || c.room_id)}
+                  · <span class="mono">${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)}</span>
+                  ${isNow ? '<span class="badge badge-approved" style="margin-left:6px"><i class="fas fa-circle" style="font-size:6px"></i>NOW</span>'
+                          : mins > 0 && mins < 120 ? `<span class="dim" style="margin-left:6px">in ${mins} min</span>` : ''}
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
     }
 
-    const roomIds = [...new Set(list.map(b => b.room_id))];
-    const slotIds = [...new Set(list.map(b => b.slot_id))];
-    const [{ data: rooms }, { data: slots }] = await Promise.all([
-      roomIds.length ? supabase.from('rooms').select('room_id,display_name').in('room_id', roomIds) : Promise.resolve({ data: [] }),
-      slotIds.length ? supabase.from('time_slots').select('slot_id,label,start_time,end_time').in('slot_id', slotIds) : Promise.resolve({ data: [] }),
-    ]);
-    const rm = new Map((rooms ?? []).map(r => [r.room_id, r.display_name]));
-    const sm = new Map((slots ?? []).map(s => [s.slot_id, s]));
-
-    $('bookingsList').innerHTML = list.map(b => {
-      const slot = sm.get(b.slot_id);
-      const badgeCls = b.status === 'approved' ? 'approved' : b.status === 'rejected' ? 'rejected' : 'pending';
-      const icon = b.status === 'approved' ? 'check' : b.status === 'rejected' ? 'xmark' : 'clock';
-      return `
-        <div class="card card-hover" style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
-          <div style="display:flex;gap:16px;align-items:center;min-width:0;flex:1">
-            <div style="width:48px;height:48px;border-radius:12px;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
-              <i class="fas fa-door-open"></i>
-            </div>
-            <div style="min-width:0">
-              <div class="mono" style="color:var(--text);font-weight:500;font-size:14px">
-                ${escapeHtml(rm.get(b.room_id) || b.room_id)}
+    // My bookings
+    if (!list.length) {
+      $('bookingsList').innerHTML = `
+        <div class="card"><div class="empty-action">
+          <div class="empty-action-icon"><i class="fas fa-calendar-xmark"></i></div>
+          <div class="empty-action-title">No bookings yet</div>
+          <div class="empty-action-sub">Use "Request makeup" to book a room.</div>
+        </div></div>`;
+    } else {
+      $('bookingsList').innerHTML = list.map(b => {
+        const slot = slotById.get(b.slot_id);
+        const room = roomById.get(b.room_id);
+        const badge = b.status === 'approved' ? 'approved' : b.status === 'rejected' ? 'rejected' : 'pending';
+        const icon = b.status === 'approved' ? 'check' : b.status === 'rejected' ? 'xmark' : 'clock';
+        return `
+          <div class="card card-hover" style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+            <div style="display:flex;gap:16px;align-items:center;min-width:0;flex:1">
+              <div style="width:48px;height:48px;border-radius:12px;background:var(--surface-active);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
+                <i class="fas fa-door-open"></i>
               </div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
-                <i class="fas fa-calendar-days" style="font-size:10px"></i>
-                ${b.book_date} · ${escapeHtml(slot?.label || b.slot_id)}
-                ${slot ? `(${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)})` : ''}
+              <div style="min-width:0">
+                <div class="mono" style="color:var(--text);font-weight:500;font-size:14px">
+                  ${escapeHtml(room?.display_name || b.room_id)}
+                  <span class="badge badge-gray" style="margin-left:6px">${escapeHtml(b.type)}</span>
+                </div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+                  <i class="fas fa-calendar-days"></i> ${humanDate(b.book_date)}
+                  · ${escapeHtml(slot?.label || b.slot_id)} (${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)})
+                </div>
               </div>
             </div>
-          </div>
-          <span class="badge badge-${badgeCls}">
-            <i class="fas fa-${icon}"></i>${b.status}
-          </span>
-        </div>`;
-    }).join('');
+            <span class="badge badge-${badge}"><i class="fas fa-${icon}"></i>${b.status}</span>
+          </div>`;
+      }).join('');
+    }
   }
 
-  $('refreshBtn').onclick = load;
+  function tick() { $('liveTime').textContent = formatTime(nowDate()).slice(0,5); }
+  setInterval(tick, 1000); tick();
+
+  // Makeup request modal
+  $('makeupBtn').onclick = async () => {
+    const today = todayISO();
+    const tomorrow = todayISO(new Date(Date.now() + 86400000));
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
+    dialog.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title">Request makeup class</div>
+          <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <label class="field"><span>Date</span>
+            <input class="input" type="date" id="mkDate" value="${tomorrow}" min="${today}">
+          </label>
+          <label class="field"><span>Slot</span>
+            <select class="input" id="mkSlot">
+              ${base.slots.map(s => `<option value="${s.slot_id}">${escapeHtml(s.label || s.slot_id)} (${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)})</option>`).join('')}
+            </select>
+          </label>
+          <label class="field"><span>Reason (optional)</span>
+            <input class="input" id="mkReason" placeholder="e.g. Extra doubt session">
+          </label>
+          <div style="margin-top:12px">
+            <div class="label-small">Available rooms</div>
+            <div id="mkRooms" style="max-height:280px;overflow-y:auto;margin-top:6px">
+              <div class="empty" style="padding:20px"><i class="fas fa-spinner fa-spin"></i></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" data-close>Cancel</button>
+          <button class="btn btn-primary" id="mkSubmit" disabled>Send request</button>
+        </div>
+      </div>`;
+    document.body.appendChild(dialog);
+    dialog.showModal();
+
+    let selectedRoom = null;
+
+    async function loadFreeRooms() {
+      const d = dialog.querySelector('#mkDate').value;
+      const s = dialog.querySelector('#mkSlot').value;
+      if (!d || !s) return;
+      const el = dialog.querySelector('#mkRooms');
+      el.innerHTML = '<div class="empty" style="padding:20px"><i class="fas fa-spinner fa-spin"></i></div>';
+      const data = await loadDataForDate(d);
+      const free = base.rooms.filter(r => {
+        const c = classifyCell({ roomId: r.room_id, slotId: s, dateStr: d, timetable: data.timetable, bookings: data.bookings, calendarEntry: data.calendarEntry });
+        return c.state === 'free';
+      });
+      if (!free.length) {
+        el.innerHTML = '<div class="empty" style="padding:20px"><i class="fas fa-door-closed"></i>No free rooms in this slot</div>';
+        return;
+      }
+      el.innerHTML = free.map(r => `
+        <button class="room-card" data-room="${escapeHtml(r.room_id)}" style="width:100%;text-align:left;margin-bottom:6px">
+          <div class="rc-name"><i class="fas fa-door-open"></i>${escapeHtml(r.display_name)}</div>
+          <div class="rc-meta">Block ${r.building} · Floor ${r.floor} · ${escapeHtml(r.type)}</div>
+        </button>
+      `).join('');
+      el.querySelectorAll('[data-room]').forEach(btn => {
+        btn.onclick = () => {
+          el.querySelectorAll('.room-card').forEach(b => b.style.outline = '');
+          btn.style.outline = '2px solid var(--brand)';
+          selectedRoom = btn.dataset.room;
+          dialog.querySelector('#mkSubmit').disabled = false;
+        };
+      });
+    }
+
+    dialog.querySelector('#mkDate').onchange = loadFreeRooms;
+    dialog.querySelector('#mkSlot').onchange = loadFreeRooms;
+
+    dialog.querySelector('#mkSubmit').onclick = async () => {
+      if (!selectedRoom) return;
+      const d = dialog.querySelector('#mkDate').value;
+      const s = dialog.querySelector('#mkSlot').value;
+      const reason = dialog.querySelector('#mkReason').value.trim() || null;
+      const btn = dialog.querySelector('#mkSubmit');
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
+      const { error } = await supabase.from('bookings').insert({
+        room_id: selectedRoom, book_date: d, slot_id: s,
+        type: 'makeup', status: 'pending',
+        faculty_id: auth.session.user.id,
+        created_by: auth.session.user.id,
+        reason,
+      });
+      if (error) {
+        toast(error.message, 'error');
+        btn.disabled = false; btn.innerHTML = 'Send request';
+        return;
+      }
+      toast('Request sent — pending admin approval', 'success');
+      dialog.close(); dialog.remove();
+      await load();
+    };
+
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(b => b.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = (e) => { if (e.target === dialog) close(); };
+
+    loadFreeRooms();
+  };
+
   await load();
   setInterval(() => { if (!document.hidden) load(); }, 60_000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });

@@ -21,7 +21,7 @@
       <h1 class="page-title"><i class="fas fa-gauge-high"></i> Admin dashboard</h1>
       <p class="page-subtitle">
         Welcome back, <strong id="welcomeName" style="color:var(--text)">…</strong>
-        · <span id="lastUpdated">just now</span>
+        · <span id="liveTime" class="mono">--:--:--</span>
       </p>
     </div>
     <button class="btn btn-primary" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
@@ -34,18 +34,41 @@
     <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
   </div>
 
-  <div class="grid-auto mt-6" style="grid-template-columns:1fr">
+  <div class="grid-auto mt-6" style="grid-template-columns:1.4fr 1fr">
     <div class="card">
-      <div class="card-title"><i class="fas fa-clock-rotate-left"></i> Recent activity</div>
-      <div class="timeline" id="timeline">
-        <div class="empty" style="padding:20px"><i class="fas fa-spinner fa-spin"></i></div>
+      <div class="card-title">
+        <i class="fas fa-hourglass-half"></i> Pending approvals
+        <span class="badge badge-pending" id="pendingCount" style="margin-left:auto">0</span>
       </div>
+      <div id="pendingList"><div class="empty" style="padding:20px"><i class="fas fa-spinner fa-spin"></i></div></div>
     </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fas fa-cloud-arrow-up"></i> Data sync</div>
+      <div id="syncStatus"><div class="empty" style="padding:20px"><i class="fas fa-spinner fa-spin"></i></div></div>
+    </div>
+  </div>
+
+  <div class="card mt-6">
+    <div class="card-title">
+      <i class="fas fa-triangle-exclamation" style="color:var(--warning)"></i>
+      Conflict detector
+      <span class="dim" style="font-size:12px;font-weight:400;margin-left:auto">Timetable overlapping bookings</span>
+    </div>
+    <div id="conflicts"><div class="empty" style="padding:20px"><i class="fas fa-spinner fa-spin"></i></div></div>
+  </div>
+
+  <div class="card mt-6">
+    <div class="card-title"><i class="fas fa-clock-rotate-left"></i> Recent activity</div>
+    <div class="timeline" id="timeline"><div class="empty" style="padding:20px"><i class="fas fa-spinner fa-spin"></i></div></div>
   </div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, todayISO, formatRelativeTime } from './js/core.js';
+import {
+  requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, formatTime,
+  dayOfWeekNum, humanDate, formatRelativeTime, toast, loadBaseData
+} from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
@@ -53,18 +76,34 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, formatRelativeT
   renderNav(auth.profile);
 
   const $ = id => document.getElementById(id);
-  const displayName = auth.profile.full_name || auth.profile.email || 'Admin';
-  $('welcomeName').textContent = displayName;
+  $('welcomeName').textContent = auth.profile.full_name || auth.profile.email || 'Admin';
 
   async function load() {
     const today = todayISO();
+    const base = await loadBaseData();
 
-    const [rooms, users, pending, todayBookings] = await Promise.all([
+    // ---- Stats ----
+    const [rooms, users, pending, todayBookings, todaySlot] = await Promise.all([
       supabase.from('rooms').select('room_id', { count: 'exact', head: true }),
       supabase.from('profiles').select('id', { count: 'exact', head: true }),
       supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('book_date', today),
+      Promise.resolve(base.slots.find(s => {
+        const now = formatTime(nowDate());
+        return now >= s.start_time && now < s.end_time;
+      })),
     ]);
+
+    // Count occupied rooms in current slot
+    let occupied = 0;
+    if (todaySlot) {
+      const [{ data: tt }, { data: bk }] = await Promise.all([
+        supabase.from('timetable').select('room_id').eq('day_of_week', dayOfWeekNum(today)).eq('slot_id', todaySlot.slot_id).eq('is_active', true),
+        supabase.from('bookings').select('room_id').eq('book_date', today).eq('slot_id', todaySlot.slot_id).in('status', ['pending','approved']),
+      ]);
+      const busy = new Set([...(tt ?? []).map(x => x.room_id), ...(bk ?? []).map(x => x.room_id)]);
+      occupied = busy.size;
+    }
 
     $('stats').innerHTML = `
       <div class="stat">
@@ -78,53 +117,152 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, formatRelativeT
         <div class="stat-label">Total users</div>
       </div>
       <div class="stat">
-        <i class="fas fa-hourglass-half stat-icon" style="color:var(--warning)"></i>
-        <div class="stat-value" style="color:var(--warning)">${pending.count ?? 0}</div>
-        <div class="stat-label">Pending bookings</div>
-      </div>
-      <div class="stat">
         <i class="fas fa-calendar-day stat-icon" style="color:var(--success)"></i>
         <div class="stat-value" style="color:var(--success)">${todayBookings.count ?? 0}</div>
         <div class="stat-label">Today's bookings</div>
       </div>
+      <div class="stat">
+        <i class="fas fa-chart-simple stat-icon" style="color:var(--brand)"></i>
+        <div class="stat-value">${occupied}/${rooms.count ?? 0}</div>
+        <div class="stat-label">Rooms busy now</div>
+      </div>
     `;
 
-    const { data: logs } = await supabase
-      .from('activity_log')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(8);
+    // ---- Pending approvals ----
+    const { data: pendingList } = await supabase
+      .from('bookings').select('*').eq('status', 'pending')
+      .order('book_date', { ascending: true }).limit(10);
 
+    $('pendingCount').textContent = pendingList?.length ?? 0;
+
+    if (!pendingList?.length) {
+      $('pendingList').innerHTML = '<div class="empty" style="padding:24px"><i class="fas fa-inbox"></i>No pending approvals</div>';
+    } else {
+      const roomById = new Map(base.rooms.map(r => [r.room_id, r]));
+      const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
+      $('pendingList').innerHTML = pendingList.map(b => `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+          <div style="min-width:0;flex:1">
+            <div style="font-weight:500;color:var(--text);font-size:13px">
+              <span class="mono">${escapeHtml(roomById.get(b.room_id)?.display_name || b.room_id)}</span>
+              <span class="badge badge-gray" style="margin-left:6px">${escapeHtml(b.type)}</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
+              ${humanDate(b.book_date)} · ${escapeHtml(slotById.get(b.slot_id)?.label || b.slot_id)}
+            </div>
+          </div>
+          <div class="chips">
+            <button class="btn btn-sm btn-success" data-approve="${b.id}"><i class="fas fa-check"></i></button>
+            <button class="btn btn-sm btn-danger" data-reject="${b.id}"><i class="fas fa-xmark"></i></button>
+          </div>
+        </div>
+      `).join('');
+
+      document.querySelectorAll('[data-approve]').forEach(btn => {
+        btn.onclick = () => actionBooking(btn.dataset.approve, 'approved', btn);
+      });
+      document.querySelectorAll('[data-reject]').forEach(btn => {
+        btn.onclick = () => actionBooking(btn.dataset.reject, 'rejected', btn);
+      });
+    }
+
+    // ---- Sync status ----
+    const { data: syncs } = await supabase.from('sync_log').select('*').order('created_at', { ascending: false }).limit(5);
+    const { data: ttCount } = await supabase.from('timetable').select('id', { count: 'exact', head: true });
+    const { data: secCount } = await supabase.from('sections').select('section_id', { count: 'exact', head: true });
+
+    $('syncStatus').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        <div><div class="label-small">Sections</div><div style="font-size:20px;font-weight:600;color:var(--text)">${secCount?.length ?? 0}</div></div>
+        <div><div class="label-small">Timetable rows</div><div style="font-size:20px;font-weight:600;color:var(--text)">${ttCount?.length ?? 0}</div></div>
+      </div>
+      ${(syncs ?? []).length ? `
+        <div class="label-small" style="margin-bottom:6px">Last sync</div>
+        ${syncs.map(s => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <div>
+              <span class="badge badge-${s.status === 'success' ? 'approved' : s.status === 'partial' ? 'pending' : 'rejected'}" style="margin-right:6px">${s.status}</span>
+              <span class="mono">${s.kind}</span> · ${s.records_count} rows
+            </div>
+            <div class="dim" style="font-size:11px">${formatRelativeTime(s.created_at)}</div>
+          </div>`).join('')}
+      ` : '<div class="dim" style="font-size:12px">No syncs yet. Run `seed-timetable.sql` or use the import function.</div>'}
+    `;
+
+    // ---- Conflicts (timetable overlapping pending/approved bookings) ----
+    const { data: ttAll } = await supabase.from('timetable').select('*').eq('is_active', true);
+    const { data: bkAll } = await supabase.from('bookings').select('*').in('status', ['pending','approved']).gte('book_date', today).lte('book_date', todayISO(new Date(Date.now() + 7*86400000)));
+    const roomById2 = new Map(base.rooms.map(r => [r.room_id, r]));
+    const slotById2 = new Map(base.slots.map(s => [s.slot_id, s]));
+
+    const conflicts = [];
+    for (const b of (bkAll ?? [])) {
+      const dow = dayOfWeekNum(b.book_date);
+      const ttHit = (ttAll ?? []).find(t =>
+        t.room_id === b.room_id && t.slot_id === b.slot_id && t.day_of_week === dow
+      );
+      if (ttHit) {
+        conflicts.push({
+          booking: b,
+          class: ttHit,
+          room: roomById2.get(b.room_id)?.display_name || b.room_id,
+          slot: slotById2.get(b.slot_id)?.label || b.slot_id,
+        });
+      }
+    }
+
+    if (!conflicts.length) {
+      $('conflicts').innerHTML = '<div class="empty" style="padding:24px"><i class="fas fa-circle-check" style="color:var(--success)"></i>No conflicts — clean schedules</div>';
+    } else {
+      $('conflicts').innerHTML = conflicts.map(c => `
+        <div style="padding:12px;border-radius:8px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);margin-bottom:8px">
+          <div style="font-weight:500;color:var(--text);font-size:13px">
+            <i class="fas fa-triangle-exclamation" style="color:var(--warning)"></i>
+            ${escapeHtml(c.room)} · ${humanDate(c.booking.book_date)} · ${escapeHtml(c.slot)}
+          </div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">
+            Booking <span class="badge badge-${c.booking.status === 'approved' ? 'approved' : 'pending'}" style="margin:0 4px">${c.booking.status}</span>
+            overlaps with regular class <strong>${escapeHtml(c.class.course_code || c.class.section_id)}</strong>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ---- Activity ----
+    const { data: logs } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(8);
     if (!logs?.length) {
-      $('timeline').innerHTML = `
-        <div class="empty" style="padding:32px 16px">
-          <i class="fas fa-inbox"></i>
-          No activity yet
-        </div>`;
+      $('timeline').innerHTML = '<div class="empty" style="padding:24px"><i class="fas fa-inbox"></i>No activity yet</div>';
     } else {
       $('timeline').innerHTML = logs.map(l => {
-        const icon =
-          l.action === 'auth.login' ? 'fa-right-to-bracket' :
-          l.action?.startsWith('user.') ? 'fa-user-pen' :
-          l.action?.startsWith('room.') ? 'fa-door-open' :
-          l.action?.startsWith('booking.') ? 'fa-calendar-check' : 'fa-circle';
-        const email = l.user_email || 'system';
+        const icon = l.action === 'auth.login' ? 'fa-right-to-bracket'
+          : l.action?.startsWith('user.') ? 'fa-user-pen'
+          : l.action?.startsWith('room.') ? 'fa-door-open'
+          : l.action?.startsWith('booking.') ? 'fa-calendar-check' : 'fa-circle';
         return `
           <div class="timeline-item">
             <div class="timeline-marker"><i class="fas ${icon}"></i></div>
             <div class="timeline-content">
-              <div class="timeline-title">
-                ${escapeHtml(l.action)}
-                ${l.entity_id ? `<span class="mono" style="color:var(--text-muted);margin-left:4px">${escapeHtml(l.entity_id)}</span>` : ''}
-              </div>
-              <div class="timeline-meta">${escapeHtml(email)} · ${formatRelativeTime(l.created_at)}</div>
+              <div class="timeline-title">${escapeHtml(l.action)}${l.entity_id ? ` <span class="mono dim">${escapeHtml(l.entity_id)}</span>` : ''}</div>
+              <div class="timeline-meta">${escapeHtml(l.user_email || 'system')} · ${formatRelativeTime(l.created_at)}</div>
             </div>
           </div>`;
       }).join('');
     }
-
-    $('lastUpdated').textContent = 'updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
+
+  async function actionBooking(id, status, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    const { error } = await supabase.from('bookings')
+      .update({ status, approved_by: auth.session.user.id })
+      .eq('id', id);
+    if (error) { toast(error.message, 'error'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i>'; return; }
+    toast(`Booking ${status}`, 'success');
+    await load();
+  }
+
+  function tick() { $('liveTime').textContent = formatTime(nowDate()); }
+  setInterval(tick, 1000); tick();
 
   $('refreshBtn').onclick = async () => {
     const btn = $('refreshBtn');

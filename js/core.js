@@ -6,14 +6,14 @@ export { SUPABASE_URL, SUPABASE_ANON_KEY };
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export const BASE = new URL('.', location.href).href;
 
-/* ---------- defensive: unregister any stale SW on every page load ---------- */
+/* ---------- defensive: kill any stale service worker ---------- */
 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations()
     .then(regs => regs.forEach(r => r.unregister()))
     .catch(() => {});
 }
 
-/* ---------- session helper: wait for it to be readable ---------- */
+/* ---------- wait for auth session (handles slow cold start) ---------- */
 export async function waitForSession(maxMs = 2500) {
   const start = Date.now();
   while (Date.now() - start < maxMs) {
@@ -24,6 +24,195 @@ export async function waitForSession(maxMs = 2500) {
     await new Promise(r => setTimeout(r, 150));
   }
   return null;
+}
+
+/* ---------- server-synced time ---------- */
+let serverOffsetMs = 0;
+export async function syncServerTime() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/time_slots?select=slot_id&limit=1`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      cache: 'no-store',
+    });
+    const d = res.headers.get('date');
+    if (d) serverOffsetMs = new Date(d).getTime() - Date.now();
+  } catch {}
+}
+export function nowDate() { return new Date(Date.now() + serverOffsetMs); }
+
+export function todayISO(d = nowDate()) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+export function formatTime(d) {
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+}
+
+export function parseTimeOnDate(dateStr, timeStr) {
+  return new Date(`${dateStr}T${String(timeStr).slice(0,8)}`);
+}
+
+/* ---------- date utilities ---------- */
+export function dayOfWeekNum(dateStr) {
+  return new Date(`${dateStr}T12:00:00`).getDay(); // 0=Sun … 6=Sat
+}
+export function dayName(dateStr) {
+  return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayOfWeekNum(dateStr)];
+}
+export function isSunday(dateStr) { return dayOfWeekNum(dateStr) === 0; }
+export function addDays(dateStr, n) {
+  const d = new Date(`${dateStr}T12:00:00`);
+  d.setDate(d.getDate() + n);
+  return todayISO(d);
+}
+export function humanDate(dateStr) {
+  return new Date(`${dateStr}T12:00:00`).toLocaleDateString([], {
+    weekday: 'short', month: 'short', day: 'numeric',
+  });
+}
+
+/* ---------- slot state for a given date ---------- */
+/* returns 'past-day' | 'ended' | 'current' | 'upcoming' */
+export function slotStateOnDate(slot, dateStr) {
+  const today = todayISO();
+  if (dateStr < today) return 'past-day';
+  if (dateStr > today) return 'upcoming';
+
+  const now = nowDate();
+  const nowStr = formatTime(now);
+  if (nowStr >= slot.end_time) return 'ended';
+  if (nowStr >= slot.start_time) return 'current';
+  return 'upcoming';
+}
+
+/* minutes until this slot starts (0 if already started/past) */
+export function minutesUntilStart(slot, dateStr) {
+  if (dateStr < todayISO()) return 0;
+  const start = parseTimeOnDate(dateStr, slot.start_time);
+  return Math.max(0, Math.ceil((start - nowDate()) / 60000));
+}
+
+/* minutes until this slot ends (0 if not currently active) */
+export function minutesUntilEnd(slot, dateStr) {
+  if (dateStr !== todayISO()) return 0;
+  const end = parseTimeOnDate(dateStr, slot.end_time);
+  return Math.max(0, Math.ceil((end - nowDate()) / 60000));
+}
+
+/* ---------- active slot right now ---------- */
+export function currentSlot(slots, dateStr = todayISO()) {
+  if (dateStr !== todayISO()) return null;
+  const nowStr = formatTime(nowDate());
+  return slots.find(s => nowStr >= s.start_time && nowStr < s.end_time) || null;
+}
+
+/* ---------- next slot starting later today ---------- */
+export function nextSlot(slots, dateStr = todayISO()) {
+  if (dateStr !== todayISO()) return null;
+  const nowStr = formatTime(nowDate());
+  return slots.find(s => s.start_time > nowStr) || null;
+}
+
+/* ---------- cell classification ----------
+   Given a room + slot + date, decide the state and reason.
+   Precedence: holiday > timetable (regular class) > booking > free
+--------------------------------------------------------------- */
+export function classifyCell({ roomId, slotId, dateStr, timetable, bookings, calendarEntry, weekendOpen }) {
+  // Holiday check — everything is closed
+  if (calendarEntry && calendarEntry.kind === 'holiday') {
+    return { state: 'holiday', label: 'Holiday', reason: calendarEntry.label || 'Holiday' };
+  }
+  // Sunday unless working_saturday
+  if (isSunday(dateStr) && !(calendarEntry && calendarEntry.kind === 'working_saturday')) {
+    return { state: 'closed', label: 'Closed', reason: 'Sunday' };
+  }
+
+  const dow = dayOfWeekNum(dateStr);
+
+  // Regular class from timetable
+  const tt = timetable.find(t =>
+    t.room_id === roomId &&
+    t.slot_id === slotId &&
+    t.day_of_week === dow &&
+    t.is_active !== false
+  );
+  if (tt) {
+    return {
+      state: 'class',
+      label: 'Class',
+      reason: `${tt.course_code || 'Class'}${tt.section_id ? ' · ' + tt.section_id : ''}`,
+      detail: tt,
+    };
+  }
+
+  // Booking (makeup, exam, etc.)
+  const bk = bookings.find(b =>
+    b.room_id === roomId &&
+    b.slot_id === slotId &&
+    (b.status === 'pending' || b.status === 'approved')
+  );
+  if (bk) {
+    const labelMap = { makeup: 'Makeup', exam: 'Exam', event: 'Event', maintenance: 'Maint', regular: 'Class' };
+    return {
+      state: bk.type === 'makeup' ? 'makeup'
+           : bk.type === 'exam' ? 'exam'
+           : bk.type === 'event' ? 'exam'
+           : bk.type === 'maintenance' ? 'maint'
+           : 'class',
+      label: labelMap[bk.type] || 'Booked',
+      reason: bk.reason || labelMap[bk.type] || 'Booked',
+      detail: bk,
+    };
+  }
+
+  // Truly free
+  return { state: 'free', label: 'Free', reason: 'No class, no booking' };
+}
+
+/* ---------- bulk data loaders (one round-trip each) ---------- */
+export async function loadBaseData() {
+  const [{ data: rooms }, { data: slots }, { data: types }, { data: buildings }, { data: sections }] = await Promise.all([
+    supabase.from('rooms').select('*').eq('bookable', true).order('building').order('floor'),
+    supabase.from('time_slots').select('*').eq('is_active', true).order('sort_order').order('start_time'),
+    supabase.from('room_types').select('*').eq('is_active', true),
+    supabase.from('buildings').select('*').eq('is_active', true).order('sort_order'),
+    supabase.from('sections').select('*').order('section_id'),
+  ]);
+  return {
+    rooms: rooms ?? [],
+    slots: slots ?? [],
+    types: types ?? [],
+    buildings: buildings ?? [],
+    sections: sections ?? [],
+  };
+}
+
+export async function loadDataForDate(dateStr) {
+  const dow = dayOfWeekNum(dateStr);
+  const [{ data: tt }, { data: bk }, { data: cal }] = await Promise.all([
+    supabase.from('timetable').select('*').eq('day_of_week', dow).eq('is_active', true),
+    supabase.from('bookings').select('*').eq('book_date', dateStr).in('status', ['pending', 'approved']),
+    supabase.from('academic_calendar').select('*').eq('date', dateStr).maybeSingle(),
+  ]);
+  return {
+    timetable: tt ?? [],
+    bookings: bk ?? [],
+    calendarEntry: cal ?? null,
+  };
+}
+
+/* ---------- quick "is this room free right now?" ---------- */
+export async function roomsFreeRightNow() {
+  const base = await loadBaseData();
+  const today = todayISO();
+  const slot = currentSlot(base.slots, today);
+  if (!slot) return { slot: null, free: [], total: base.rooms.length };
+  const { timetable, bookings, calendarEntry } = await loadDataForDate(today);
+  const free = base.rooms.filter(r => {
+    const c = classifyCell({ roomId: r.room_id, slotId: slot.slot_id, dateStr: today, timetable, bookings, calendarEntry });
+    return c.state === 'free';
+  });
+  return { slot, free, total: base.rooms.length };
 }
 
 /* ---------- helpers ---------- */
@@ -39,17 +228,6 @@ export function toast(msg, kind = 'info') {
   el.textContent = msg;
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.remove('show'), 3000);
-}
-
-export function nowDate() { return new Date(); }
-
-export function todayISO() {
-  const d = nowDate();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-
-export function formatTime(d) {
-  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
 }
 
 export function formatRelativeTime(iso) {
@@ -72,6 +250,11 @@ export function formatDateTime(iso) {
     ' · ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+export function debounce(fn, ms = 200) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
 /* ---------- theme ---------- */
 const THEME_KEY = 'theme';
 export function getCurrentTheme() { return document.documentElement.getAttribute('data-theme') || 'light'; }
@@ -82,21 +265,15 @@ function updateThemeIcons() {
     btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
   });
 }
-
 export function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   updateThemeIcons();
 }
-
 export function setTheme(theme, persist = true) {
   applyTheme(theme);
   if (persist) { try { localStorage.setItem(THEME_KEY, theme); } catch {} }
 }
-
-export function toggleTheme() {
-  setTheme(getCurrentTheme() === 'dark' ? 'light' : 'dark', true);
-}
-
+export function toggleTheme() { setTheme(getCurrentTheme() === 'dark' ? 'light' : 'dark', true); }
 export function initTheme() {
   const stored = localStorage.getItem(THEME_KEY);
   const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -122,6 +299,7 @@ export async function requireRole(allowed) {
     return null;
   }
 
+  syncServerTime();
   return { session, profile };
 }
 
@@ -165,9 +343,7 @@ export function renderNav(profile) {
           <div class="avatar-menu-name">${escapeHtml(profile.full_name || profile.email)}</div>
           <div class="avatar-menu-email">${escapeHtml(profile.email)}</div>
           <div class="avatar-menu-role">
-            <span class="badge badge-${profile.role}">
-              <i class="fas fa-${roleIcon}"></i>${profile.role}
-            </span>
+            <span class="badge badge-${profile.role}"><i class="fas fa-${roleIcon}"></i>${profile.role}</span>
           </div>
         </div>
         <div class="avatar-menu-divider"></div>
@@ -185,9 +361,7 @@ export function renderNav(profile) {
   if (themeMenuItem) {
     const paint = () => {
       const isDark = getCurrentTheme() === 'dark';
-      themeMenuItem.innerHTML = isDark
-        ? '<i class="fas fa-sun"></i> Light mode'
-        : '<i class="fas fa-moon"></i> Dark mode';
+      themeMenuItem.innerHTML = isDark ? '<i class="fas fa-sun"></i> Light mode' : '<i class="fas fa-moon"></i> Dark mode';
     };
     paint();
     themeMenuItem.onclick = () => { toggleTheme(); paint(); };
@@ -199,11 +373,8 @@ export function renderNav(profile) {
   if (avatarBtn && avatarMenu) {
     avatarBtn.onclick = (e) => { e.stopPropagation(); avatarMenu.classList.toggle('open'); };
     document.addEventListener('click', (e) => {
-      if (!avatarMenu.contains(e.target) && !avatarBtn.contains(e.target)) {
-        avatarMenu.classList.remove('open');
-      }
+      if (!avatarMenu.contains(e.target) && !avatarBtn.contains(e.target)) avatarMenu.classList.remove('open');
     });
   }
-
   document.getElementById('logoutBtn')?.addEventListener('click', signOut);
 }

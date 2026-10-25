@@ -18,27 +18,49 @@
 <div class="container">
   <div class="page-header">
     <div>
-      <h1 class="page-title"><i class="fas fa-building"></i> Student dashboard</h1>
-      <p class="page-subtitle">Welcome back, <strong id="welcomeName" style="color:var(--text)">…</strong></p>
+      <h1 class="page-title"><i class="fas fa-building"></i> Free rooms</h1>
+      <p class="page-subtitle">Live availability — includes regular classes, makeup, exams and every other booking.</p>
     </div>
     <div class="row">
       <input class="input" type="date" id="dateInput" style="width:auto">
-      <button class="btn btn-primary" id="loadBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
+      <button class="btn btn-primary" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
     </div>
   </div>
 
-  <div class="stats" id="stats">
-    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
-    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
-    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
+  <!-- Live now banner -->
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
+      <div>
+        <div class="label-small"><i class="fas fa-signal" style="color:var(--success)"></i> Live now</div>
+        <div id="liveClock" class="mono" style="font-size:28px;font-weight:600;color:var(--text);letter-spacing:-0.02em;margin-top:2px">--:--:--</div>
+        <div id="liveInfo" style="font-size:13px;color:var(--text-muted);margin-top:4px">—</div>
+      </div>
+      <div style="display:flex;gap:24px;text-align:right">
+        <div><div class="label-small">Free now</div><div id="freeNow" style="font-size:32px;font-weight:600;color:var(--success);line-height:1;margin-top:4px">—</div></div>
+        <div><div class="label-small">Booked now</div><div id="bookedNow" style="font-size:32px;font-weight:600;color:var(--warning);line-height:1;margin-top:4px">—</div></div>
+      </div>
+    </div>
   </div>
 
-  <h2 class="card-title mt-8" style="margin-bottom:16px"><i class="fas fa-door-open"></i> Free rooms right now</h2>
-  <div id="freeRooms"><div class="card" style="padding:32px"><div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</div></div></div>
+  <!-- Legend -->
+  <div class="free-legend">
+    <div class="free-legend-item"><span class="free-legend-swatch free"></span> Free</div>
+    <div class="free-legend-item"><span class="free-legend-swatch class"></span> Regular class</div>
+    <div class="free-legend-item"><span class="free-legend-swatch makeup"></span> Makeup / Reserved</div>
+    <div class="free-legend-item"><span class="free-legend-swatch other"></span> Exam / Event / Maint</div>
+  </div>
+
+  <div class="grid-toolbar" id="buildingTabs" style="margin-top:16px"></div>
+
+  <div id="gridContainer"><div class="card" style="padding:32px"><div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</div></div></div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate } from './js/core.js';
+import {
+  requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, formatTime,
+  dayName, humanDate, isSunday, slotStateOnDate, minutesUntilEnd, minutesUntilStart,
+  currentSlot, loadBaseData, loadDataForDate, classifyCell
+} from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['student', 'faculty', 'admin']);
@@ -49,116 +71,208 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate } from 
   const dateInput = $('dateInput');
   dateInput.value = todayISO();
 
-  const displayName = auth.profile.full_name || auth.profile.email || 'Student';
-  $('welcomeName').textContent = displayName;
+  let base = { rooms: [], slots: [], buildings: [] };
+  let data = { timetable: [], bookings: [], calendarEntry: null };
+  let building = 'all';
+  let activeSlotId = null;
 
-  let rooms = [], slots = [], bookings = [];
-
-  async function loadMeta() {
-    const [{ data: r }, { data: s }] = await Promise.all([
-      supabase.from('rooms').select('*').eq('bookable', true).order('building').order('floor'),
-      supabase.from('time_slots').select('*').eq('is_active', true).order('sort_order').order('start_time'),
-    ]);
-    rooms = r ?? [];
-    slots = s ?? [];
-  }
-
-  async function loadBookings() {
-    const { data } = await supabase.from('bookings')
-      .select('room_id,slot_id,type,status')
-      .eq('book_date', dateInput.value)
-      .in('status', ['pending', 'approved']);
-    bookings = data ?? [];
-  }
-
-  function currentSlot() {
-    if (dateInput.value !== todayISO()) return null;
-    const now = nowDate();
-    const hh = String(now.getHours()).padStart(2,'0');
-    const mm = String(now.getMinutes()).padStart(2,'0');
-    const nowStr = `${hh}:${mm}:00`;
-    return slots.find(s => nowStr >= s.start_time && nowStr < s.end_time) || null;
-  }
-
-  function render() {
-    const slot = currentSlot();
-    const bookedSet = new Set(bookings.map(b => `${b.room_id}|${b.slot_id}`));
-
-    const totalRooms = rooms.length;
-    const freeNow = slot ? rooms.filter(r => !bookedSet.has(`${r.room_id}|${slot.slot_id}`)).length : null;
-    const bookedNow = slot ? rooms.length - freeNow : null;
-
-    $('stats').innerHTML = `
-      <div class="stat">
-        <i class="fas fa-door-open stat-icon"></i>
-        <div class="stat-value">${totalRooms}</div>
-        <div class="stat-label">Total rooms</div>
-      </div>
-      <div class="stat">
-        <i class="fas fa-circle-check stat-icon" style="color:var(--success)"></i>
-        <div class="stat-value" style="color:var(--success)">${freeNow ?? '—'}</div>
-        <div class="stat-label">Free right now</div>
-      </div>
-      <div class="stat">
-        <i class="fas fa-lock stat-icon" style="color:var(--warning)"></i>
-        <div class="stat-value" style="color:var(--warning)">${bookedNow ?? '—'}</div>
-        <div class="stat-label">Booked right now</div>
-      </div>
-    `;
-
-    if (!slot) {
-      $('freeRooms').innerHTML = `<div class="card"><div class="empty"><i class="fas fa-clock"></i>No active period right now. Check back during class hours.</div></div>`;
-      return;
-    }
-
-    const free = rooms.filter(r => !bookedSet.has(`${r.room_id}|${slot.slot_id}`));
-    if (!free.length) {
-      $('freeRooms').innerHTML = `<div class="card"><div class="empty"><i class="fas fa-door-closed"></i>All rooms are booked during this period.</div></div>`;
-      return;
-    }
-
-    const byBuilding = new Map();
-    free.forEach(r => {
-      if (!byBuilding.has(r.building)) byBuilding.set(r.building, []);
-      byBuilding.get(r.building).push(r);
-    });
-
-    const list = [...byBuilding.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-    $('freeRooms').innerHTML = `
-      <div class="card">
-        <div class="card-title" style="margin-bottom:12px">
-          <i class="fas fa-clock"></i>
-          ${escapeHtml(slot.label || slot.slot_id)} · ${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)}
-          <span class="badge badge-approved" style="margin-left:auto">${free.length} free</span>
-        </div>
-        ${list.map(([b, rs]) => `
-          <div style="margin-bottom:16px">
-            <div class="label-small" style="margin-bottom:8px"><i class="fas fa-building"></i> Block ${escapeHtml(b)}</div>
-            <div class="chips">
-              ${rs.sort((x,y) => x.display_name.localeCompare(y.display_name)).map(r =>
-                `<span class="chip" style="cursor:default">
-                  <i class="fas fa-door-open" style="color:var(--success)"></i>
-                  ${escapeHtml(r.display_name)}
-                  ${r.capacity ? `<span class="dim" style="font-size:10px;margin-left:4px">${r.capacity} seats</span>` : ''}
-                </span>`
-              ).join('')}
-            </div>
-          </div>
-        `).join('')}
-      </div>`;
-  }
-
-  async function reload() {
-    await Promise.all([loadMeta(), loadBookings()]);
+  async function loadAll() {
+    base = await loadBaseData();
+    data = await loadDataForDate(dateInput.value);
     render();
   }
 
-  $('loadBtn').onclick = reload;
-  dateInput.onchange = async () => { await loadBookings(); render(); };
+  function buildCellMap() {
+    const map = new Map();
+    for (const r of base.rooms) {
+      for (const s of base.slots) {
+        const cell = classifyCell({
+          roomId: r.room_id, slotId: s.slot_id, dateStr: dateInput.value,
+          timetable: data.timetable, bookings: data.bookings,
+          calendarEntry: data.calendarEntry, weekendOpen: r.weekend_open,
+        });
+        map.set(`${r.room_id}|${s.slot_id}`, cell);
+      }
+    }
+    return map;
+  }
 
-  await reload();
-  setInterval(() => { if (!document.hidden) reload(); }, 60_000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) reload(); });
+  function renderLive() {
+    const slot = currentSlot(base.slots);
+    const info = $('liveInfo');
+    if (!slot || dateInput.value !== todayISO()) {
+      info.textContent = dateInput.value === todayISO() ? 'No active period' : 'Viewing another day';
+      $('freeNow').textContent = '—';
+      $('bookedNow').textContent = '—';
+      return;
+    }
+    const cmap = buildCellMap();
+    const free = base.rooms.filter(r => cmap.get(`${r.room_id}|${slot.slot_id}`).state === 'free').length;
+    const mins = minutesUntilEnd(slot, dateInput.value);
+    info.innerHTML = `<i class="fas fa-clock"></i> ${escapeHtml(slot.label || slot.slot_id)} · ${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)} · ends in <strong style="color:var(--text)">${mins} min</strong>`;
+    $('freeNow').textContent = free;
+    $('bookedNow').textContent = base.rooms.length - free;
+  }
+
+  function renderTabs() {
+    const el = $('buildingTabs');
+    const bs = [...new Set(base.rooms.map(r => r.building))].sort();
+    el.innerHTML = `
+      <button class="chip ${building === 'all' ? 'on' : ''}" data-b="all"><i class="fas fa-layer-group"></i> All blocks</button>
+      ${bs.map(b => `<button class="chip ${building === b ? 'on' : ''}" data-b="${b}"><i class="fas fa-building"></i> Block ${b}</button>`).join('')}
+    `;
+    el.querySelectorAll('[data-b]').forEach(btn => {
+      btn.onclick = () => { building = btn.dataset.b; render(); };
+    });
+  }
+
+  function render() {
+    renderTabs();
+    renderLive();
+
+    if (data.calendarEntry?.kind === 'holiday') {
+      $('gridContainer').innerHTML = `
+        <div class="card" style="padding:48px 24px;text-align:center">
+          <i class="fas fa-calendar-xmark" style="font-size:42px;color:var(--text-muted);opacity:.5;margin-bottom:16px;display:block"></i>
+          <div style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:6px">
+            ${escapeHtml(data.calendarEntry.label || 'Holiday')}
+          </div>
+          <div style="font-size:14px;color:var(--text-muted)">No classes scheduled. All rooms are open.</div>
+        </div>`;
+      return;
+    }
+
+    const filtered = building === 'all' ? base.rooms : base.rooms.filter(r => r.building === building);
+    if (!filtered.length) {
+      $('gridContainer').innerHTML = '<div class="card"><div class="empty"><i class="fas fa-door-closed"></i>No rooms in this block</div></div>';
+      return;
+    }
+
+    const cmap = buildCellMap();
+    const byFloor = new Map();
+    filtered.forEach(r => {
+      if (!byFloor.has(r.floor)) byFloor.set(r.floor, []);
+      byFloor.get(r.floor).push(r);
+    });
+    byFloor.forEach(arr => arr.sort((a,b) => a.display_name.localeCompare(b.display_name, undefined, { numeric: true })));
+    const floors = [...byFloor.entries()].sort((a,b) => a[0] - b[0]);
+
+    $('gridContainer').innerHTML = `
+      <div class="grid-wrap">
+        <table class="vacancy-table">
+          <thead>
+            <tr>
+              <th class="room-col">Room</th>
+              ${base.slots.map(s => {
+                const st = slotStateOnDate(s, dateInput.value);
+                return `<th class="${st === 'current' ? 'slot-current' : ''}">
+                  <div>${escapeHtml(s.label || s.slot_id)}</div>
+                  <div style="font-size:10px;color:var(--text-muted);font-weight:400;margin-top:2px">${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)}</div>
+                </th>`;
+              }).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${floors.map(([floor, rows]) => `
+              <tr class="floor-row"><td colspan="${base.slots.length + 1}"><i class="fas fa-layer-group"></i>Floor ${floor}</td></tr>
+              ${rows.map(r => `
+                <tr>
+                  <td class="room-cell">
+                    <div class="mono">${escapeHtml(r.display_name)}</div>
+                    <div class="meta">${escapeHtml(r.type)}${r.capacity ? ' · ' + r.capacity + ' seats' : ''}${r.weekend_open ? ' · weekend' : ''}</div>
+                  </td>
+                  ${base.slots.map(s => {
+                    const cell = cmap.get(`${r.room_id}|${s.slot_id}`);
+                    const st = slotStateOnDate(s, dateInput.value);
+                    const past = st === 'ended' || st === 'past-day';
+                    const cur = st === 'current';
+                    return `<td class="slot-cell ${cur ? 'cell-current-col' : ''}">
+                      <div class="cell-${cell.state}${past ? ' cell-past' : ''}"
+                           data-room="${escapeHtml(r.room_id)}"
+                           data-slot="${escapeHtml(s.slot_id)}"
+                           style="cursor:pointer"
+                           title="${escapeHtml(cell.label)} — ${escapeHtml(cell.reason)}">
+                        ${escapeHtml(cell.label)}
+                      </div>
+                    </td>`;
+                  }).join('')}
+                </tr>`).join('')}
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`;
+
+    document.querySelectorAll('[data-room]').forEach(el => {
+      el.onclick = () => showRoomDetail(el.dataset.room);
+    });
+  }
+
+  function showRoomDetail(roomId) {
+    const room = base.rooms.find(r => r.room_id === roomId);
+    if (!room) return;
+
+    const cmap = buildCellMap();
+    const rows = base.slots.map(s => {
+      const cell = cmap.get(`${roomId}|${s.slot_id}`);
+      const st = slotStateOnDate(s, dateInput.value);
+      const badge = cell.state === 'free' ? 'approved'
+                  : cell.state === 'class' ? 'admin'
+                  : cell.state === 'makeup' ? 'pending'
+                  : cell.state === 'closed' ? 'gray'
+                  : 'rejected';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;background:var(--surface-hover);font-size:13px;margin-bottom:4px">
+        <div>
+          <span class="mono" style="font-weight:500">${escapeHtml(s.label || s.slot_id)}</span>
+          <span class="dim" style="font-size:11px;margin-left:8px">${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)}</span>
+          ${st === 'current' ? '<span class="badge badge-pending" style="margin-left:8px"><i class="fas fa-circle" style="font-size:6px"></i>now</span>' : ''}
+        </div>
+        <div style="text-align:right">
+          <span class="badge badge-${badge}">${escapeHtml(cell.label)}</span>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${escapeHtml(cell.reason)}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
+    dialog.innerHTML = `
+      <div class="modal-content modal-wide">
+        <div class="modal-header">
+          <div>
+            <div class="modal-title">${escapeHtml(room.display_name)}</div>
+            <div class="modal-sub">${humanDate(dateInput.value)} · ${escapeHtml(room.type)} · Floor ${room.floor}</div>
+          </div>
+          <button class="modal-close" data-action="close"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">${rows}</div>
+        <div class="modal-footer"><button class="btn" data-action="close2">Close</button></div>
+      </div>`;
+    document.body.appendChild(dialog);
+    dialog.showModal();
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-action]').forEach(b => b.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = (e) => { if (e.target === dialog) close(); };
+  }
+
+  $('refreshBtn').onclick = loadAll;
+  dateInput.onchange = loadAll;
+
+  function tick() {
+    $('liveClock').textContent = formatTime(nowDate());
+    const slot = currentSlot(base.slots);
+    const id = slot?.slot_id || null;
+    if (id !== activeSlotId) { activeSlotId = id; renderLive(); }
+    else if (slot) {
+      const mins = minutesUntilEnd(slot, todayISO());
+      $('liveInfo').innerHTML = `<i class="fas fa-clock"></i> ${escapeHtml(slot.label || slot.slot_id)} · ${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)} · ends in <strong style="color:var(--text)">${mins} min</strong>`;
+    }
+  }
+  setInterval(tick, 1000);
+
+  await loadAll();
+  setInterval(() => { if (!document.hidden) loadAll(); }, 60_000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) loadAll(); });
 })();
 </script>
 </body>
