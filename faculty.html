@@ -8,9 +8,503 @@
 <meta name="theme-color" content="#EA580C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
+
+<style>
+  /* ============================================================
+     MAKEUP MODAL — new-age redesign
+     ============================================================ */
+  .makeup-modal {
+    width: min(780px, calc(100vw - 32px));
+    max-height: calc(100vh - 48px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+  }
+  .makeup-header {
+    padding: 24px 28px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .makeup-header-title {
+    font-size: 20px; font-weight: 700; letter-spacing: -0.02em;
+    color: var(--text); display: flex; align-items: center; gap: 10px;
+  }
+  .makeup-header-title i { color: var(--brand); font-size: 18px; }
+  .makeup-header-sub {
+    font-size: 13px; color: var(--text-muted); margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  /* Stepper */
+  .makeup-stepper {
+    display: flex; align-items: center; gap: 8px;
+    padding: 18px 28px;
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .makeup-stepper .step {
+    display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0; opacity: 0.5;
+    transition: opacity 200ms ease;
+  }
+  .makeup-stepper .step.active,
+  .makeup-stepper .step.done { opacity: 1; }
+  .makeup-stepper .step-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--surface-active); color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    transition: all 220ms cubic-bezier(.4,0,.2,1);
+  }
+  .makeup-stepper .step.active .step-num {
+    background: var(--brand); color: #fff;
+    box-shadow: 0 0 0 4px var(--brand-soft);
+  }
+  .makeup-stepper .step.done .step-num {
+    background: var(--success); color: #fff;
+  }
+  .makeup-stepper .step.done .step-num::before {
+    content: '\f00c'; font-family: 'Font Awesome 6 Free';
+    font-weight: 900; font-size: 10px;
+  }
+  .makeup-stepper .step.done .step-num > * { display: none; }
+  .makeup-stepper .step-label {
+    font-size: 13px; font-weight: 600;
+    color: var(--text-secondary);
+    transition: color 200ms ease;
+  }
+  .makeup-stepper .step.active .step-label { color: var(--text); }
+  .makeup-stepper .step-divider {
+    flex: 1; height: 2px; background: var(--border);
+    border-radius: 2px; transition: background 220ms ease;
+    min-width: 12px;
+  }
+  .makeup-stepper .step-divider.done { background: var(--success); }
+
+  /* Body */
+  .makeup-body {
+    flex: 1; overflow-y: auto;
+    padding: 28px;
+  }
+  .makeup-step { display: none; }
+  .makeup-step.active { display: block; animation: makeupFade 280ms cubic-bezier(.4,0,.2,1); }
+  @keyframes makeupFade {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .makeup-step-title {
+    font-size: 16px; font-weight: 600; color: var(--text);
+    margin-bottom: 4px; letter-spacing: -0.01em;
+  }
+  .makeup-step-desc {
+    font-size: 13px; color: var(--text-muted);
+    margin-bottom: 22px; line-height: 1.55;
+  }
+
+  /* ---------- STEP 1: When ---------- */
+  .date-input-wrap {
+    position: relative; margin-bottom: 22px;
+  }
+  .date-input-wrap input[type="date"] {
+    width: 100%; padding: 16px 18px 16px 52px;
+    font-size: 16px; font-weight: 500;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    transition: all 180ms ease;
+  }
+  .date-input-wrap input[type="date"]:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 4px var(--brand-soft);
+    outline: none;
+  }
+  .date-input-wrap i {
+    position: absolute; left: 18px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--brand); font-size: 16px;
+    pointer-events: none;
+  }
+  .date-input-wrap .day-badge {
+    position: absolute; right: 16px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px; font-weight: 600;
+    padding: 4px 10px; border-radius: 6px;
+    background: var(--brand-soft); color: var(--brand-text);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+
+  .slot-label-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .slot-label-row .label-small { margin: 0; }
+  .slot-label-row .slot-hint {
+    font-size: 11px; color: var(--text-muted);
+  }
+
+  .slot-picker {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+  }
+  .slot-btn {
+    position: relative;
+    padding: 14px 12px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 180ms cubic-bezier(.4,0,.2,1);
+    font: inherit; color: inherit;
+  }
+  .slot-btn:hover:not(:disabled) {
+    border-color: var(--brand);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+  .slot-btn.selected {
+    border-color: var(--brand);
+    background: var(--brand-soft);
+    box-shadow: 0 0 0 3px var(--brand-soft);
+  }
+  .slot-btn:disabled {
+    opacity: 0.4; cursor: not-allowed;
+    background: var(--bg-subtle);
+  }
+  .slot-btn.is-now {
+    border-color: var(--brand);
+  }
+  .slot-btn.is-now::before {
+    content: ''; position: absolute; top: 8px; right: 8px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--brand);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.6; transform: scale(1.3); }
+  }
+  .slot-btn .slot-name {
+    font-size: 13px; font-weight: 600; color: var(--text);
+    margin-bottom: 2px;
+  }
+  .slot-btn .slot-time {
+    font-size: 11px; color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .slot-btn .slot-availability {
+    margin-top: 6px;
+    font-size: 11px; font-weight: 500;
+    color: var(--success);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .slot-btn .slot-availability.loading { color: var(--text-muted); }
+  .slot-btn .slot-availability.none { color: var(--danger); }
+  .slot-btn.selected .slot-availability { color: var(--brand-text); }
+
+  /* ---------- STEP 2: Room ---------- */
+  .room-filter-bar {
+    display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap;
+    align-items: center;
+  }
+  .room-search {
+    position: relative; flex: 1; min-width: 200px;
+  }
+  .room-search input {
+    width: 100%; padding: 10px 12px 10px 36px;
+    font-size: 13px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    transition: all 160ms ease;
+  }
+  .room-search input:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px var(--brand-soft);
+    outline: none;
+  }
+  .room-search i {
+    position: absolute; left: 14px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted); font-size: 12px;
+    pointer-events: none;
+  }
+  .building-pills {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .building-pill {
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px; font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 140ms ease;
+    font-family: inherit;
+  }
+  .building-pill:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
+  .building-pill.active {
+    background: var(--brand); border-color: var(--brand); color: #fff;
+  }
+
+  .room-count-line {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+  .room-count-line .count-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 999px;
+    background: var(--success-soft); color: var(--success-text);
+    font-weight: 600; font-size: 11px;
+  }
+
+  .room-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+  }
+  .room-tile {
+    position: relative;
+    padding: 16px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: left;
+    font: inherit; color: inherit;
+    transition: all 180ms cubic-bezier(.4,0,.2,1);
+  }
+  .room-tile:hover {
+    border-color: var(--brand);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .room-tile.selected {
+    border-color: var(--brand);
+    background: var(--brand-soft);
+    box-shadow: 0 0 0 3px var(--brand-soft);
+  }
+  .room-tile.selected::after {
+    content: '\f00c';
+    font-family: 'Font Awesome 6 Free'; font-weight: 900;
+    position: absolute; top: 12px; right: 12px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--brand); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    animation: checkPop 220ms cubic-bezier(.68,-0.55,.27,1.55);
+  }
+  @keyframes checkPop {
+    0%   { transform: scale(0); }
+    70%  { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  .room-tile-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600; font-size: 15px; color: var(--text);
+    margin-bottom: 6px;
+    padding-right: 28px;
+  }
+  .room-tile-meta {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    font-size: 11px; color: var(--text-muted);
+  }
+  .room-tile-meta span {
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .room-tile-meta i {
+    font-size: 9px; opacity: 0.7;
+  }
+  .room-tile-badge {
+    position: absolute; bottom: 12px; right: 12px;
+    font-size: 10px; font-weight: 600;
+    padding: 3px 8px; border-radius: 999px;
+    background: var(--success-soft); color: var(--success-text);
+  }
+
+  /* Empty state for rooms */
+  .makeup-empty {
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .makeup-empty-icon {
+    width: 64px; height: 64px; border-radius: 16px;
+    background: var(--surface-active);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 26px; margin-bottom: 16px;
+    color: var(--text-muted);
+  }
+  .makeup-empty-title {
+    font-size: 15px; font-weight: 600; color: var(--text);
+    margin-bottom: 4px;
+  }
+  .makeup-empty-sub {
+    font-size: 13px; line-height: 1.5; max-width: 340px; margin: 0 auto;
+  }
+
+  /* ---------- STEP 3: Confirm ---------- */
+  .summary-card {
+    padding: 24px;
+    background: linear-gradient(135deg, var(--brand-soft) 0%, var(--surface) 100%);
+    border: 1.5px solid var(--brand-soft-border);
+    border-radius: 16px;
+    margin-bottom: 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .summary-card::before {
+    content: ''; position: absolute; top: 0; right: 0;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(234, 88, 12, 0.08), transparent 70%);
+    pointer-events: none;
+  }
+  .summary-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--brand); color: #fff;
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 16px;
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    position: relative; z-index: 1;
+  }
+  .summary-item {
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .summary-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--brand); font-size: 14px;
+    flex-shrink: 0;
+  }
+  .summary-label {
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-muted); margin-bottom: 2px;
+  }
+  .summary-value {
+    font-size: 14px; font-weight: 600; color: var(--text);
+    line-height: 1.3;
+  }
+  .summary-value.mono { font-family: 'JetBrains Mono', monospace; }
+
+  .reason-field {
+    margin-bottom: 20px;
+  }
+  .reason-field textarea {
+    width: 100%; min-height: 80px;
+    padding: 14px 16px;
+    font-family: inherit; font-size: 14px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--text); resize: vertical;
+    transition: all 160ms ease;
+  }
+  .reason-field textarea:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px var(--brand-soft);
+    outline: none;
+  }
+  .reason-field textarea::placeholder { color: var(--text-muted); }
+
+  .info-note {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 12px 14px;
+    background: var(--info-soft);
+    border: 1px solid var(--info-soft-border);
+    border-radius: 10px;
+    font-size: 12px; color: var(--info-text);
+    line-height: 1.55;
+  }
+  .info-note i {
+    color: var(--info); font-size: 14px;
+    flex-shrink: 0; margin-top: 1px;
+  }
+
+  /* ---------- Footer ---------- */
+  .makeup-footer {
+    padding: 16px 28px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .makeup-footer-step {
+    font-size: 12px; color: var(--text-muted);
+    font-weight: 500;
+  }
+  .makeup-footer-actions {
+    display: flex; gap: 8px;
+  }
+
+  /* ---------- Success state ---------- */
+  .makeup-success {
+    padding: 48px 28px;
+    text-align: center;
+    animation: makeupFade 280ms cubic-bezier(.4,0,.2,1);
+  }
+  .success-icon {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: var(--success-soft);
+    color: var(--success);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 32px; margin-bottom: 20px;
+    animation: successBounce 600ms cubic-bezier(.68,-0.55,.27,1.55);
+  }
+  @keyframes successBounce {
+    0%   { transform: scale(0); }
+    60%  { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  .success-title {
+    font-size: 20px; font-weight: 700; color: var(--text);
+    margin-bottom: 8px; letter-spacing: -0.02em;
+  }
+  .success-sub {
+    font-size: 14px; color: var(--text-muted);
+    line-height: 1.6; max-width: 380px; margin: 0 auto 24px;
+  }
+
+  /* Mobile */
+  @media (max-width: 640px) {
+    .makeup-modal { width: 100vw; max-height: 100vh; border-radius: 0; }
+    .makeup-header { padding: 20px 20px 14px; }
+    .makeup-stepper { padding: 14px 20px; }
+    .makeup-stepper .step-label { display: none; }
+    .makeup-stepper .step.active .step-label { display: inline; }
+    .makeup-body { padding: 20px; }
+    .makeup-footer { padding: 14px 20px; }
+    .slot-picker { grid-template-columns: repeat(2, 1fr); }
+    .room-grid-modern { grid-template-columns: 1fr; }
+    .summary-grid { grid-template-columns: 1fr; }
+  }
+</style>
 </head>
 <body>
 <div id="nav"></div>
@@ -40,8 +534,8 @@
 <script type="module">
 import {
   requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, formatTime,
-  dayOfWeekNum, dayName, humanDate, loadBaseData, loadDataForDate, classifyCell,
-  minutesUntilStart, currentSlot, toast
+  dayOfWeekNum, humanDate, loadBaseData, loadDataForDate, classifyCell,
+  minutesUntilStart, currentSlot, toast, dayName
 } from './js/core.js';
 
 (async () => {
@@ -50,8 +544,7 @@ import {
   renderNav(auth.profile);
 
   const $ = id => document.getElementById(id);
-  const displayName = auth.profile.full_name || auth.profile.email || 'Faculty';
-  $('welcomeName').textContent = displayName;
+  $('welcomeName').textContent = auth.profile.full_name || auth.profile.email || 'Faculty';
 
   let base = { rooms: [], slots: [], sections: [] };
 
@@ -59,7 +552,6 @@ import {
     base = await loadBaseData();
     const today = todayISO();
 
-    // My regular classes from timetable (today's weekday)
     const dow = dayOfWeekNum(today);
     const { data: myClasses } = await supabase
       .from('timetable')
@@ -68,7 +560,6 @@ import {
       .eq('day_of_week', dow)
       .eq('is_active', true);
 
-    // My bookings (upcoming)
     const { data: bookings } = await supabase
       .from('bookings')
       .select('*')
@@ -87,16 +578,13 @@ import {
     const list = bookings ?? [];
     const approved = list.filter(b => b.status === 'approved');
     const pending = list.filter(b => b.status === 'pending');
-
     const nowSlot = currentSlot(base.slots);
-
-    // Stats
-    const todaysClasses = classes.length;
     const teachingNow = classes.filter(c => c.slot_id === nowSlot?.slot_id).length;
+
     $('stats').innerHTML = `
       <div class="stat">
         <i class="fas fa-chalkboard-user stat-icon"></i>
-        <div class="stat-value">${todaysClasses}</div>
+        <div class="stat-value">${classes.length}</div>
         <div class="stat-label">Classes today</div>
       </div>
       <div class="stat">
@@ -111,7 +599,6 @@ import {
       </div>
     `;
 
-    // Today's schedule
     if (!classes.length) {
       $('todaySchedule').innerHTML = `
         <div class="card"><div class="empty-action">
@@ -148,7 +635,6 @@ import {
       }).join('');
     }
 
-    // My bookings
     if (!list.length) {
       $('bookingsList').innerHTML = `
         <div class="card"><div class="empty-action">
@@ -188,112 +674,469 @@ import {
   function tick() { $('liveTime').textContent = formatTime(nowDate()).slice(0,5); }
   setInterval(tick, 1000); tick();
 
-  // Makeup request modal
-  $('makeupBtn').onclick = async () => {
-    const today = todayISO();
-    const tomorrow = todayISO(new Date(Date.now() + 86400000));
+  /* ============================================================
+     MAKEUP CLASS — 3-step wizard
+     ============================================================ */
+  $('makeupBtn').onclick = () => openMakeupWizard();
+
+  function openMakeupWizard() {
+    const state = {
+      step: 1,
+      date: todayISO(new Date(Date.now() + 86400000)),
+      slotId: null,
+      roomId: null,
+      reason: '',
+      dataCache: {},
+    };
+
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
     dialog.innerHTML = `
-      <div class="modal-content">
-        <div class="modal-header">
-          <div class="modal-title">Request makeup class</div>
-          <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
-        </div>
-        <div class="modal-body">
-          <label class="field"><span>Date</span>
-            <input class="input" type="date" id="mkDate" value="${tomorrow}" min="${today}">
-          </label>
-          <label class="field"><span>Slot</span>
-            <select class="input" id="mkSlot">
-              ${base.slots.map(s => `<option value="${s.slot_id}">${escapeHtml(s.label || s.slot_id)} (${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)})</option>`).join('')}
-            </select>
-          </label>
-          <label class="field"><span>Reason (optional)</span>
-            <input class="input" id="mkReason" placeholder="e.g. Extra doubt session">
-          </label>
-          <div style="margin-top:12px">
-            <div class="label-small">Available rooms</div>
-            <div id="mkRooms" style="max-height:280px;overflow-y:auto;margin-top:6px">
-              <div class="empty" style="padding:20px"><i class="fas fa-spinner fa-spin"></i></div>
+      <div class="modal-content makeup-modal">
+        <div class="makeup-header">
+          <div>
+            <div class="makeup-header-title">
+              <i class="fas fa-chalkboard-user"></i> Request makeup class
+            </div>
+            <div class="makeup-header-sub">
+              Pick a date, choose a free slot, and reserve a room. Admin approval is required.
             </div>
           </div>
+          <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
         </div>
-        <div class="modal-footer">
-          <button class="btn" data-close>Cancel</button>
-          <button class="btn btn-primary" id="mkSubmit" disabled>Send request</button>
+
+        <div class="makeup-stepper" id="mkStepper">
+          <div class="step active" data-step="1"><span class="step-num">1</span><span class="step-label">When</span></div>
+          <div class="step-divider"></div>
+          <div class="step" data-step="2"><span class="step-num">2</span><span class="step-label">Room</span></div>
+          <div class="step-divider"></div>
+          <div class="step" data-step="3"><span class="step-num">3</span><span class="step-label">Confirm</span></div>
         </div>
-      </div>`;
+
+        <div class="makeup-body" id="mkBody">
+
+          <!-- STEP 1 -->
+          <div class="makeup-step active" data-panel="1">
+            <div class="makeup-step-title">When is the makeup class?</div>
+            <div class="makeup-step-desc">Choose any future date. Past slots on today are disabled.</div>
+
+            <div class="date-input-wrap">
+              <i class="fas fa-calendar-days"></i>
+              <input type="date" id="mkDate" value="${state.date}" min="${todayISO()}">
+              <span class="day-badge" id="mkDayBadge">${dayName(state.date)}</span>
+            </div>
+
+            <div class="slot-label-row">
+              <div class="label-small">Pick a period</div>
+              <div class="slot-hint" id="mkSlotHint">Checking availability…</div>
+            </div>
+            <div class="slot-picker" id="mkSlotPicker">
+              <div class="makeup-empty" style="grid-column: 1 / -1; padding: 32px;">
+                <div class="makeup-empty-icon"><i class="fas fa-spinner fa-spin"></i></div>
+                <div class="makeup-empty-title">Loading slots</div>
+                <div class="makeup-empty-sub">One moment please…</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 2 -->
+          <div class="makeup-step" data-panel="2">
+            <div class="makeup-step-title">Pick a room</div>
+            <div class="makeup-step-desc" id="mkRoomDesc">Rooms available for your selected slot.</div>
+
+            <div class="room-filter-bar">
+              <div class="room-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="mkRoomSearch" placeholder="Search by name or block…">
+              </div>
+            </div>
+
+            <div class="building-pills" id="mkBuildingPills" style="margin-bottom:16px"></div>
+
+            <div class="room-count-line" id="mkRoomCount">
+              <span class="count-badge"><i class="fas fa-door-open" style="font-size:10px"></i> <span id="mkFreeCount">0</span> free</span>
+            </div>
+
+            <div class="room-grid-modern" id="mkRoomGrid">
+              <div class="makeup-empty" style="grid-column: 1 / -1; padding: 32px;">
+                <div class="makeup-empty-icon"><i class="fas fa-spinner fa-spin"></i></div>
+                <div class="makeup-empty-title">Loading rooms</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 3 -->
+          <div class="makeup-step" data-panel="3">
+            <div class="makeup-step-title">Confirm your booking</div>
+            <div class="makeup-step-desc">Review the details. An admin will approve your request.</div>
+
+            <div class="summary-card">
+              <span class="summary-badge"><i class="fas fa-clock"></i> Makeup class</span>
+              <div class="summary-grid">
+                <div class="summary-item">
+                  <div class="summary-icon"><i class="fas fa-calendar-days"></i></div>
+                  <div>
+                    <div class="summary-label">Date</div>
+                    <div class="summary-value" id="mkSumDate">—</div>
+                  </div>
+                </div>
+                <div class="summary-item">
+                  <div class="summary-icon"><i class="fas fa-clock"></i></div>
+                  <div>
+                    <div class="summary-label">Period</div>
+                    <div class="summary-value" id="mkSumSlot">—</div>
+                  </div>
+                </div>
+                <div class="summary-item">
+                  <div class="summary-icon"><i class="fas fa-door-open"></i></div>
+                  <div>
+                    <div class="summary-label">Room</div>
+                    <div class="summary-value mono" id="mkSumRoom">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="reason-field">
+              <div class="label-small" style="margin-bottom:8px">Reason <span class="dim" style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
+              <textarea id="mkReason" placeholder="e.g. Extra doubt session for CS402 before mid-terms…"></textarea>
+            </div>
+
+            <div class="info-note">
+              <i class="fas fa-circle-info"></i>
+              <div>Your booking will be marked <strong>pending</strong>. You'll be notified once an admin approves it.</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="makeup-footer" id="mkFooter">
+          <div class="makeup-footer-step" id="mkStepIndicator">Step 1 of 3</div>
+          <div class="makeup-footer-actions">
+            <button class="btn" id="mkBackBtn" disabled><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn btn-primary" id="mkNextBtn" disabled>
+              Continue <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
     document.body.appendChild(dialog);
     dialog.showModal();
 
-    let selectedRoom = null;
+    /* ===== refs ===== */
+    const stepper = dialog.querySelector('#mkStepper');
+    const panels = dialog.querySelectorAll('.makeup-step');
+    const stepIndicator = dialog.querySelector('#mkStepIndicator');
+    const backBtn = dialog.querySelector('#mkBackBtn');
+    const nextBtn = dialog.querySelector('#mkNextBtn');
+    const footer = dialog.querySelector('#mkFooter');
+    const dateInput = dialog.querySelector('#mkDate');
+    const dayBadge = dialog.querySelector('#mkDayBadge');
+    const slotPicker = dialog.querySelector('#mkSlotPicker');
+    const slotHint = dialog.querySelector('#mkSlotHint');
+    const roomGrid = dialog.querySelector('#mkRoomGrid');
+    const roomSearch = dialog.querySelector('#mkRoomSearch');
+    const buildingPills = dialog.querySelector('#mkBuildingPills');
+    const freeCountEl = dialog.querySelector('#mkFreeCount');
+    const sumDate = dialog.querySelector('#mkSumDate');
+    const sumSlot = dialog.querySelector('#mkSumSlot');
+    const sumRoom = dialog.querySelector('#mkSumRoom');
+    const reasonInput = dialog.querySelector('#mkReason');
+    const roomDesc = dialog.querySelector('#mkRoomDesc');
 
-    async function loadFreeRooms() {
-      const d = dialog.querySelector('#mkDate').value;
-      const s = dialog.querySelector('#mkSlot').value;
-      if (!d || !s) return;
-      const el = dialog.querySelector('#mkRooms');
-      el.innerHTML = '<div class="empty" style="padding:20px"><i class="fas fa-spinner fa-spin"></i></div>';
-      const data = await loadDataForDate(d);
-      const free = base.rooms.filter(r => {
-        const c = classifyCell({ roomId: r.room_id, slotId: s, dateStr: d, timetable: data.timetable, bookings: data.bookings, calendarEntry: data.calendarEntry });
-        return c.state === 'free';
+    let selectedBuilding = 'all';
+
+    /* ===== step navigation ===== */
+    function goToStep(n) {
+      state.step = n;
+      panels.forEach(p => p.classList.toggle('active', parseInt(p.dataset.panel) === n));
+      stepper.querySelectorAll('.step').forEach(el => {
+        const s = parseInt(el.dataset.step);
+        el.classList.toggle('active', s === n);
+        el.classList.toggle('done', s < n);
       });
-      if (!free.length) {
-        el.innerHTML = '<div class="empty" style="padding:20px"><i class="fas fa-door-closed"></i>No free rooms in this slot</div>';
-        return;
+      stepper.querySelectorAll('.step-divider').forEach((el, i) => {
+        el.classList.toggle('done', i + 1 < n);
+      });
+      stepIndicator.textContent = `Step ${n} of 3`;
+      backBtn.disabled = n === 1;
+
+      if (n === 3) {
+        nextBtn.innerHTML = '<i class="fas fa-check"></i> Send request';
+        nextBtn.classList.remove('btn-primary');
+        nextBtn.classList.add('btn-success');
+      } else {
+        nextBtn.innerHTML = 'Continue <i class="fas fa-arrow-right"></i>';
+        nextBtn.classList.add('btn-primary');
+        nextBtn.classList.remove('btn-success');
       }
-      el.innerHTML = free.map(r => `
-        <button class="room-card" data-room="${escapeHtml(r.room_id)}" style="width:100%;text-align:left;margin-bottom:6px">
-          <div class="rc-name"><i class="fas fa-door-open"></i>${escapeHtml(r.display_name)}</div>
-          <div class="rc-meta">Block ${r.building} · Floor ${r.floor} · ${escapeHtml(r.type)}</div>
-        </button>
-      `).join('');
-      el.querySelectorAll('[data-room]').forEach(btn => {
-        btn.onclick = () => {
-          el.querySelectorAll('.room-card').forEach(b => b.style.outline = '');
-          btn.style.outline = '2px solid var(--brand)';
-          selectedRoom = btn.dataset.room;
-          dialog.querySelector('#mkSubmit').disabled = false;
-        };
-      });
+      if (n === 1) nextBtn.disabled = !state.slotId;
+      if (n === 2) nextBtn.disabled = !state.roomId;
+      if (n === 3) nextBtn.disabled = false;
+
+      dialog.querySelector('#mkBody').scrollTop = 0;
     }
 
-    dialog.querySelector('#mkDate').onchange = loadFreeRooms;
-    dialog.querySelector('#mkSlot').onchange = loadFreeRooms;
+    /* ===== STEP 1: slots ===== */
+    async function loadSlots() {
+      dateInput.value = state.date;
+      dayBadge.textContent = dayName(state.date);
+      slotHint.textContent = 'Checking availability…';
+      slotPicker.innerHTML = `
+        <div class="makeup-empty" style="grid-column: 1 / -1; padding: 24px;">
+          <div class="makeup-empty-icon"><i class="fas fa-spinner fa-spin"></i></div>
+          <div class="makeup-empty-title">Loading slots</div>
+        </div>`;
 
-    dialog.querySelector('#mkSubmit').onclick = async () => {
-      if (!selectedRoom) return;
-      const d = dialog.querySelector('#mkDate').value;
-      const s = dialog.querySelector('#mkSlot').value;
-      const reason = dialog.querySelector('#mkReason').value.trim() || null;
-      const btn = dialog.querySelector('#mkSubmit');
-      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
-      const { error } = await supabase.from('bookings').insert({
-        room_id: selectedRoom, book_date: d, slot_id: s,
-        type: 'makeup', status: 'pending',
-        faculty_id: auth.session.user.id,
-        created_by: auth.session.user.id,
-        reason,
+      const cacheKey = state.date;
+      let data = state.dataCache[cacheKey];
+      if (!data) {
+        data = await loadDataForDate(state.date);
+        state.dataCache[cacheKey] = data;
+      }
+
+      const today = todayISO();
+      const isToday = state.date === today;
+      const nowStr = formatTime(nowDate());
+
+      // Count free rooms per slot
+      const slotInfo = base.slots.map(s => {
+        const isPast = isToday && s.end_time <= nowStr;
+        const isNow = isToday && nowStr >= s.start_time && nowStr < s.end_time;
+        const freeCount = isPast ? 0 : base.rooms.filter(r => {
+          const c = classifyCell({
+            roomId: r.room_id, slotId: s.slot_id, dateStr: state.date,
+            timetable: data.timetable, bookings: data.bookings,
+            calendarEntry: data.calendarEntry,
+          });
+          return c.state === 'free';
+        }).length;
+        return { slot: s, isPast, isNow, freeCount };
       });
-      if (error) {
-        toast(error.message, 'error');
-        btn.disabled = false; btn.innerHTML = 'Send request';
+
+      const usableCount = slotInfo.filter(x => !x.isPast && x.freeCount > 0).length;
+      slotHint.textContent = usableCount > 0
+        ? `${usableCount} slot${usableCount === 1 ? '' : 's'} with rooms available`
+        : 'No slots available';
+
+      // If holiday, disable everything
+      if (data.calendarEntry?.kind === 'holiday') {
+        slotPicker.innerHTML = `
+          <div class="makeup-empty" style="grid-column: 1 / -1; padding: 32px;">
+            <div class="makeup-empty-icon"><i class="fas fa-calendar-xmark"></i></div>
+            <div class="makeup-empty-title">${escapeHtml(data.calendarEntry.label || 'Holiday')}</div>
+            <div class="makeup-empty-sub">No classes scheduled. Pick another date.</div>
+          </div>`;
+        nextBtn.disabled = true;
         return;
       }
-      toast('Request sent — pending admin approval', 'success');
-      dialog.close(); dialog.remove();
-      await load();
+
+      slotPicker.innerHTML = slotInfo.map(({ slot, isPast, isNow, freeCount }) => {
+        const disabled = isPast || freeCount === 0;
+        const selected = state.slotId === slot.slot_id;
+        const availClass = disabled ? 'none' : '';
+        const availText = isPast ? 'Ended' : (freeCount === 0 ? 'Full' : `${freeCount} free`);
+        const availIcon = isPast ? 'fa-clock' : (freeCount === 0 ? 'fa-lock' : 'fa-door-open');
+        return `
+          <button class="slot-btn ${selected ? 'selected' : ''} ${isNow ? 'is-now' : ''}"
+                  data-slot="${slot.slot_id}"
+                  ${disabled ? 'disabled' : ''}>
+            <div class="slot-name">${escapeHtml(slot.label || slot.slot_id)}</div>
+            <div class="slot-time">${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)}</div>
+            <div class="slot-availability ${availClass}">
+              <i class="fas ${availIcon}" style="font-size:10px"></i>${availText}
+            </div>
+          </button>`;
+      }).join('');
+
+      slotPicker.querySelectorAll('[data-slot]').forEach(btn => {
+        btn.onclick = () => {
+          slotPicker.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          state.slotId = btn.dataset.slot;
+          state.roomId = null; // reset room when slot changes
+          nextBtn.disabled = false;
+        };
+      });
+
+      nextBtn.disabled = !state.slotId;
+    }
+
+    dateInput.onchange = () => {
+      state.date = dateInput.value;
+      state.slotId = null;
+      loadSlots();
     };
 
+    /* ===== STEP 2: rooms ===== */
+    async function loadRooms() {
+      if (!state.slotId) return;
+      const data = state.dataCache[state.date] || await loadDataForDate(state.date);
+      const slot = base.slots.find(s => s.slot_id === state.slotId);
+
+      roomDesc.textContent = `Available rooms for ${humanDate(state.date)} · ${slot?.label || state.slotId} (${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)})`;
+
+      const free = base.rooms.filter(r => {
+        const c = classifyCell({
+          roomId: r.room_id, slotId: state.slotId, dateStr: state.date,
+          timetable: data.timetable, bookings: data.bookings,
+          calendarEntry: data.calendarEntry,
+        });
+        return c.state === 'free';
+      });
+
+      // Building pills
+      const buildings = ['all', ...new Set(free.map(r => r.building).sort())];
+      buildingPills.innerHTML = buildings.map(b => `
+        <button class="building-pill ${b === selectedBuilding ? 'active' : ''}" data-building="${b}">
+          ${b === 'all' ? 'All blocks' : `Block ${b}`}
+        </button>
+      `).join('');
+      buildingPills.querySelectorAll('[data-building]').forEach(btn => {
+        btn.onclick = () => {
+          selectedBuilding = btn.dataset.building;
+          renderRooms();
+        };
+      });
+
+      freeCountEl.textContent = free.length;
+      renderRooms();
+
+      function renderRooms() {
+        let filtered = free;
+        if (selectedBuilding !== 'all') {
+          filtered = filtered.filter(r => r.building === selectedBuilding);
+        }
+        const q = (roomSearch.value || '').toLowerCase().trim();
+        if (q) {
+          filtered = filtered.filter(r =>
+            r.display_name.toLowerCase().includes(q) ||
+            r.building.toLowerCase().includes(q) ||
+            r.type.toLowerCase().includes(q)
+          );
+        }
+
+        if (filtered.length === 0) {
+          roomGrid.innerHTML = `
+            <div class="makeup-empty" style="grid-column: 1 / -1; padding: 40px;">
+              <div class="makeup-empty-icon"><i class="fas fa-door-closed"></i></div>
+              <div class="makeup-empty-title">No matching rooms</div>
+              <div class="makeup-empty-sub">Try clearing filters or picking another slot.</div>
+            </div>`;
+          return;
+        }
+
+        roomGrid.innerHTML = filtered.map(r => {
+          const selected = state.roomId === r.room_id;
+          return `
+            <button class="room-tile ${selected ? 'selected' : ''}" data-room="${escapeHtml(r.room_id)}">
+              <div class="room-tile-name">${escapeHtml(r.display_name)}</div>
+              <div class="room-tile-meta">
+                <span><i class="fas fa-building"></i>Block ${r.building}</span>
+                <span><i class="fas fa-layer-group"></i>Floor ${r.floor}</span>
+                <span><i class="fas fa-door-open"></i>${escapeHtml(r.type)}</span>
+                ${r.capacity ? `<span><i class="fas fa-users"></i>${r.capacity}</span>` : ''}
+              </div>
+              <span class="room-tile-badge">Free</span>
+            </button>`;
+        }).join('');
+
+        roomGrid.querySelectorAll('[data-room]').forEach(btn => {
+          btn.onclick = () => {
+            roomGrid.querySelectorAll('.room-tile').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            state.roomId = btn.dataset.room;
+            nextBtn.disabled = false;
+          };
+        });
+
+        nextBtn.disabled = !state.roomId;
+      }
+
+      roomSearch.oninput = renderRooms;
+    }
+
+    /* ===== STEP 3: summary ===== */
+    function loadSummary() {
+      const slot = base.slots.find(s => s.slot_id === state.slotId);
+      const room = base.rooms.find(r => r.room_id === state.roomId);
+      sumDate.textContent = humanDate(state.date);
+      sumSlot.textContent = slot ? `${slot.label || slot.slot_id} · ${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)}` : '—';
+      sumRoom.textContent = room?.display_name || '—';
+    }
+
+    /* ===== footer nav ===== */
+    backBtn.onclick = () => {
+      if (state.step > 1) goToStep(state.step - 1);
+    };
+
+    nextBtn.onclick = async () => {
+      if (state.step === 1) {
+        await loadRooms();
+        goToStep(2);
+      } else if (state.step === 2) {
+        loadSummary();
+        goToStep(3);
+      } else if (state.step === 3) {
+        // Submit
+        state.reason = reasonInput.value.trim();
+        nextBtn.disabled = true;
+        nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
+
+        const { error } = await supabase.from('bookings').insert({
+          room_id: state.roomId,
+          book_date: state.date,
+          slot_id: state.slotId,
+          type: 'makeup',
+          status: 'pending',
+          faculty_id: auth.session.user.id,
+          created_by: auth.session.user.id,
+          reason: state.reason || null,
+        });
+
+        if (error) {
+          toast(error.message, 'error');
+          nextBtn.disabled = false;
+          nextBtn.innerHTML = '<i class="fas fa-check"></i> Send request';
+          return;
+        }
+
+        // Show success inside modal
+        const body = dialog.querySelector('#mkBody');
+        const room = base.rooms.find(r => r.room_id === state.roomId);
+        const slot = base.slots.find(s => s.slot_id === state.slotId);
+        body.innerHTML = `
+          <div class="makeup-success">
+            <div class="success-icon"><i class="fas fa-check"></i></div>
+            <div class="success-title">Request sent successfully</div>
+            <div class="success-sub">
+              Your makeup class for <strong>${escapeHtml(room?.display_name || state.roomId)}</strong>
+              on ${humanDate(state.date)} at ${escapeHtml(slot?.label || state.slotId)} is now pending approval.
+            </div>
+            <button class="btn btn-primary" id="mkDone">
+              <i class="fas fa-check"></i> Done
+            </button>
+          </div>`;
+        dialog.querySelector('#mkStepper').style.display = 'none';
+        footer.style.display = 'none';
+        dialog.querySelector('#mkDone').onclick = () => {
+          dialog.close();
+          load();
+        };
+      }
+    };
+
+    /* ===== close ===== */
     const close = () => { dialog.close(); dialog.remove(); };
-    dialog.querySelectorAll('[data-close]').forEach(b => b.onclick = close);
+    dialog.querySelector('[data-close]').onclick = close;
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
     dialog.onclick = (e) => { if (e.target === dialog) close(); };
 
-    loadFreeRooms();
-  };
+    /* ===== boot ===== */
+    loadSlots();
+    goToStep(1);
+  }
 
   await load();
   setInterval(() => { if (!document.hidden) load(); }, 60_000);
