@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -26,7 +25,10 @@ import { supabase, waitForSession } from './js/core.js';
   if (!session) return location.replace('./login.html');
   const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', session.user.id).single();
   if (!profile || profile.is_active === false) { await supabase.auth.signOut(); return location.replace('./login.html'); }
-  location.replace(`./${profile.role}.html`);
+  if (profile.role === 'admin')   return location.replace('./admin.html');
+  if (profile.role === 'faculty') return location.replace('./faculty.html');
+  if (profile.role === 'worker')  return location.replace('./worker.html');
+  location.replace('./login.html');
 })();
 </script>
 </body>

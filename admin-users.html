@@ -10,12 +10,6 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/admin.css">
 <style>
-  .section-pill {
-    display: inline-flex;align-items: center;gap: 4px;
-    padding: 3px 9px;border-radius: 6px;
-    background: var(--brand-soft);color: var(--brand-text);
-    font-size: 11px;font-weight: 600;font-family: 'JetBrains Mono', monospace;
-  }
   .pw-hint { font-size: 11px;color: var(--text-secondary);margin-top: 4px;line-height: 1.4; }
 </style>
 </head>
@@ -25,7 +19,7 @@
   <div class="page-header">
     <div>
       <h1 class="page-title"><i class="fas fa-users"></i> Users</h1>
-      <p class="page-subtitle">Create, edit, suspend, reset passwords. Full user management.</p>
+      <p class="page-subtitle">Faculty, workers, admins — create, edit, suspend, reset passwords.</p>
     </div>
     <button class="btn btn-primary" id="addBtn"><i class="fas fa-user-plus"></i> Add user</button>
   </div>
@@ -34,6 +28,7 @@
     <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-chalkboard-user"></i> Faculty</a>
     <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
     <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
+    <a href="worker.html" class="admin-tab"><i class="fas fa-screwdriver-wrench"></i> Maintenance</a>
     <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
     <a href="admin-buildings.html" class="admin-tab"><i class="fas fa-building"></i> Buildings</a>
     <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
@@ -49,10 +44,9 @@
       <button class="chip on" data-r="all">All roles</button>
       <button class="chip" data-r="admin">Admins</button>
       <button class="chip" data-r="faculty">Faculty</button>
-      <button class="chip" data-r="student">Students</button>
+      <button class="chip" data-r="worker">Workers</button>
       <button class="chip" data-r="suspended">Suspended</button>
     </div>
-    <select class="input" id="secFilter" style="max-width:220px"><option value="">All batches</option></select>
     <div class="search-wrap">
       <i class="fas fa-search search-icon"></i>
       <input class="input" id="search" placeholder="Search name or email…">
@@ -63,7 +57,6 @@
     <thead><tr>
       <th>User</th>
       <th>Role</th>
-      <th>Batch</th>
       <th>Department</th>
       <th>Status</th>
       <th style="text-align:right">Actions</th>
@@ -81,16 +74,11 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   renderNav(auth.profile);
 
   const $ = id => document.getElementById(id);
-  let users = [], sections = [], roleFilter = 'all', secFilter = '', search = '';
+  let users = [], roleFilter = 'all', search = '';
 
   async function load() {
-    const [{ data: u }, { data: s }] = await Promise.all([
-      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-      supabase.from('sections').select('*').order('section_id'),
-    ]);
+    const { data: u } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
     users = u ?? [];
-    sections = s ?? [];
-    $('secFilter').innerHTML = `<option value="">All batches</option>${sections.map(x => `<option value="${escapeHtml(x.section_id)}" ${secFilter === x.section_id ? 'selected' : ''}>${escapeHtml(x.section_id)}</option>`).join('')}`;
     renderStats();
     render();
   }
@@ -99,21 +87,20 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     const total = users.length;
     const admins = users.filter(u => u.role === 'admin').length;
     const fac = users.filter(u => u.role === 'faculty').length;
-    const stu = users.filter(u => u.role === 'student').length;
+    const wrk = users.filter(u => u.role === 'worker').length;
     const susp = users.filter(u => u.is_active === false).length;
     $('stats').innerHTML = `
       <div class="stat"><i class="fas fa-users stat-icon"></i><div class="stat-value">${total}</div><div class="stat-label">Total</div></div>
       <div class="stat"><i class="fas fa-shield-halved stat-icon"></i><div class="stat-value">${admins}</div><div class="stat-label">Admins</div></div>
       <div class="stat"><i class="fas fa-chalkboard-user stat-icon"></i><div class="stat-value">${fac}</div><div class="stat-label">Faculty</div></div>
-      <div class="stat"><i class="fas fa-graduation-cap stat-icon"></i><div class="stat-value">${stu}</div><div class="stat-label">Students</div></div>
+      <div class="stat"><i class="fas fa-screwdriver-wrench stat-icon"></i><div class="stat-value">${wrk}</div><div class="stat-label">Workers</div></div>
       <div class="stat"><i class="fas fa-ban stat-icon"></i><div class="stat-value">${susp}</div><div class="stat-label">Suspended</div></div>`;
   }
 
   function filtered() {
     let list = users;
-    if (roleFilter === 'admin' || roleFilter === 'faculty' || roleFilter === 'student') list = list.filter(u => u.role === roleFilter);
+    if (roleFilter === 'admin' || roleFilter === 'faculty' || roleFilter === 'worker') list = list.filter(u => u.role === roleFilter);
     else if (roleFilter === 'suspended') list = list.filter(u => u.is_active === false);
-    if (secFilter) list = list.filter(u => u.section_id === secFilter);
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(u => (u.email || '').toLowerCase().includes(q) || (u.full_name || '').toLowerCase().includes(q));
@@ -124,12 +111,14 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   function render() {
     const list = filtered();
     if (!list.length) {
-      $('body').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-user-slash"></i>No users match your filters</td></tr>';
+      $('body').innerHTML = '<tr><td colspan="5" class="empty"><i class="fas fa-user-slash"></i>No users match your filters</td></tr>';
       return;
     }
     $('body').innerHTML = list.map(u => {
       const init = ((u.full_name || u.email || '?').trim()[0] || '?').toUpperCase();
-      const roleIcon = u.role === 'admin' ? 'shield-halved' : u.role === 'faculty' ? 'chalkboard-user' : 'graduation-cap';
+      const roleIcon = u.role === 'admin' ? 'shield-halved'
+                     : u.role === 'faculty' ? 'chalkboard-user'
+                     : 'screwdriver-wrench';
       const susp = u.is_active === false;
       const isMe = u.id === auth.profile.id;
       return `<tr>
@@ -145,7 +134,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
           </div>
         </td>
         <td><span class="badge badge-${u.role}"><i class="fas fa-${roleIcon}"></i>${u.role}</span></td>
-        <td>${u.section_id ? `<span class="section-pill">${escapeHtml(u.section_id)}</span>` : '<span class="dim">—</span>'}</td>
         <td class="dim" style="font-size:12px">${escapeHtml(u.department || '—')}</td>
         <td>${susp ? '<span class="badge badge-rejected"><i class="fas fa-ban"></i>suspended</span>' : '<span class="badge badge-approved"><i class="fas fa-check"></i>active</span>'}</td>
         <td class="row-actions">
@@ -170,7 +158,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       <div class="modal-header">
         <div>
           <div class="modal-title">Add new user</div>
-          <div class="modal-sub">Create a login account for a faculty, student, or admin.</div>
+          <div class="modal-sub">Create a login account for faculty, worker, or admin.</div>
         </div>
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
@@ -181,20 +169,14 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
           <label class="field" style="margin-bottom:0"><span>Password *</span><input class="input" type="text" data-field="password" placeholder="Min 6 characters" value="${Math.random().toString(36).slice(-8)}"><div class="pw-hint">Visible so you can share it.</div></label>
           <label class="field" style="margin-bottom:0"><span>Phone</span><input class="input" data-field="phone" placeholder="+91 ..."></label>
           <label class="field" style="margin-bottom:0"><span>Role *</span>
-            <select class="input" data-field="role" id="roleSelect">
-              <option value="student">student</option>
+            <select class="input" data-field="role">
               <option value="faculty">faculty</option>
+              <option value="worker">worker</option>
               <option value="admin">admin</option>
             </select>
           </label>
           <label class="field" style="margin-bottom:0"><span>Department</span><input class="input" data-field="department" placeholder="CSE"></label>
         </div>
-        <label class="field" id="sectionField" style="margin-top:14px;margin-bottom:0"><span>Batch / Section (for students)</span>
-          <select class="input" data-field="section_id">
-            <option value="">— none —</option>
-            ${sections.map(s => `<option value="${escapeHtml(s.section_id)}">${escapeHtml(s.section_id)} — ${escapeHtml(s.name)}</option>`).join('')}
-          </select>
-        </label>
       </div>
       <div class="modal-footer">
         <button class="btn" data-close>Cancel</button>
@@ -203,10 +185,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     </div>`;
     document.body.appendChild(dialog);
     dialog.showModal();
-
-    const roleSel = dialog.querySelector('#roleSelect');
-    const secField = dialog.querySelector('#sectionField');
-    roleSel.onchange = () => { secField.style.display = roleSel.value === 'student' ? 'block' : 'none'; };
 
     dialog.querySelector('[data-save]').onclick = async () => {
       const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
@@ -224,7 +202,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         p_full_name: get('full_name'),
         p_role: get('role'),
         p_department: get('department') || null,
-        p_section_id: get('role') === 'student' && get('section_id') ? get('section_id') : null,
+        p_section_id: null,
         p_phone: get('phone') || null,
       });
 
@@ -251,7 +229,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       <div class="modal-header">
         <div>
           <div class="modal-title">Edit ${escapeHtml(u.email)}</div>
-          <div class="modal-sub">Update profile details, role, and batch.</div>
+          <div class="modal-sub">Update profile details and role.</div>
         </div>
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
@@ -262,20 +240,14 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
           <label class="field" style="margin-bottom:0"><span>Phone</span><input class="input" data-field="phone" value="${escapeHtml(u.phone || '')}"></label>
           <label class="field" style="margin-bottom:0"><span>Department</span><input class="input" data-field="department" value="${escapeHtml(u.department || '')}"></label>
           <label class="field" style="margin-bottom:0"><span>Role</span>
-            <select class="input" data-field="role" id="eRole">
-              <option value="student" ${u.role === 'student' ? 'selected' : ''}>student</option>
+            <select class="input" data-field="role">
               <option value="faculty" ${u.role === 'faculty' ? 'selected' : ''}>faculty</option>
+              <option value="worker" ${u.role === 'worker' ? 'selected' : ''}>worker</option>
               <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>admin</option>
             </select>
           </label>
         </div>
-        <label class="field" id="eSectionField" style="margin-top:14px;margin-bottom:0"><span>Batch / Section</span>
-          <select class="input" data-field="section_id">
-            <option value="">— none —</option>
-            ${sections.map(s => `<option value="${escapeHtml(s.section_id)}" ${u.section_id === s.section_id ? 'selected' : ''}>${escapeHtml(s.section_id)} — ${escapeHtml(s.name)}</option>`).join('')}
-          </select>
-        </label>
-        <div style="padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);margin-top:14px;line-height:1.55">
+                <div style="padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);margin-top:14px;line-height:1.55">
           <i class="fas fa-info-circle" style="margin-right:6px"></i>To change the password, use the <strong>key icon</strong> on the user's row.
         </div>
       </div>
@@ -287,12 +259,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     document.body.appendChild(dialog);
     dialog.showModal();
 
-    const roleSel = dialog.querySelector('#eRole');
-    const secField = dialog.querySelector('#eSectionField');
-    const setSec = () => { secField.style.display = roleSel.value === 'student' ? 'block' : 'none'; };
-    setSec();
-    roleSel.onchange = setSec;
-
     dialog.querySelector('[data-save]').onclick = async () => {
       const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
       if (u.id === auth.profile.id && get('role') !== 'admin') return toast('You cannot demote yourself', 'error');
@@ -302,7 +268,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         phone: get('phone') || null,
         department: get('department') || null,
         role: get('role'),
-        section_id: get('role') === 'student' ? (get('section_id') || null) : null,
       };
 
       const { error } = await supabase.from('profiles').update(payload).eq('id', id);
@@ -406,7 +371,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     document.querySelectorAll('[data-r]').forEach(x => x.classList.toggle('on', x === b));
     render();
   });
-  $('secFilter').onchange = e => { secFilter = e.target.value; render(); };
   $('search').oninput = e => { search = e.target.value.trim(); render(); };
 
   await load();

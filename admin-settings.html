@@ -10,18 +10,18 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/admin.css">
 <style>
-  .set-tile { display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:10px; }
-  .set-tile-left { flex:1;min-width:0; }
-  .set-tile-title { font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px; }
-  .set-tile-title i { color:var(--brand);font-size:13px; }
-  .set-tile-desc { font-size:12px;color:var(--text-secondary);margin-top:4px;line-height:1.5; }
-  .set-toggle { position:relative;width:44px;height:26px;background:var(--border-strong);border-radius:999px;cursor:pointer;transition:background 180ms;flex-shrink:0;border:none;padding:0; }
-  .set-toggle::after { content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform 180ms;box-shadow:0 1px 3px rgba(0,0,0,0.2); }
-  .set-toggle.on { background:var(--success); }
-  .set-toggle.on::after { transform:translateX(18px); }
-  .set-toggle:disabled { opacity:.5;cursor:not-allowed; }
-  .set-section-title { font-size:15px;font-weight:600;color:var(--text);margin:24px 0 12px;display:flex;align-items:center;gap:8px; }
-  .set-section-title i { color:var(--brand); }
+  .set-tile{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:10px}
+  .set-tile-left{flex:1;min-width:0}
+  .set-tile-title{font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
+  .set-tile-title i{color:var(--brand);font-size:13px}
+  .set-tile-desc{font-size:12px;color:var(--text-secondary);margin-top:4px;line-height:1.5}
+  .set-toggle{position:relative;width:44px;height:26px;background:var(--border-strong);border-radius:999px;cursor:pointer;transition:background 180ms;flex-shrink:0;border:none;padding:0}
+  .set-toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform 180ms;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+  .set-toggle.on{background:var(--success)}
+  .set-toggle.on::after{transform:translateX(18px)}
+  .set-toggle:disabled{opacity:.5;cursor:not-allowed}
+  .set-section-title{font-size:15px;font-weight:600;color:var(--text);margin:24px 0 12px;display:flex;align-items:center;gap:8px}
+  .set-section-title i{color:var(--brand)}
 </style>
 </head>
 <body>
@@ -30,7 +30,7 @@
   <div class="page-header">
     <div>
       <h1 class="page-title"><i class="fas fa-gear"></i> Settings</h1>
-      <p class="page-subtitle">Portal, bookings, data — everything in one place.</p>
+      <p class="page-subtitle">Bookings, faculty permissions, worker calls — all in one place.</p>
     </div>
   </div>
 
@@ -38,6 +38,7 @@
     <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-chalkboard-user"></i> Faculty</a>
     <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
     <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
+    <a href="worker.html" class="admin-tab"><i class="fas fa-screwdriver-wrench"></i> Maintenance</a>
     <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
     <a href="admin-buildings.html" class="admin-tab"><i class="fas fa-building"></i> Buildings</a>
     <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
@@ -46,40 +47,39 @@
     <a href="admin-settings.html" class="admin-tab active"><i class="fas fa-gear"></i> Settings</a>
   </div>
 
-  <h2 class="set-section-title"><i class="fas fa-toggle-on"></i> System toggles</h2>
-  <div id="toggleTiles"></div>
+  <h2 class="set-section-title"><i class="fas fa-clipboard-check"></i> Booking policy</h2>
+  <div id="policyTiles"></div>
+
+  <h2 class="set-section-title"><i class="fas fa-graduation-cap"></i> Faculty permissions</h2>
+  <div id="facultyTiles"></div>
+
+  <h2 class="set-section-title"><i class="fas fa-screwdriver-wrench"></i> Worker calls</h2>
+  <div id="workerTiles"></div>
 
   <h2 class="set-section-title"><i class="fas fa-bullhorn"></i> Site banner</h2>
   <div class="card">
-    <label class="field"><span>Banner message (shown on student &amp; faculty pages)</span>
-      <input class="input" id="bannerInput" placeholder="e.g. Mid-term exams next week — room bookings paused on 20th">
+    <label class="field"><span>Banner message (shown on free-rooms page)</span>
+      <input class="input" id="bannerInput" placeholder="e.g. Mid-term exams next week — bookings paused on 20th">
     </label>
     <button class="btn btn-primary btn-sm" id="saveBannerBtn"><i class="fas fa-check"></i> Save banner</button>
   </div>
 
-  <h2 class="set-section-title"><i class="fas fa-cloud-arrow-down"></i> Data import from LPU</h2>
+  <h2 class="set-section-title"><i class="fas fa-cloud-arrow-down"></i> LPU data import</h2>
   <div class="card">
     <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px">
-      If LPU provides an API for classrooms, timetables, or faculty logins, paste the endpoint URL here. Until that integration is built, faculty can upload their own timetables from their dashboard.
+      If LPU provides an API for classrooms, timetables, or faculty logins, paste the endpoint URL here. Until that integration is built, you can add timetable rows manually from the Timetable page.
     </p>
     <label class="field"><span>API endpoint (optional)</span>
       <input class="input" id="apiUrlInput" placeholder="https://api.lpu.in/v1/…">
     </label>
     <label class="field"><span>API key / token</span>
-      <input class="input" id="apiKeyInput" type="password" placeholder="Paste securely — stored in DB, visible only to admins">
+      <input class="input" id="apiKeyInput" type="password" placeholder="Paste securely — visible only to admins">
     </label>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-primary btn-sm" id="saveApiBtn"><i class="fas fa-check"></i> Save credentials</button>
       <button class="btn btn-sm" id="syncNowBtn"><i class="fas fa-rotate"></i> Sync now (stub)</button>
     </div>
-    <div style="margin-top:16px;padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);line-height:1.55">
-      <i class="fas fa-info-circle" style="margin-right:6px"></i>
-      When LPU API is wired, sync will write rows into the <code>timetable</code> table. Faculty can always edit their own rows afterward.
-    </div>
   </div>
-
-  <h2 class="set-section-title"><i class="fas fa-list-check"></i> Booking types allowed</h2>
-  <div id="typeTiles"></div>
 
   <h2 class="set-section-title"><i class="fas fa-link"></i> Quick links</h2>
   <div class="chips" style="gap:8px">
@@ -87,6 +87,7 @@
     <a href="admin-slots.html" class="btn btn-sm"><i class="fas fa-clock"></i> Time slots</a>
     <a href="admin-calendar.html" class="btn btn-sm"><i class="fas fa-calendar-days"></i> Calendar</a>
     <a href="admin-rooms.html" class="btn btn-sm"><i class="fas fa-door-open"></i> Rooms</a>
+    <a href="worker.html" class="btn btn-sm"><i class="fas fa-screwdriver-wrench"></i> Maintenance queue</a>
   </div>
 </div>
 
@@ -101,21 +102,21 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
 
   let settings = {};
 
-  const SYSTEM_TOGGLES = [
-    { key: 'student_portal_enabled', title: 'Student portal', icon: 'fa-graduation-cap',
-      desc: 'Turn OFF to hide the free-rooms grid from students. Faculty and admins still have access.' },
+  const POLICY_TOGGLES = [
     { key: 'booking_auto_approve', title: 'Auto-approve bookings', icon: 'fa-bolt',
-      desc: 'When ON, faculty bookings are approved instantly (useful for late-night bookings). When OFF, admin must approve each one.' },
+      desc: 'ON = faculty bookings are approved instantly (useful for late-night). OFF = admin must approve each one.' },
   ];
-  const TYPE_TOGGLES = [
-    { key: 'allow_makeup',      title: 'Makeup class', icon: 'fa-clock-rotate-left',
-      desc: 'Allow faculty to book extra sessions for classes missed due to leave.' },
-    { key: 'allow_exam',        title: 'Exam', icon: 'fa-file-pen',
-      desc: 'Allow exam-type bookings.' },
-    { key: 'allow_event',       title: 'Event', icon: 'fa-users',
-      desc: 'Allow events (seminars, clubs, etc.).' },
-    { key: 'allow_maintenance', title: 'Maintenance', icon: 'fa-screwdriver-wrench',
-      desc: 'Allow blocking a room for maintenance.' },
+  const FACULTY_TOGGLES = [
+    { key: 'allow_faculty_makeup', title: 'Faculty can book makeup', icon: 'fa-clock-rotate-left',
+      desc: 'Allow faculty to request extra sessions for missed classes.' },
+    { key: 'allow_faculty_exam', title: 'Faculty can book exam rooms', icon: 'fa-file-pen',
+      desc: 'Allow faculty to reserve rooms for exams.' },
+    { key: 'allow_faculty_event', title: 'Faculty can book event rooms', icon: 'fa-users',
+      desc: 'Allow faculty to reserve rooms for events (seminars, clubs, etc.).' },
+  ];
+  const WORKER_TOGGLES = [
+    { key: 'worker_calls_enabled', title: 'Worker calls enabled', icon: 'fa-tools',
+      desc: 'When OFF, faculty cannot report issues and workers see no new calls.' },
   ];
 
   function tileHTML(t, val) {
@@ -134,8 +135,9 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     settings = {};
     (data ?? []).forEach(s => { settings[s.key] = s.value; });
 
-    $('toggleTiles').innerHTML = SYSTEM_TOGGLES.map(t => tileHTML(t, !!settings[t.key])).join('');
-    $('typeTiles').innerHTML = TYPE_TOGGLES.map(t => tileHTML(t, settings[t.key] !== false)).join('');
+    $('policyTiles').innerHTML  = POLICY_TOGGLES.map(t => tileHTML(t, !!settings[t.key])).join('');
+    $('facultyTiles').innerHTML = FACULTY_TOGGLES.map(t => tileHTML(t, settings[t.key] !== false)).join('');
+    $('workerTiles').innerHTML  = WORKER_TOGGLES.map(t => tileHTML(t, settings[t.key] !== false)).join('');
 
     $('bannerInput').value = typeof settings['site_banner'] === 'string' ? settings['site_banner'] : '';
     $('apiUrlInput').value = settings['lpu_api_url'] || '';
@@ -171,9 +173,9 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   $('saveApiBtn').onclick = async () => {
     const url = $('apiUrlInput').value.trim();
     const key = $('apiKeyInput').value;
-    let r1 = await supabase.rpc('admin_set_setting', { p_key: 'lpu_api_url', p_value: JSON.stringify(url) });
+    const r1 = await supabase.rpc('admin_set_setting', { p_key: 'lpu_api_url', p_value: JSON.stringify(url) });
     if (r1.error) return toast(r1.error.message, 'error');
-    let r2 = await supabase.rpc('admin_set_setting', { p_key: 'lpu_api_key', p_value: JSON.stringify(key) });
+    const r2 = await supabase.rpc('admin_set_setting', { p_key: 'lpu_api_key', p_value: JSON.stringify(key) });
     if (r2.error) return toast(r2.error.message, 'error');
     toast('LPU API credentials saved', 'success');
   };

@@ -3,23 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Student · LPU Scheduler</title>
+<title>Free rooms · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
-<meta name="theme-color" content="#EA580C">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
+<style>
+  .cell-closed,.cell-holiday{background:var(--surface-active);border:1px solid var(--border);color:var(--text-secondary);font-weight:500}
+  .site-banner{display:none;align-items:flex-start;gap:10px;padding:12px 16px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:10px;color:var(--warning-text);font-size:13px;line-height:1.55;margin-bottom:16px}
+  .site-banner i{font-size:14px;flex-shrink:0;margin-top:1px}
+  .live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--success);animation:livePulse 2s ease-in-out infinite}
+  @keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+  .free-legend-item.closed .free-legend-swatch{background:var(--surface-active);border-color:var(--border)}
+</style>
 </head>
 <body>
 <div id="nav"></div>
-
 <div class="container">
   <div class="page-header">
     <div>
       <h1 class="page-title"><i class="fas fa-building"></i> Free rooms</h1>
-      <p class="page-subtitle">Live availability — includes regular classes, makeup, exams and every other booking.</p>
+      <p class="page-subtitle">Live availability — every class, makeup, exam, event and maintenance shown.</p>
     </div>
     <div class="row">
       <input class="input" type="date" id="dateInput" style="width:auto">
@@ -27,43 +31,42 @@
     </div>
   </div>
 
-  <!-- Live now banner -->
+  <div class="site-banner" id="siteBanner"></div>
+
   <div class="card" style="margin-bottom:16px">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
       <div>
-        <div class="label-small"><i class="fas fa-signal" style="color:var(--success)"></i> Live now</div>
+        <div class="label-small" style="display:flex;align-items:center;gap:6px"><span class="live-dot" id="liveDot"></span><span>Live now</span></div>
         <div id="liveClock" class="mono" style="font-size:28px;font-weight:600;color:var(--text);letter-spacing:-0.02em;margin-top:2px">--:--:--</div>
-        <div id="liveInfo" style="font-size:13px;color:var(--text-muted);margin-top:4px">—</div>
+        <div id="liveInfo" style="font-size:13px;color:var(--text-secondary);margin-top:4px">—</div>
       </div>
       <div style="display:flex;gap:24px;text-align:right">
         <div><div class="label-small">Free now</div><div id="freeNow" style="font-size:32px;font-weight:600;color:var(--success);line-height:1;margin-top:4px">—</div></div>
-        <div><div class="label-small">Booked now</div><div id="bookedNow" style="font-size:32px;font-weight:600;color:var(--warning);line-height:1;margin-top:4px">—</div></div>
+        <div><div class="label-small">In use</div><div id="bookedNow" style="font-size:32px;font-weight:600;color:var(--warning);line-height:1;margin-top:4px">—</div></div>
       </div>
     </div>
   </div>
 
-  <!-- Legend -->
   <div class="free-legend">
     <div class="free-legend-item"><span class="free-legend-swatch free"></span> Free</div>
     <div class="free-legend-item"><span class="free-legend-swatch class"></span> Regular class</div>
     <div class="free-legend-item"><span class="free-legend-swatch makeup"></span> Makeup / Reserved</div>
     <div class="free-legend-item"><span class="free-legend-swatch other"></span> Exam / Event / Maint</div>
+    <div class="free-legend-item closed"><span class="free-legend-swatch"></span> Closed / Holiday</div>
   </div>
 
   <div class="grid-toolbar" id="buildingTabs" style="margin-top:16px"></div>
-
   <div id="gridContainer"><div class="card" style="padding:32px"><div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</div></div></div>
 </div>
-
 <script type="module">
 import {
-  requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, formatTime,
-  dayName, humanDate, isSunday, slotStateOnDate, minutesUntilEnd, minutesUntilStart,
-  currentSlot, loadBaseData, loadDataForDate, classifyCell
+  requireRole, renderNav, escapeHtml, todayISO, nowDate, formatTime,
+  humanDate, slotStateOnDate, minutesUntilEnd,
+  currentSlot, loadBaseData, loadDataForDate, classifyCell, getSettings
 } from './js/core.js';
 
 (async () => {
-  const auth = await requireRole(['student', 'faculty', 'admin']);
+  const auth = await requireRole(['admin','faculty','worker']);
   if (!auth) return;
   renderNav(auth.profile);
 
@@ -71,28 +74,36 @@ import {
   const dateInput = $('dateInput');
   dateInput.value = todayISO();
 
-  let base = { rooms: [], slots: [], buildings: [] };
-  let data = { timetable: [], bookings: [], calendarEntry: null };
+  let base = { rooms: [], slots: [] };
+  let data = { timetable: [], bookings: [], calendarEntry: null, unavailability: [] };
+  let settings = {};
   let building = 'all';
   let activeSlotId = null;
 
   async function loadAll() {
+    settings = await getSettings();
     base = await loadBaseData();
     data = await loadDataForDate(dateInput.value);
+
+    const banner = settings['site_banner'];
+    const bannerEl = $('siteBanner');
+    if (banner && typeof banner === 'string' && banner.trim()) {
+      bannerEl.innerHTML = `<i class="fas fa-bullhorn"></i><div>${escapeHtml(banner)}</div>`;
+      bannerEl.style.display = 'flex';
+    } else bannerEl.style.display = 'none';
+
     render();
   }
 
   function buildCellMap() {
     const map = new Map();
-    for (const r of base.rooms) {
-      for (const s of base.slots) {
-        const cell = classifyCell({
-          roomId: r.room_id, slotId: s.slot_id, dateStr: dateInput.value,
-          timetable: data.timetable, bookings: data.bookings,
-          calendarEntry: data.calendarEntry, weekendOpen: r.weekend_open,
-        });
-        map.set(`${r.room_id}|${s.slot_id}`, cell);
-      }
+    for (const r of base.rooms) for (const s of base.slots) {
+      map.set(`${r.room_id}|${s.slot_id}`, classifyCell({
+        roomId: r.room_id, slotId: s.slot_id, dateStr: dateInput.value,
+        timetable: data.timetable, bookings: data.bookings,
+        calendarEntry: data.calendarEntry, weekendOpen: r.weekend_open,
+        unavailability: data.unavailability,
+      }));
     }
     return map;
   }
@@ -100,18 +111,29 @@ import {
   function renderLive() {
     const slot = currentSlot(base.slots);
     const info = $('liveInfo');
-    if (!slot || dateInput.value !== todayISO()) {
-      info.textContent = dateInput.value === todayISO() ? 'No active period' : 'Viewing another day';
-      $('freeNow').textContent = '—';
-      $('bookedNow').textContent = '—';
+    const isToday = dateInput.value === todayISO();
+    const dot = $('liveDot');
+    if (!slot || !isToday) {
+      dot.style.display = 'none';
+      info.innerHTML = !isToday
+        ? '<i class="fas fa-calendar-day"></i> Viewing another day'
+        : '<i class="fas fa-moon"></i> No active period';
+      $('freeNow').textContent = '—'; $('bookedNow').textContent = '—';
       return;
     }
+    dot.style.display = 'inline-block';
     const cmap = buildCellMap();
-    const free = base.rooms.filter(r => cmap.get(`${r.room_id}|${slot.slot_id}`).state === 'free').length;
+    const BUSY = new Set(['class','makeup','exam','maint']);
+    let free = 0, busy = 0;
+    for (const r of base.rooms) {
+      const c = cmap.get(`${r.room_id}|${slot.slot_id}`);
+      if (c.state === 'free') free++;
+      else if (BUSY.has(c.state)) busy++;
+    }
     const mins = minutesUntilEnd(slot, dateInput.value);
     info.innerHTML = `<i class="fas fa-clock"></i> ${escapeHtml(slot.label || slot.slot_id)} · ${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)} · ends in <strong style="color:var(--text)">${mins} min</strong>`;
     $('freeNow').textContent = free;
-    $('bookedNow').textContent = base.rooms.length - free;
+    $('bookedNow').textContent = busy;
   }
 
   function renderTabs() {
@@ -119,8 +141,7 @@ import {
     const bs = [...new Set(base.rooms.map(r => r.building))].sort();
     el.innerHTML = `
       <button class="chip ${building === 'all' ? 'on' : ''}" data-b="all"><i class="fas fa-layer-group"></i> All blocks</button>
-      ${bs.map(b => `<button class="chip ${building === b ? 'on' : ''}" data-b="${b}"><i class="fas fa-building"></i> Block ${b}</button>`).join('')}
-    `;
+      ${bs.map(b => `<button class="chip ${building === b ? 'on' : ''}" data-b="${b}"><i class="fas fa-building"></i> Block ${b}</button>`).join('')}`;
     el.querySelectorAll('[data-b]').forEach(btn => {
       btn.onclick = () => { building = btn.dataset.b; render(); };
     });
@@ -129,49 +150,42 @@ import {
   function render() {
     renderTabs();
     renderLive();
-
     if (data.calendarEntry?.kind === 'holiday') {
       $('gridContainer').innerHTML = `
         <div class="card" style="padding:48px 24px;text-align:center">
           <i class="fas fa-calendar-xmark" style="font-size:42px;color:var(--text-muted);opacity:.5;margin-bottom:16px;display:block"></i>
-          <div style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:6px">
-            ${escapeHtml(data.calendarEntry.label || 'Holiday')}
-          </div>
-          <div style="font-size:14px;color:var(--text-muted)">No classes scheduled. All rooms are open.</div>
+          <div style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:6px">${escapeHtml(data.calendarEntry.label || 'Holiday')}</div>
+          <div style="font-size:14px;color:var(--text-secondary)">No classes scheduled. All rooms are open.</div>
         </div>`;
       return;
     }
-
     const filtered = building === 'all' ? base.rooms : base.rooms.filter(r => r.building === building);
     if (!filtered.length) {
       $('gridContainer').innerHTML = '<div class="card"><div class="empty"><i class="fas fa-door-closed"></i>No rooms in this block</div></div>';
       return;
     }
-
     const cmap = buildCellMap();
     const byFloor = new Map();
     filtered.forEach(r => {
       if (!byFloor.has(r.floor)) byFloor.set(r.floor, []);
       byFloor.get(r.floor).push(r);
     });
-    byFloor.forEach(arr => arr.sort((a,b) => a.display_name.localeCompare(b.display_name, undefined, { numeric: true })));
-    const floors = [...byFloor.entries()].sort((a,b) => a[0] - b[0]);
+    byFloor.forEach(arr => arr.sort((a, b) => a.display_name.localeCompare(b.display_name, undefined, { numeric: true })));
+    const floors = [...byFloor.entries()].sort((a, b) => a[0] - b[0]);
 
     $('gridContainer').innerHTML = `
       <div class="grid-wrap">
         <table class="vacancy-table">
-          <thead>
-            <tr>
-              <th class="room-col">Room</th>
-              ${base.slots.map(s => {
-                const st = slotStateOnDate(s, dateInput.value);
-                return `<th class="${st === 'current' ? 'slot-current' : ''}">
-                  <div>${escapeHtml(s.label || s.slot_id)}</div>
-                  <div style="font-size:10px;color:var(--text-muted);font-weight:400;margin-top:2px">${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)}</div>
-                </th>`;
-              }).join('')}
-            </tr>
-          </thead>
+          <thead><tr>
+            <th class="room-col">Room</th>
+            ${base.slots.map(s => {
+              const st = slotStateOnDate(s, dateInput.value);
+              return `<th class="${st === 'current' ? 'slot-current' : ''}">
+                <div>${escapeHtml(s.label || s.slot_id)}</div>
+                <div style="font-size:10px;color:var(--text-secondary);font-weight:400;margin-top:2px">${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)}</div>
+              </th>`;
+            }).join('')}
+          </tr></thead>
           <tbody>
             ${floors.map(([floor, rows]) => `
               <tr class="floor-row"><td colspan="${base.slots.length + 1}"><i class="fas fa-layer-group"></i>Floor ${floor}</td></tr>
@@ -188,10 +202,8 @@ import {
                     const cur = st === 'current';
                     return `<td class="slot-cell ${cur ? 'cell-current-col' : ''}">
                       <div class="cell-${cell.state}${past ? ' cell-past' : ''}"
-                           data-room="${escapeHtml(r.room_id)}"
-                           data-slot="${escapeHtml(s.slot_id)}"
-                           style="cursor:pointer"
-                           title="${escapeHtml(cell.label)} — ${escapeHtml(cell.reason)}">
+                           data-room="${escapeHtml(r.room_id)}" data-slot="${escapeHtml(s.slot_id)}"
+                           style="cursor:pointer" title="${escapeHtml(cell.label)} — ${escapeHtml(cell.reason)}">
                         ${escapeHtml(cell.label)}
                       </div>
                     </td>`;
@@ -210,7 +222,6 @@ import {
   function showRoomDetail(roomId) {
     const room = base.rooms.find(r => r.room_id === roomId);
     if (!room) return;
-
     const cmap = buildCellMap();
     const rows = base.slots.map(s => {
       const cell = cmap.get(`${roomId}|${s.slot_id}`);
@@ -218,44 +229,46 @@ import {
       const badge = cell.state === 'free' ? 'approved'
                   : cell.state === 'class' ? 'admin'
                   : cell.state === 'makeup' ? 'pending'
-                  : cell.state === 'closed' ? 'gray'
+                  : (cell.state === 'closed' || cell.state === 'holiday') ? 'gray'
                   : 'rejected';
       return `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;background:var(--surface-hover);font-size:13px;margin-bottom:4px">
         <div>
           <span class="mono" style="font-weight:500">${escapeHtml(s.label || s.slot_id)}</span>
-          <span class="dim" style="font-size:11px;margin-left:8px">${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)}</span>
+          <span style="font-size:11px;color:var(--text-secondary);margin-left:8px">${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)}</span>
           ${st === 'current' ? '<span class="badge badge-pending" style="margin-left:8px"><i class="fas fa-circle" style="font-size:6px"></i>now</span>' : ''}
         </div>
         <div style="text-align:right">
           <span class="badge badge-${badge}">${escapeHtml(cell.label)}</span>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${escapeHtml(cell.reason)}</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">${escapeHtml(cell.reason)}</div>
         </div>
       </div>`;
     }).join('');
-
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
-    dialog.innerHTML = `
-      <div class="modal-content modal-wide">
-        <div class="modal-header">
-          <div>
-            <div class="modal-title">${escapeHtml(room.display_name)}</div>
-            <div class="modal-sub">${humanDate(dateInput.value)} · ${escapeHtml(room.type)} · Floor ${room.floor}</div>
-          </div>
-          <button class="modal-close" data-action="close"><i class="fas fa-xmark"></i></button>
+    dialog.innerHTML = `<div class="modal-content modal-wide">
+      <div class="modal-header">
+        <div><div class="modal-title">${escapeHtml(room.display_name)}</div>
+          <div class="modal-sub">${humanDate(dateInput.value)} · ${escapeHtml(room.type)} · Floor ${room.floor}${room.capacity ? ' · ' + room.capacity + ' seats' : ''}</div>
         </div>
-        <div class="modal-body">${rows}</div>
-        <div class="modal-footer"><button class="btn" data-action="close2">Close</button></div>
-      </div>`;
+        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">${rows}</div>
+      <div class="modal-footer"><button class="btn" data-close>Close</button></div>
+    </div>`;
     document.body.appendChild(dialog);
     dialog.showModal();
     const close = () => { dialog.close(); dialog.remove(); };
-    dialog.querySelectorAll('[data-action]').forEach(b => b.onclick = close);
+    dialog.querySelectorAll('[data-close]').forEach(b => b.onclick = close);
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
-    dialog.onclick = (e) => { if (e.target === dialog) close(); };
+    dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  $('refreshBtn').onclick = loadAll;
+  $('refreshBtn').onclick = async () => {
+    const btn = $('refreshBtn'); const orig = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing…';
+    await loadAll();
+    btn.disabled = false; btn.innerHTML = orig;
+  };
   dateInput.onchange = loadAll;
 
   function tick() {
@@ -263,12 +276,12 @@ import {
     const slot = currentSlot(base.slots);
     const id = slot?.slot_id || null;
     if (id !== activeSlotId) { activeSlotId = id; renderLive(); }
-    else if (slot) {
+    else if (slot && dateInput.value === todayISO()) {
       const mins = minutesUntilEnd(slot, todayISO());
       $('liveInfo').innerHTML = `<i class="fas fa-clock"></i> ${escapeHtml(slot.label || slot.slot_id)} · ${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)} · ends in <strong style="color:var(--text)">${mins} min</strong>`;
     }
   }
-  setInterval(tick, 1000);
+  setInterval(tick, 1000); tick();
 
   await loadAll();
   setInterval(() => { if (!document.hidden) loadAll(); }, 60_000);

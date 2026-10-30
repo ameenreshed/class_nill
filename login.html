@@ -11,13 +11,10 @@
 <link rel="stylesheet" href="css/style.css">
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
-  .auth-help { margin-top:24px;padding-top:20px;border-top:1px solid var(--border);font-size:13px;color:var(--text-secondary);line-height:1.6;text-align:center; }
-  .auth-help a { color:var(--brand);font-weight:500;text-decoration:none; }
-  .credits-link { margin-top:18px;padding-top:16px;border-top:1px solid var(--border);text-align:center;font-size:12px;color:var(--text-muted); }
-  .credits-link a { color:var(--text-secondary);text-decoration:none;display:inline-flex;align-items:center;gap:5px; }
-  .credits-link a:hover { color:var(--brand); }
-  .banner-warn { background:var(--warning-soft);border:1px solid var(--warning-soft-border);color:var(--warning-text);padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none;line-height:1.5; }
-  .banner-warn.show { display:flex;gap:8px;align-items:flex-start; }
+  .auth-help{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);font-size:13px;color:var(--text-secondary);line-height:1.6;text-align:center}
+  .auth-help a{color:var(--brand);font-weight:500;text-decoration:none}
+  .banner-warn{background:var(--warning-soft);border:1px solid var(--warning-soft-border);color:var(--warning-text);padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none;line-height:1.5}
+  .banner-warn.show{display:flex;gap:8px;align-items:flex-start}
 </style>
 </head>
 <body>
@@ -26,11 +23,11 @@
     <div class="auth-brand-content">
       <div class="auth-brand-mark"><i class="fas fa-calendar-check"></i></div>
       <h1 class="auth-brand-title">LPU<span>.</span>Scheduler</h1>
-      <p class="auth-brand-tagline">Real-time room availability — with every booking accounted for.</p>
+      <p class="auth-brand-tagline">Centralized room scheduling for faculty, admins and maintenance.</p>
       <ul class="auth-features">
-        <li><i class="fas fa-check"></i> Live availability — includes every booking</li>
-        <li><i class="fas fa-check"></i> See exactly why a room isn't free</li>
-        <li><i class="fas fa-check"></i> Book makeup classes without conflicts</li>
+        <li><i class="fas fa-check"></i> Live room availability — every booking visible</li>
+        <li><i class="fas fa-check"></i> Faculty: makeup, events, leave in one place</li>
+        <li><i class="fas fa-check"></i> Admins: full control, zero guesswork</li>
       </ul>
     </div>
     <div class="auth-brand-footer">Lovely Professional University · Scheduler</div>
@@ -53,8 +50,7 @@
         <label class="field">
           <span>Registration number</span>
           <input class="input" type="text" id="regno" inputmode="numeric" pattern="[0-9]*"
-                 placeholder="Enter registration number" autocomplete="username"
-                 required maxlength="20" autofocus>
+                 placeholder="Enter registration number" autocomplete="username" required maxlength="20" autofocus>
         </label>
         <label class="field" style="margin-bottom:8px">
           <span>Password</span>
@@ -80,25 +76,17 @@
           <a href="https://ums.lpu.in/lpuums/" target="_blank" rel="noopener noreferrer">UMS Portal</a>
         </div>
       </div>
-      <div class="credits-link">
-        <a href="credits.html"><i class="fas fa-heart"></i> Credits</a>
-      </div>
     </div>
   </main>
 </div>
 
 <script type="module">
 import { supabase, initTheme, waitForSession } from './js/core.js';
-
 const EMAIL_DOMAIN = 'lpu.in';
 const TURNSTILE_SITE_KEY = '0x4AAAAAAFk78nRRRuS58LzL';
 initTheme();
 const $ = id => document.getElementById(id);
-
-let turnstileToken = null;
-let turnstileWidgetId = null;
-let turnstileReady = false;
-let turnstileFailed = false;
+let turnstileToken = null, turnstileWidgetId = null, turnstileReady = false, turnstileFailed = false;
 
 function showError(html) {
   const el = $('errorMsg');
@@ -112,33 +100,26 @@ if (params.get('err') === 'suspended') {
   showError('Your account has been suspended. Contact an administrator.');
   history.replaceState({}, '', 'login.html');
 }
-if (params.get('err') === 'portal-off') {
-  showError('The student portal is currently closed by the administrator. Please contact your faculty.');
-  history.replaceState({}, '', 'login.html');
-}
 
 (async () => {
   const session = await waitForSession(1000);
   if (!session) return;
-  const { data: profile } = await supabase
-    .from('profiles').select('role, is_active').eq('id', session.user.id).single();
+  const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', session.user.id).single();
   if (profile?.is_active === false) { await supabase.auth.signOut(); return; }
-  if (profile?.role) location.replace(`./${profile.role}.html`);
+  if (profile?.role) {
+    if (profile.role === 'admin')   location.replace('./admin.html');
+    else if (profile.role === 'faculty') location.replace('./faculty.html');
+    else if (profile.role === 'worker')  location.replace('./worker.html');
+  }
 })();
 
 let pollAttempts = 0;
 const MAX_POLL_ATTEMPTS = 25;
-
 function initTurnstile() {
   pollAttempts++;
   if (!window.turnstile) {
-    if (pollAttempts >= MAX_POLL_ATTEMPTS) {
-      turnstileFailed = true;
-      $('verifyWarn').classList.add('show');
-      return;
-    }
-    setTimeout(initTurnstile, 200);
-    return;
+    if (pollAttempts >= MAX_POLL_ATTEMPTS) { turnstileFailed = true; $('verifyWarn').classList.add('show'); return; }
+    setTimeout(initTurnstile, 200); return;
   }
   const container = document.getElementById('turnstile-container');
   if (!container || turnstileReady) return;
@@ -151,10 +132,7 @@ function initTurnstile() {
       'expired-callback': () => { turnstileToken = null; },
       'error-callback': () => { turnstileFailed = true; $('verifyWarn').classList.add('show'); },
     });
-  } catch {
-    turnstileFailed = true;
-    $('verifyWarn').classList.add('show');
-  }
+  } catch { turnstileFailed = true; $('verifyWarn').classList.add('show'); }
 }
 if (document.readyState === 'complete' || document.readyState === 'interactive') initTurnstile();
 else window.addEventListener('DOMContentLoaded', initTurnstile);
@@ -179,63 +157,51 @@ $('loginForm').onsubmit = async (e) => {
   clearError();
   const regno = regnoEl.value.trim();
   const password = $('password').value;
-
   if (!/^\d{3,20}$/.test(regno)) { showError('Enter a valid registration number (3–20 digits).'); regnoEl.focus(); return; }
   if (!password) { showError('Enter your password.'); $('password').focus(); return; }
-
   const btn = $('loginBtn');
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
-
   const email = `${regno}@${EMAIL_DOMAIN}`;
   const options = {};
   if (turnstileToken && !turnstileFailed) options.captchaToken = turnstileToken;
-
   let result;
-  try {
-    result = await supabase.auth.signInWithPassword({ email, password, options });
-  } catch (err) {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
-    showError('Network error: ' + (err.message || err));
-    return;
+  try { result = await supabase.auth.signInWithPassword({ email, password, options }); }
+  catch (err) {
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
+    showError('Network error: ' + (err.message || err)); return;
   }
-
   if (result.error) {
     const m = (result.error.message || '').toLowerCase();
     let friendly = result.error.message;
     if (m.includes('invalid login credentials')) friendly = 'Incorrect registration number or password.';
     else if (m.includes('email not confirmed')) friendly = 'This account has not been confirmed. Contact your administrator.';
     else if (m.includes('captcha')) {
-      friendly = 'Verification failed or token expired. Please tick the checkbox again.';
+      friendly = 'Verification failed. Please tick the checkbox again.';
       if (window.turnstile && turnstileWidgetId !== null) try { window.turnstile.reset(turnstileWidgetId); } catch {}
       turnstileToken = null;
     }
     showError(friendly);
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
     return;
   }
-
   const { data: profile, error: profErr } = await supabase
     .from('profiles').select('role, is_active').eq('id', result.data.session.user.id).single();
-
   if (profErr || !profile) {
     await supabase.auth.signOut();
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
-    showError('Your profile is missing. Contact your administrator.');
-    return;
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
+    showError('Your profile is missing. Contact your administrator.'); return;
   }
   if (profile.is_active === false) {
     await supabase.auth.signOut();
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
-    showError('Your account has been suspended. Contact an administrator.');
-    return;
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
+    showError('Your account has been suspended. Contact an administrator.'); return;
   }
-
-  location.replace(`./${profile.role}.html`);
+  if (profile.role === 'admin')   return location.replace('./admin.html');
+  if (profile.role === 'faculty') return location.replace('./faculty.html');
+  if (profile.role === 'worker')  return location.replace('./worker.html');
+  await supabase.auth.signOut();
+  showError('Your account role is not supported. Contact your administrator.');
 };
 </script>
 </body>
