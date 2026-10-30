@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Import CSV · LPU Scheduler</title>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+<style>
+  .import-zone {
+    border: 2px dashed var(--border-strong);
+    border-radius: 14px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 180ms ease;
+    background: var(--surface);
+  }
+  .import-zone:hover,
+  .import-zone.drag {
+    border-color: var(--brand);
+    background: var(--brand-soft);
+  }
+  .import-zone.has-file {
+    border-style: solid;
+    border-color: var(--brand);
+    background: var(--surface);
+  }
+  .import-zone i {
+    font-size: 42px;
+    color: var(--brand);
+    margin-bottom: 16px;
+    display: block;
+  }
+  .import-zone h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .import-zone p {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .import-zone .file-name {
+    margin-top: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: var(--brand-soft);
+    border: 1px solid var(--brand-soft-border);
+    border-radius: 8px;
+    color: var(--brand-text);
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .summary-card {
+    padding: 16px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .summary-val {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    line-height: 1;
+  }
+  .summary-lbl {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-top: 6px;
+  }
+
+  .preview-details {
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .preview-details summary {
+    padding: 12px 16px;
+    background: var(--bg-subtle);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 120ms ease;
+  }
+  .preview-details summary:hover {
+    background: var(--surface-hover);
+  }
+  .preview-details summary::-webkit-details-marker {
+    display: none;
+  }
+  .preview-details summary::after {
+    content: '\f078';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 10px;
+    color: var(--text-muted);
+    transition: transform 180ms ease;
+  }
+  .preview-details[open] summary::after {
+    transform: rotate(180deg);
+  }
+  .preview-list {
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .preview-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    gap: 12px;
+  }
+  .preview-row:last-child { border-bottom: none; }
+  .preview-row:nth-child(even) { background: var(--bg-subtle); }
+  .preview-row strong { color: var(--text); font-weight: 600; }
+  .preview-row .mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .preview-row .dim { color: var(--text-secondary); }
+
+  .option-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 160ms ease;
+  }
+  .option-row:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-strong);
+  }
+  .option-row:has(input:checked) {
+    background: var(--brand-soft);
+    border-color: var(--brand-soft-border);
+  }
+  .option-row input[type=checkbox] {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .option-row-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .option-row-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .option-row-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    line-height: 1.5;
+  }
+
+  .error-row {
+    padding: 10px 14px;
+    background: var(--danger-soft);
+    border: 1px solid var(--danger-soft-border);
+    color: var(--danger-text);
+    border-radius: 8px;
+    font-size: 12px;
+    margin-bottom: 6px;
+    line-height: 1.5;
+  }
+
+  .credentials-box {
+    padding: 14px 16px;
+    background: var(--info-soft);
+    border: 1px solid var(--info-soft-border);
+    border-radius: 10px;
+    margin-top: 12px;
+  }
+  .credentials-box h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--info-text);
+    margin-bottom: 10px;
+  }
+  .cred-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--info-soft-border);
+    font-size: 12px;
+    color: var(--info-text);
+    font-family: 'JetBrains Mono', monospace;
+    gap: 12px;
+  }
+  .cred-row:last-child { border-bottom: none; }
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fas fa-file-import"></i> Import timetable</h1>
+      <p class="page-subtitle">Upload the LPU student CSV export — timetable, rooms, courses, and faculty will be imported automatically.</p>
+    </div>
+  </div>
+
+  <div class="admin-tabs">
+    <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
+    <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
+    <a href="admin-import.html" class="admin-tab active"><i class="fas fa-file-import"></i> Import</a>
+    <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
+    <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
+    <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
+    <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
+    <a href="admin-settings.html" class="admin-tab"><i class="fas fa-gear"></i> Settings</a>
+  </div>
+
+  <!-- STEP 1: Upload -->
+  <div id="step1">
+    <div class="card" style="padding:28px">
+      <div class="import-zone" id="dropZone">
+        <i class="fas fa-cloud-arrow-up"></i>
+        <h3>Drop your CSV here or click to choose</h3>
+        <p>Supports LPU timetable export format — <code>rptTimeTableStudent.csv</code></p>
+        <div class="file-name" id="fileName" style="display:none">
+          <i class="fas fa-file-csv"></i><span id="fileNameText"></span>
+        </div>
+      </div>
+      <input type="file" id="fileInput" accept=".csv,text/csv" style="display:none">
+    </div>
+  </div>
+
+  <!-- STEP 2: Preview + Options -->
+  <div id="step2" style="display:none">
+    <div class="summary-grid" id="summaryGrid"></div>
+
+    <div class="card" style="padding:20px">
+      <div class="card-title"><i class="fas fa-list-check"></i> Preview</div>
+      <div id="previewContainer"></div>
+    </div>
+
+    <div class="card" style="padding:20px">
+      <div class="card-title"><i class="fas fa-sliders"></i> Import options</div>
+      <label class="option-row">
+        <input type="checkbox" id="optBuildings" checked>
+        <div class="option-row-body">
+          <div class="option-row-title">Create missing buildings</div>
+          <div class="option-row-desc">Blocks like 25, 27, 36 will be created if not already in the system.</div>
+        </div>
+      </label>
+      <label class="option-row">
+        <input type="checkbox" id="optFloors" checked>
+        <div class="option-row-body">
+          <div class="option-row-title">Create missing floors</div>
+          <div class="option-row-desc">Floor entries are added to their buildings.</div>
+        </div>
+      </label>
+      <label class="option-row">
+        <input type="checkbox" id="optRooms" checked>
+        <div class="option-row-body">
+          <div class="option-row-title">Create missing rooms</div>
+          <div class="option-row-desc">Room records (e.g. 27-104, 36-805) will be added automatically. Labs get 30 seats, lectures get 60.</div>
+        </div>
+      </label>
+      <label class="option-row">
+        <input type="checkbox" id="optSlots" checked>
+        <div class="option-row-body">
+          <div class="option-row-title">Create missing time slots</div>
+          <div class="option-row-desc">LPU's 09:20-10:10, 10:10-11:00 … slots will be added. Existing P1-P7 slots are not touched.</div>
+        </div>
+      </label>
+      <label class="option-row">
+        <input type="checkbox" id="optFaculty">
+        <div class="option-row-body">
+          <div class="option-row-title">Create missing faculty accounts</div>
+          <div class="option-row-desc">Auto-generates <code>firstname.lastname@lpu.in</code> emails + random passwords (shown after import). Faculty names matching existing accounts are reused.</div>
+        </div>
+      </label>
+      <label class="option-row">
+        <input type="checkbox" id="optReplace">
+        <div class="option-row-body">
+          <div class="option-row-title" style="color:var(--danger)">Delete ALL existing timetable rows first</div>
+          <div class="option-row-desc">Recommended on first import — clears the demo data. Existing bookings are not affected.</div>
+        </div>
+      </label>
+
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn" id="cancelBtn">Cancel</button>
+        <button class="btn btn-primary" id="importBtn"><i class="fas fa-file-import"></i> Import now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Result -->
+  <div id="step3" style="display:none">
+    <div class="card" style="padding:24px">
+      <div class="card-title" style="margin-bottom:16px"><i class="fas fa-circle-check" style="color:var(--success)"></i> Import complete</div>
+      <div class="summary-grid" id="resultGrid"></div>
+      <div id="credentialsContainer"></div>
+      <div id="errorsContainer" style="margin-top:16px"></div>
+      <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn" id="againBtn"><i class="fas fa-rotate"></i> Import another file</button>
+        <a href="admin-timetable.html" class="btn btn-primary"><i class="fas fa-table"></i> View timetable</a>
+        <a href="free-rooms.html" class="btn"><i class="fas fa-building"></i> View free rooms</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.js';
+
+(async () => {
+  const auth = await requireRole(['admin']);
+  if (!auth) return;
+  renderNav(auth.profile);
+
+  const $ = id => document.getElementById(id);
+  let parsed = null;
+  let rawFileName = '';
+
+  /* ============================================================
+     CSV PARSER
+     ============================================================ */
+  function parseCSVLine(line) {
+    const out = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+        else inQ = !inQ;
+      } else if (ch === ',' && !inQ) {
+        out.push(cur); cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function parseTimeRange(rangeStr) {
+    const m = String(rangeStr || '').trim().match(/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+    if (!m) return null;
+    let sh = parseInt(m[1]), sm = parseInt(m[2]);
+    let eh = parseInt(m[3]), em = parseInt(m[4]);
+    const mer = (m[5] || '').toUpperCase();
+
+    let startH;
+    if (mer === 'AM') startH = sh === 12 ? 0 : sh;
+    else if (mer === 'PM') startH = sh === 12 ? 12 : sh + 12;
+    else startH = sh < 8 ? sh + 12 : sh;
+
+    const startMin = startH * 60 + sm;
+    let endMin = eh * 60 + em;
+    if (endMin <= startMin) endMin += 12 * 60; // fix AM/PM typos
+
+    const fmt = mins => {
+      const h = Math.floor(mins / 60) % 24;
+      const mm = mins % 60;
+      return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+    };
+    return { start: fmt(startMin), end: fmt(endMin) };
+  }
+
+  function parseCell(cell) {
+    const trimmed = String(cell || '').trim();
+    if (!trimmed) return null;
+    if (trimmed.toLowerCase().includes('project work')) return null;
+    if (!trimmed.includes('/')) return null;
+
+    const parts = trimmed.split('/').map(p => p.trim());
+    const type = parts[0].toLowerCase();
+    if (!['lecture', 'practical', 'tutorial'].includes(type)) return null;
+
+    const cPart = parts.find(p => /\bC:/.test(p));
+    const rPart = parts.find(p => /\bR:/.test(p));
+    if (!cPart || !rPart) return null;
+
+    const cMatch = cPart.match(/C:\s*([A-Z]+\d+)/i);
+    const rMatch = rPart.match(/R:\s*([A-Za-z0-9-]+)/);
+    if (!cMatch || !rMatch) return null;
+
+    return {
+      type,
+      courseCode: cMatch[1].toUpperCase(),
+      roomId: rMatch[1].toUpperCase(),
+    };
+  }
+
+  function parseRoomId(roomId) {
+    const m = String(roomId || '').match(/^(\d+)-(\d)(\d{2})([A-Z]*)$/i);
+    if (!m) return null;
+    return {
+      building: m[1],
+      floor: parseInt(m[2]),
+      room_number: m[3],
+      suffix: m[4].toUpperCase(),
+    };
+  }
+
+  function cleanFacultyName(info) {
+    return String(info || '').split('(')[0].trim();
+  }
+
+  function parseLPUCSV(text) {
+    text = text.replace(/^\uFEFF/, '');
+    const lines = text.replace(/\r\n/g, '\n').split('\n');
+    const timingIdx = lines.findIndex(l => l.startsWith('Timing,'));
+    const attendanceIdx = lines.findIndex(l => l.startsWith('AttendanceDate,'));
+    const courseIdx = lines.findIndex(l => l.startsWith('CourseCode,'));
+
+    const result = {
+      slots: new Map(),
+      rooms: new Map(),
+      courses: new Map(),
+      entries: [],
+      warnings: [],
+    };
+
+    // --- Timetable grid ---
+    if (timingIdx >= 0) {
+      const header = parseCSVLine(lines[timingIdx]);
+      const dayMap = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 0 };
+      const dayCols = header.map((h, i) => ({ idx: i, day: dayMap[h.trim()] ?? null }));
+
+      const endIdx = attendanceIdx > timingIdx ? attendanceIdx : lines.length;
+      for (let i = timingIdx + 1; i < endIdx; i++) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+        const cells = parseCSVLine(line);
+        if (!cells[0] || !cells[0].includes('-')) continue;
+
+        const slotRange = cells[0].trim();
+        const time = parseTimeRange(slotRange);
+        if (!time) { result.warnings.push(`Could not parse time range: "${slotRange}"`); continue; }
+
+        const slotId = `T${time.start.replace(':', '')}`;
+        if (!result.slots.has(slotId)) {
+          result.slots.set(slotId, {
+            slot_id: slotId,
+            start_time: time.start,
+            end_time: time.end,
+            label: `${time.start}–${time.end}`,
+            sort_order: result.slots.size + 1,
+          });
+        }
+
+        for (const { idx, day } of dayCols) {
+          if (day === null) continue;
+          const parsedCell = parseCell(cells[idx]);
+          if (!parsedCell) continue;
+
+          const roomParts = parseRoomId(parsedCell.roomId);
+          if (!roomParts) {
+            result.warnings.push(`Unparseable room ID: ${parsedCell.roomId}`);
+            continue;
+          }
+          if (!result.rooms.has(parsedCell.roomId)) {
+            result.rooms.set(parsedCell.roomId, {
+              room_id: parsedCell.roomId,
+              display_name: parsedCell.roomId,
+              ...roomParts,
+            });
+          }
+          result.entries.push({
+            day_of_week: day,
+            slot_id: slotId,
+            room_id: parsedCell.roomId,
+            course_code: parsedCell.courseCode,
+            type: parsedCell.type,
+          });
+        }
+      }
+    }
+
+    // --- Course catalog ---
+    if (courseIdx >= 0) {
+      for (let i = courseIdx + 1; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+        const cells = parseCSVLine(line);
+        if (cells.length < 8) continue;
+        const code = cells[0].trim().toUpperCase();
+        if (!code || !/^[A-Z]+\d+$/.test(code)) continue;
+        result.courses.set(code, {
+          code,
+          type: cells[1].trim(),
+          name: cells[2].trim(),
+          lectures: parseInt(cells[3]) || 0,
+          tutorials: parseInt(cells[4]) || 0,
+          practicals: parseInt(cells[5]) || 0,
+          credits: parseInt(cells[6]) || 0,
+          facultyName: cleanFacultyName(cells[7]),
+        });
+      }
+    }
+
+    return result;
+  }
+
+  /* ============================================================
+     FILE UPLOAD
+     ============================================================ */
+  const dropZone = $('dropZone');
+  const fileInput = $('fileInput');
+
+  dropZone.onclick = () => fileInput.click();
+  dropZone.ondragover = e => { e.preventDefault(); dropZone.classList.add('drag'); };
+  dropZone.ondragleave = () => dropZone.classList.remove('drag');
+  dropZone.ondrop = e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag');
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  };
+  fileInput.onchange = e => {
+    const f = e.target.files[0];
+    if (f) handleFile(f);
+  };
+
+  function handleFile(file) {
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      return toast('Please upload a .csv file', 'error');
+    }
+    rawFileName = file.name;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        parsed = parseLPUCSV(e.target.result);
+        showPreview();
+      } catch (err) {
+        console.error(err);
+        toast('Failed to parse CSV: ' + err.message, 'error');
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  /* ============================================================
+     PREVIEW
+     ============================================================ */
+  function showPreview() {
+    $('step1').style.display = 'none';
+    $('step2').style.display = 'block';
+
+    $('fileName').style.display = 'inline-flex';
+    $('fileNameText').textContent = rawFileName;
+
+    const totalEntries = parsed.entries.length;
+    const courses = parsed.courses.size;
+    const rooms = parsed.rooms.size;
+    const slots = parsed.slots.size;
+    const faculty = new Set(
+      [...parsed.courses.values()]
+        .map(c => c.facultyName)
+        .filter(n => n && n.toUpperCase() !== 'NA')
+    );
+
+    $('summaryGrid').innerHTML = `
+      <div class="summary-card"><div class="summary-val">${slots}</div><div class="summary-lbl">Time slots</div></div>
+      <div class="summary-card"><div class="summary-val">${rooms}</div><div class="summary-lbl">Rooms</div></div>
+      <div class="summary-card"><div class="summary-val">${courses}</div><div class="summary-lbl">Courses</div></div>
+      <div class="summary-card"><div class="summary-val">${faculty.size}</div><div class="summary-lbl">Faculty</div></div>
+      <div class="summary-card"><div class="summary-val" style="color:var(--brand)">${totalEntries}</div><div class="summary-lbl">Timetable entries</div></div>
+      <div class="summary-card"><div class="summary-val" style="color:${parsed.warnings.length ? 'var(--warning)' : 'var(--success)'}">${parsed.warnings.length}</div><div class="summary-lbl">Warnings</div></div>
+    `;
+
+    const details = $('previewContainer');
+    details.innerHTML = '';
+
+    // Slots
+    details.innerHTML += renderPreviewDetails('Time slots', [...parsed.slots.values()].map(s =>
+      `<div class="preview-row">
+        <strong>${escapeHtml(s.label)}</strong>
+        <span class="mono dim">${escapeHtml(s.slot_id)}</span>
+      </div>`
+    ).join(''));
+
+    // Rooms
+    details.innerHTML += renderPreviewDetails('Rooms', [...parsed.rooms.values()].map(r =>
+      `<div class="preview-row">
+        <strong>${escapeHtml(r.room_id)}</strong>
+        <span class="dim">Block ${escapeHtml(r.building)} · Floor ${r.floor}</span>
+      </div>`
+    ).join(''));
+
+    // Courses
+    details.innerHTML += renderPreviewDetails('Courses', [...parsed.courses.values()].map(c =>
+      `<div class="preview-row">
+        <div>
+          <strong>${escapeHtml(c.code)}</strong>
+          <span class="dim"> — ${escapeHtml(c.name)}</span>
+        </div>
+        <span class="dim">${escapeHtml(c.facultyName || 'No faculty')}</span>
+      </div>`
+    ).join(''));
+
+    // Entries
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    details.innerHTML += renderPreviewDetails(`Timetable entries (${parsed.entries.length})`,
+      [...parsed.entries]
+        .sort((a, b) => a.day_of_week - b.day_of_week)
+        .map(e => {
+          const slot = parsed.slots.get(e.slot_id);
+          return `<div class="preview-row">
+            <div>
+              <strong>${dayNames[e.day_of_week]}</strong>
+              <span class="dim"> ${escapeHtml(slot?.label || '')}</span>
+            </div>
+            <div class="mono dim">
+              ${escapeHtml(e.course_code)} · ${escapeHtml(e.room_id)} · ${escapeHtml(e.type)}
+            </div>
+          </div>`;
+        }).join('')
+    );
+
+    // Warnings
+    if (parsed.warnings.length) {
+      details.innerHTML += renderPreviewDetails('Warnings', parsed.warnings.map(w =>
+        `<div class="preview-row" style="background:var(--warning-soft);color:var(--warning-text)">
+          <span>${escapeHtml(w)}</span>
+        </div>`
+      ).join(''));
+    }
+  }
+
+  function renderPreviewDetails(title, rowsHtml) {
+    return `
+      <details class="preview-details">
+        <summary>${escapeHtml(title)}</summary>
+        <div class="preview-list">${rowsHtml || '<div class="preview-row dim">None</div>'}</div>
+      </details>`;
+  }
+
+  /* ============================================================
+     IMPORT EXECUTION
+     ============================================================ */
+  $('cancelBtn').onclick = resetAll;
+  $('againBtn').onclick = resetAll;
+
+  function resetAll() {
+    parsed = null;
+    rawFileName = '';
+    fileInput.value = '';
+    $('step1').style.display = 'block';
+    $('step2').style.display = 'none';
+    $('step3').style.display = 'none';
+    $('fileName').style.display = 'none';
+  }
+
+  $('importBtn').onclick = async () => {
+    const btn = $('importBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing…';
+
+    const opts = {
+      buildings: $('optBuildings').checked,
+      floors: $('optFloors').checked,
+      rooms: $('optRooms').checked,
+      slots: $('optSlots').checked,
+      faculty: $('optFaculty').checked,
+      replace: $('optReplace').checked,
+    };
+
+    try {
+      const result = await executeImport(opts);
+      showResult(result);
+    } catch (err) {
+      console.error(err);
+      toast('Import failed: ' + err.message, 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-file-import"></i> Import now';
+    }
+  };
+
+  async function executeImport(opts) {
+    const result = {
+      created: { buildings: 0, floors: 0, rooms: 0, slots: 0, timetable: 0, faculty: 0 },
+      skipped: 0,
+      errors: [],
+      newFaculty: [], // { name, email, password }
+    };
+
+    // --- 1. Buildings ---
+    if (opts.buildings) {
+      const { data: existing } = await supabase.from('buildings').select('id');
+      const haveIds = new Set((existing || []).map(b => b.id));
+      const needIds = new Set([...parsed.rooms.values()].map(r => r.building));
+      for (const bid of needIds) {
+        if (haveIds.has(bid)) continue;
+        const { error } = await supabase.from('buildings').insert({
+          id: bid, name: `Block ${bid}`, sort_order: parseInt(bid) || 0,
+        });
+        if (error) result.errors.push(`Building ${bid}: ${error.message}`);
+        else result.created.buildings++;
+      }
+    }
+
+    // --- 2. Floors ---
+    if (opts.floors) {
+      const { data: existing } = await supabase.from('building_floors').select('building_id, floor');
+      const haveKeys = new Set((existing || []).map(f => `${f.building_id}|${f.floor}`));
+      const needKeys = new Set([...parsed.rooms.values()].map(r => `${r.building}|${r.floor}`));
+      for (const key of needKeys) {
+        if (haveKeys.has(key)) continue;
+        const [bid, fl] = key.split('|');
+        const { error } = await supabase.from('building_floors').insert({
+          building_id: bid, floor: parseInt(fl),
+        });
+        if (error) result.errors.push(`Floor ${key}: ${error.message}`);
+        else result.created.floors++;
+      }
+    }
+
+    // --- 3. Rooms ---
+    if (opts.rooms) {
+      const { data: existing } = await supabase.from('rooms').select('room_id');
+      const haveIds = new Set((existing || []).map(r => r.room_id));
+      // Determine lab vs lecture per room from entries
+      const roomTypes = new Map();
+      parsed.entries.forEach(e => {
+        if (e.type === 'practical') roomTypes.set(e.room_id, 'lab');
+        else if (!roomTypes.has(e.room_id)) roomTypes.set(e.room_id, 'lecture');
+      });
+      for (const room of parsed.rooms.values()) {
+        if (haveIds.has(room.room_id)) continue;
+        const rtype = roomTypes.get(room.room_id) || 'lecture';
+        const { error } = await supabase.from('rooms').insert({
+          room_id: room.room_id,
+          display_name: room.display_name,
+          building: room.building,
+          floor: room.floor,
+          floor_digit: String(room.floor),
+          room_number: room.room_number,
+          suffix: room.suffix,
+          type: rtype,
+          capacity: rtype === 'lab' ? 30 : 60,
+          bookable: true,
+          weekend_open: false,
+        });
+        if (error) result.errors.push(`Room ${room.room_id}: ${error.message}`);
+        else result.created.rooms++;
+      }
+    }
+
+    // --- 4. Time slots ---
+    if (opts.slots) {
+      const { data: existing } = await supabase.from('time_slots').select('slot_id');
+      const haveIds = new Set((existing || []).map(s => s.slot_id));
+      for (const slot of parsed.slots.values()) {
+        if (haveIds.has(slot.slot_id)) continue;
+        const { error } = await supabase.from('time_slots').insert(slot);
+        if (error) result.errors.push(`Slot ${slot.slot_id}: ${error.message}`);
+        else result.created.slots++;
+      }
+    }
+
+    // --- 5. Faculty ---
+    const facultyNameToId = new Map();
+    const { data: existingFaculty } = await supabase.from('profiles')
+      .select('id, full_name').eq('role', 'faculty');
+    (existingFaculty || []).forEach(p => {
+      if (p.full_name) facultyNameToId.set(p.full_name.toLowerCase().trim(), p.id);
+    });
+
+    const neededFaculty = new Set(
+      [...parsed.courses.values()]
+        .map(c => c.facultyName)
+        .filter(n => n && n.toUpperCase() !== 'NA')
+    );
+
+    if (opts.faculty) {
+      for (const name of neededFaculty) {
+        const key = name.toLowerCase().trim();
+        if (facultyNameToId.has(key)) continue;
+
+        const cleanName = name.replace(/^(dr|prof|mr|ms|mrs|miss)\.?\s+/i, '').trim();
+        const emailLocal = cleanName.toLowerCase()
+          .replace(/[^a-z0-9\s]+/g, '')
+          .trim()
+          .replace(/\s+/g, '.');
+        const email = `${emailLocal}@lpu.in`;
+        const pwd = Math.random().toString(36).slice(-10);
+
+        const { data, error } = await supabase.rpc('admin_create_user', {
+          p_email: email,
+          p_password: pwd,
+          p_full_name: name,
+          p_role: 'faculty',
+          p_department: null,
+          p_phone: null,
+        });
+
+        if (error || data?.error) {
+          result.errors.push(`Faculty ${name}: ${error?.message || data?.error}`);
+          continue;
+        }
+        facultyNameToId.set(key, data.user_id);
+        result.created.faculty++;
+        result.newFaculty.push({ name, email, password: pwd });
+      }
+    }
+
+    // --- 6. Replace timetable ---
+    if (opts.replace) {
+      const { error } = await supabase.from('timetable').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (error) result.errors.push(`Clear timetable: ${error.message}`);
+    }
+
+    // --- 7. Timetable entries ---
+    const { data: existingTT } = await supabase.from('timetable')
+      .select('day_of_week, slot_id, room_id').eq('is_active', true);
+    const ttKeys = new Set((existingTT || []).map(t => `${t.day_of_week}|${t.slot_id}|${t.room_id}`));
+
+    for (const entry of parsed.entries) {
+      const key = `${entry.day_of_week}|${entry.slot_id}|${entry.room_id}`;
+      if (ttKeys.has(key)) { result.skipped++; continue; }
+
+      const course = parsed.courses.get(entry.course_code);
+      const facultyId = course?.facultyName
+        ? facultyNameToId.get(course.facultyName.toLowerCase().trim()) || null
+        : null;
+
+      const { error } = await supabase.from('timetable').insert({
+        day_of_week: entry.day_of_week,
+        slot_id: entry.slot_id,
+        room_id: entry.room_id,
+        faculty_id: facultyId,
+        course_code: entry.course_code,
+        course_name: course?.name || null,
+        is_active: true,
+      });
+
+      if (error) result.errors.push(`Timetable entry (${key}): ${error.message}`);
+      else result.created.timetable++;
+    }
+
+    return result;
+  }
+
+  /* ============================================================
+     RESULT SCREEN
+     ============================================================ */
+  function showResult(result) {
+    $('step2').style.display = 'none';
+    $('step3').style.display = 'block';
+
+    $('resultGrid').innerHTML = `
+      <div class="summary-card"><div class="summary-val" style="color:var(--success)">${result.created.buildings}</div><div class="summary-lbl">Buildings created</div></div>
+      <div class="summary-card"><div class="summary-val" style="color:var(--success)">${result.created.floors}</div><div class="summary-lbl">Floors created</div></div>
+      <div class="summary-card"><div class="summary-val" style="color:var(--success)">${result.created.rooms}</div><div class="summary-lbl">Rooms created</div></div>
+      <div class="summary-card"><div class="summary-val" style="color:var(--success)">${result.created.slots}</div><div class="summary-lbl">Slots created</div></div>
+      <div class="summary-card"><div class="summary-val" style="color:var(--success)">${result.created.faculty}</div><div class="summary-lbl">Faculty created</div></div>
+      <div class="summary-card"><div class="summary-val" style="color:var(--brand)">${result.created.timetable}</div><div class="summary-lbl">Classes imported</div></div>
+      <div class="summary-card"><div class="summary-val" style="color:var(--text-muted)">${result.skipped}</div><div class="summary-lbl">Already existed</div></div>
+      <div class="summary-card"><div class="summary-val" style="color:${result.errors.length ? 'var(--danger)' : 'var(--success)'}">${result.errors.length}</div><div class="summary-lbl">Errors</div></div>
+    `;
+
+    // New faculty credentials
+    if (result.newFaculty.length) {
+      $('credentialsContainer').innerHTML = `
+        <div class="credentials-box">
+          <h4><i class="fas fa-key" style="margin-right:6px"></i>New faculty accounts — share these credentials</h4>
+          ${result.newFaculty.map(f => `
+            <div class="cred-row">
+              <span>${escapeHtml(f.name)}</span>
+              <span>${escapeHtml(f.email)} / ${escapeHtml(f.password)}</span>
+            </div>
+          `).join('')}
+        </div>`;
+    } else {
+      $('credentialsContainer').innerHTML = '';
+    }
+
+    if (result.errors.length) {
+      $('errorsContainer').innerHTML = `
+        <div style="font-size:13px;font-weight:600;color:var(--danger);margin-bottom:8px">
+          <i class="fas fa-triangle-exclamation"></i> Errors (${result.errors.length})
+        </div>
+        ${result.errors.map(e => `<div class="error-row">${escapeHtml(e)}</div>`).join('')}`;
+    } else {
+      $('errorsContainer').innerHTML = '';
+    }
+
+    toast(`Import complete — ${result.created.timetable} classes added`, 'success');
+  }
+
+})();
+</script>
+</body>
+</html>
