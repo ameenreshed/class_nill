@@ -1,8 +1,235 @@
-/* Admin page helpers — merged into style.css */
-.admin-tabs { display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:24px;overflow-x:auto;scrollbar-width:none; }
-.admin-tabs::-webkit-scrollbar { display:none; }
-.admin-tab { padding:12px 14px;color:var(--text-muted);text-decoration:none;font-size:13px;font-weight:500;border-bottom:2px solid transparent;white-space:nowrap;margin-bottom:-1px;display:inline-flex;align-items:center;gap:7px; }
-.admin-tab i { font-size:12px;opacity:.75; }
-.admin-tab:hover { color:var(--text);background:var(--surface-hover);border-radius:8px 8px 0 0; }
-.admin-tab.active { color:var(--brand);border-bottom-color:var(--brand);font-weight:600; }
-.modal-wide { width:min(720px,calc(100vw - 32px)) !important; }
+/* ============================================================
+   ADMIN PAGES — unified clean spacing + premium modal polish
+   ============================================================ */
+
+/* ============ MODAL ENHANCEMENTS (admin-specific) ============ */
+
+/* Bigger, wider admin dialogs feel more spacious */
+.admin-wide .modal-content {
+  width: min(840px, calc(100vw - 32px));
+}
+
+/* Sticky header trick — header stays put while body scrolls */
+.modal-content > .modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* Grid layouts inside modal body — add breathing room */
+.modal-body > div[style*="display:grid"] {
+  gap: 16px !important;
+}
+
+/* Info/warning boxes inside modal — premium look */
+.modal-body > div[style*="background:var(--info-soft)"],
+.modal-body > div[style*="background:var(--warning-soft)"] {
+  border-radius: 10px !important;
+  padding: 14px 16px !important;
+  font-size: 12.5px !important;
+  line-height: 1.6 !important;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.modal-body > div[style*="background:var(--info-soft)"] i,
+.modal-body > div[style*="background:var(--warning-soft)"] i {
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-size: 14px;
+}
+
+/* Password hint alignment */
+.modal-body .pw-hint {
+  margin-top: 6px;
+  padding-left: 2px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Improve checkboxes inside modal — pill-style label */
+.modal-body label:has(input[type="checkbox"]) {
+  padding: 10px 14px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: all 160ms ease;
+  cursor: pointer;
+}
+
+.modal-body label:has(input[type="checkbox"]):hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.modal-body label:has(input[type="checkbox"]:checked) {
+  background: var(--brand-soft);
+  border-color: var(--brand-soft-border);
+}
+
+.modal-body label:has(input[type="checkbox"]:checked) span {
+  color: var(--brand-text);
+  font-weight: 600;
+}
+
+/* Nested tables inside modals (e.g. building list) */
+.modal-body .bld-table-modal {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.modal-body .bld-table-modal thead {
+  background: var(--bg-subtle);
+}
+
+/* Improve buttons in nested modal areas */
+.modal-body .btn-sm {
+  padding: 6px 10px;
+  min-height: 30px;
+  border-radius: 8px;
+}
+
+/* Title icon spacing */
+.modal-title:has(i) {
+  padding-right: 8px;
+}
+
+/* ============ ADMIN TABS ============ */
+.admin-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+.admin-tabs::-webkit-scrollbar { display: none; }
+
+.admin-tab {
+  padding: 12px 14px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all 150ms ease;
+  margin-bottom: -1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.admin-tab i { font-size: 12px; opacity: 0.75; }
+.admin-tab:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+  border-radius: 8px 8px 0 0;
+  text-decoration: none;
+}
+.admin-tab.active {
+  color: var(--brand);
+  border-bottom-color: var(--brand);
+  font-weight: 600;
+}
+.admin-tab.active i { opacity: 1; }
+
+/* ============ SPACING RHYTHM ============ */
+.admin-tabs + .stats { margin-bottom: 28px; }
+.stats + .row { margin-bottom: 20px; }
+.row + .table-wrap,
+.row + .grid-auto { margin-top: 4px; }
+.table-wrap + .row,
+.grid-auto + .row { margin-top: 16px; }
+.row { gap: 12px; }
+
+/* ============ FILTER ROW ============ */
+.row:has(.search-wrap) { align-items: center; }
+.row:has(.search-wrap) .search-wrap { max-width: 380px; }
+.row:has(.search-wrap) .chip {
+  padding: 8px 15px;
+  min-height: 36px;
+  font-size: 13px;
+}
+
+/* ============ STAT CARDS ============ */
+.stat {
+  padding: 18px 20px;
+  border-radius: 12px;
+}
+.stat-icon { margin-bottom: 14px; }
+.stat-value { font-size: 26px; line-height: 1; }
+.stat-label { margin-top: 6px; font-size: 11px; }
+
+/* ============ TABLES ============ */
+.table-wrap {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+}
+.table-wrap table { font-size: 13px; }
+.table-wrap thead th {
+  padding: 13px 18px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+.table-wrap tbody td {
+  padding: 14px 18px;
+  vertical-align: middle;
+}
+.table-wrap tbody tr:hover td {
+  background: var(--surface-hover);
+}
+.table-wrap .row-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+.table-wrap .row-actions .btn {
+  padding: 7px 11px;
+  min-height: 32px;
+  font-size: 12px;
+}
+.table-wrap .row-actions .btn + .btn { margin-left: 4px; }
+
+/* ============ CARD GRID ============ */
+.grid-auto {
+  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+.grid-auto > .card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 900px) {
+  .grid-auto {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-tabs { margin-bottom: 20px; }
+  .admin-tab { padding: 10px 14px; font-size: 12px; }
+  .admin-tab i { font-size: 11px; }
+  .admin-tabs + .stats { margin-bottom: 20px; }
+  .stats + .row { margin-bottom: 16px; }
+
+  .table-wrap thead th,
+  .table-wrap tbody td { padding: 11px 12px; font-size: 12px; }
+  .table-wrap .row-actions .btn { padding: 6px 9px; min-height: 30px; }
+
+  .stat { padding: 14px 16px; }
+  .stat-value { font-size: 22px; }
+
+  .grid-auto {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .grid-auto > .card { padding: 16px; }
+}
