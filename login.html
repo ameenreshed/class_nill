@@ -11,50 +11,16 @@
 <link rel="stylesheet" href="css/style.css">
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
-  .auth-help {
-    margin-top: 24px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border);
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.6;
-    text-align: center;
-  }
-  .auth-help a { color: var(--brand); font-weight: 500; text-decoration: none; }
-  .auth-help a:hover { text-decoration: underline; }
-
-  .credits-link {
-    margin-top: 18px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-    text-align: center;
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-  .credits-link a {
-    color: var(--text-secondary);
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    transition: color 160ms ease;
-  }
-  .credits-link a:hover { color: var(--brand); text-decoration: underline; }
-  .credits-link i { font-size: 10px; color: var(--brand); }
-
-  .banner-warn {
-    background: var(--warning-soft);
-    border: 1px solid var(--warning-soft-border);
-    color: var(--warning-text);
-    padding: 10px 14px;
-    border-radius: 8px;
-    font-size: 12px;
-    margin-bottom: 12px;
-    display: none;
-    line-height: 1.5;
-  }
-  .banner-warn.show { display: flex; gap: 8px; align-items: flex-start; }
-  .banner-warn i { flex-shrink: 0; margin-top: 1px; }
+  .auth-help { margin-top:24px;padding-top:20px;border-top:1px solid var(--border);font-size:13px;color:var(--text-secondary);line-height:1.6;text-align:center; }
+  .auth-help a { color:var(--brand);font-weight:500;text-decoration:none; }
+  .auth-help a:hover { text-decoration:underline; }
+  .credits-link { margin-top:18px;padding-top:16px;border-top:1px solid var(--border);text-align:center;font-size:12px;color:var(--text-muted); }
+  .credits-link a { color:var(--text-secondary);text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:color 160ms ease; }
+  .credits-link a:hover { color:var(--brand);text-decoration:underline; }
+  .credits-link i { font-size:10px;color:var(--brand); }
+  .banner-warn { background:var(--warning-soft);border:1px solid var(--warning-soft-border);color:var(--warning-text);padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none;line-height:1.5; }
+  .banner-warn.show { display:flex;gap:8px;align-items:flex-start; }
+  .banner-warn i { flex-shrink:0;margin-top:1px; }
 </style>
 </head>
 <body>
@@ -154,13 +120,11 @@ const TURNSTILE_SITE_KEY = '0x4AAAAAAFk78nRRRuS58LzL';
 initTheme();
 const $ = id => document.getElementById(id);
 
-/* ---------- State ---------- */
 let turnstileToken = null;
 let turnstileWidgetId = null;
 let turnstileReady = false;
 let turnstileFailed = false;
 
-/* ---------- Button State Manager (OLD PROTECTION) ---------- */
 function setLoginButton(state) {
   const btn = $('loginBtn');
   if (state === 'ready') {
@@ -178,7 +142,6 @@ function setLoginButton(state) {
   }
 }
 
-/* ---------- Helpers ---------- */
 function showError(html) {
   const el = $('errorMsg');
   el.innerHTML = `<i class="fas fa-circle-exclamation"></i><div>${html}</div>`;
@@ -186,45 +149,43 @@ function showError(html) {
 }
 function clearError() { $('errorMsg').classList.remove('show'); }
 
-/* ---------- URL error banners ---------- */
 const params = new URLSearchParams(location.search);
 if (params.get('err') === 'suspended') {
   showError('Your account has been suspended. Contact an administrator.');
   history.replaceState({}, '', 'login.html');
 }
 
-/* ---------- Redirect already-signed-in users ---------- */
+/* Redirect signed-in users, respecting first-login state */
 (async () => {
   const session = await waitForSession(1000);
   if (!session) return;
   const { data: profile } = await supabase
-    .from('profiles').select('role, is_active').eq('id', session.user.id).single();
+    .from('profiles').select('role, is_active, password_changed_at').eq('id', session.user.id).single();
 
   if (!profile || profile.is_active === false) {
     await supabase.auth.signOut();
     return;
+  }
+
+  if (profile.password_changed_at === null) {
+    return location.replace('./profile.html?first=1');
   }
   if (profile.role === 'admin')   return location.replace('./admin.html');
   if (profile.role === 'faculty') return location.replace('./faculty.html');
   await supabase.auth.signOut();
 })();
 
-/* ---------- Turnstile explicit rendering with polling ---------- */
-setLoginButton('loading');
-
+/* Turnstile */
 let pollAttempts = 0;
-const MAX_POLL_ATTEMPTS = 50; // ~10 seconds (OLD PROTECTION: longer patience)
+const MAX_POLL_ATTEMPTS = 50;
 
 function initTurnstile() {
   pollAttempts++;
-
   if (!window.turnstile) {
     if (pollAttempts >= MAX_POLL_ATTEMPTS) {
-      // OLD PROTECTION: detailed diagnostic message, button stays DISABLED
       turnstileFailed = true;
       $('verifyWarnText').innerHTML =
-        'Verification failed to load. Please check: ' +
-        '(1) your internet connection, ' +
+        'Verification failed to load. Please check: (1) your internet connection, ' +
         '(2) your browser is not blocking <code>challenges.cloudflare.com</code>, ' +
         '(3) no ad-blocker is interfering. Then refresh the page.';
       $('verifyWarn').classList.add('show');
@@ -234,112 +195,67 @@ function initTurnstile() {
     setTimeout(initTurnstile, 200);
     return;
   }
-
   const container = document.getElementById('turnstile-container');
   if (!container || turnstileReady) return;
   turnstileReady = true;
-
   try {
     turnstileWidgetId = window.turnstile.render(container, {
       sitekey: TURNSTILE_SITE_KEY,
       theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
       size: 'normal',
-      callback: (token) => {
-        turnstileToken = token;
-        setLoginButton('ready');   // OLD PROTECTION: only now is button enabled
-        clearError();
-      },
-      'expired-callback': () => {
-        turnstileToken = null;
-        setLoginButton('waiting'); // OLD PROTECTION: re-disable on expiry
-      },
+      callback: (token) => { turnstileToken = token; setLoginButton('ready'); clearError(); },
+      'expired-callback': () => { turnstileToken = null; setLoginButton('waiting'); },
       'error-callback': (code) => {
-        console.error('Turnstile error:', code);
         turnstileToken = null;
         turnstileFailed = true;
         setLoginButton('waiting');
-        $('verifyWarnText').innerHTML =
-          `Verification error (code ${code}). Please refresh the page and try again.`;
+        $('verifyWarnText').innerHTML = `Verification error (code ${code}). Please refresh and try again.`;
         $('verifyWarn').classList.add('show');
       },
     });
-    setLoginButton('waiting'); // Widget rendered but user hasn't verified yet
+    setLoginButton('waiting');
   } catch (err) {
-    console.error('Turnstile render failed:', err);
     turnstileFailed = true;
-    $('verifyWarnText').innerHTML =
-      'Verification could not start. Please refresh the page.';
+    $('verifyWarnText').innerHTML = 'Verification could not start. Please refresh the page.';
     $('verifyWarn').classList.add('show');
     setLoginButton('waiting');
   }
 }
+if (document.readyState === 'complete' || document.readyState === 'interactive') initTurnstile();
+else window.addEventListener('DOMContentLoaded', initTurnstile);
 
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  initTurnstile();
-} else {
-  window.addEventListener('DOMContentLoaded', initTurnstile);
-}
-
-/* ---------- Password visibility toggle ---------- */
 $('pwdToggle').onclick = () => {
   const pwd = $('password');
   const isPwd = pwd.type === 'password';
   pwd.type = isPwd ? 'text' : 'password';
-  $('pwdToggle').innerHTML = isPwd
-    ? '<i class="fas fa-eye-slash"></i>'
-    : '<i class="fas fa-eye"></i>';
+  $('pwdToggle').innerHTML = isPwd ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
 };
 
-/* ---------- Digits-only registration number ---------- */
 const regnoEl = $('regno');
-regnoEl.addEventListener('input', e => {
-  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 20);
-});
-regnoEl.addEventListener('keypress', e => {
-  if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
-});
+regnoEl.addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 20); });
+regnoEl.addEventListener('keypress', e => { if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault(); });
 regnoEl.addEventListener('paste', e => {
   e.preventDefault();
   const text = (e.clipboardData || window.clipboardData).getData('text') || '';
   regnoEl.value = text.replace(/\D/g, '').slice(0, 20);
 });
 
-/* ---------- Submit ---------- */
 $('loginForm').onsubmit = async (e) => {
   e.preventDefault();
   clearError();
-
-  /* OLD PROTECTION: token must exist before submit */
-  if (!turnstileToken) {
-    showError('Please complete the verification checkbox first.');
-    return;
-  }
+  if (!turnstileToken) { showError('Please complete the verification checkbox first.'); return; }
 
   const regno = regnoEl.value.trim();
   const password = $('password').value;
-
-  if (!/^\d{3,20}$/.test(regno)) {
-    showError('Enter a valid registration number (3–20 digits).');
-    regnoEl.focus();
-    return;
-  }
-  if (!password) {
-    showError('Enter your password.');
-    $('password').focus();
-    return;
-  }
+  if (!/^\d{3,20}$/.test(regno)) { showError('Enter a valid registration number (3–20 digits).'); regnoEl.focus(); return; }
+  if (!password) { showError('Enter your password.'); $('password').focus(); return; }
 
   setLoginButton('signingin');
-
   const email = `${regno}@${EMAIL_DOMAIN}`;
 
   let result;
   try {
-    result = await supabase.auth.signInWithPassword({
-      email,
-      password,
-      options: { captchaToken: turnstileToken }, // OLD PROTECTION: always send token
-    });
+    result = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken: turnstileToken } });
   } catch (err) {
     setLoginButton('waiting');
     showError('Network error: ' + (err.message || err));
@@ -349,33 +265,20 @@ $('loginForm').onsubmit = async (e) => {
   if (result.error) {
     const m = (result.error.message || '').toLowerCase();
     let friendly = result.error.message;
-
-    if (m.includes('invalid login credentials')) {
-      friendly = 'Incorrect registration number or password.';
-    } else if (m.includes('email not confirmed')) {
-      friendly = 'This account has not been confirmed. Contact your administrator.';
-    } else if (m.includes('captcha')) {
+    if (m.includes('invalid login credentials')) friendly = 'Incorrect registration number or password.';
+    else if (m.includes('email not confirmed')) friendly = 'This account has not been confirmed. Contact your administrator.';
+    else if (m.includes('captcha')) {
       friendly = 'Verification failed or token expired. Please tick the checkbox again.';
-      // OLD PROTECTION: reset Turnstile widget on captcha error
-      if (window.turnstile && turnstileWidgetId !== null) {
-        try { window.turnstile.reset(turnstileWidgetId); } catch {}
-      }
+      if (window.turnstile && turnstileWidgetId !== null) try { window.turnstile.reset(turnstileWidgetId); } catch {}
       turnstileToken = null;
     }
-
     showError(friendly);
     setLoginButton(turnstileToken ? 'ready' : 'waiting');
     return;
   }
 
-  if (!result.data?.session) {
-    showError('Sign-in failed. Please try again.');
-    setLoginButton(turnstileToken ? 'ready' : 'waiting');
-    return;
-  }
-
   const { data: profile, error: profErr } = await supabase
-    .from('profiles').select('role, is_active').eq('id', result.data.session.user.id).single();
+    .from('profiles').select('role, is_active, password_changed_at').eq('id', result.data.session.user.id).single();
 
   if (profErr || !profile) {
     await supabase.auth.signOut();
@@ -391,7 +294,12 @@ $('loginForm').onsubmit = async (e) => {
     return;
   }
 
-  if (profile.role === 'admin')   return location.replace('./admin.html');
+  // First-login users must change password before doing anything else
+  if (profile.password_changed_at === null) {
+    return location.replace('./profile.html?first=1');
+  }
+
+  if (profile.role === 'admin') return location.replace('./admin.html');
   if (profile.role === 'faculty') return location.replace('./faculty.html');
 
   await supabase.auth.signOut();

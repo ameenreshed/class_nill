@@ -468,5 +468,68 @@ import {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadAll(); });
 })();
 </script>
+<!-- First-login soft banner -->
+<style>
+  @keyframes bannerSlide {
+    from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  .pw-banner {
+    position: fixed;
+    top: calc(var(--nav-h) + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 55;
+    max-width: 560px;
+    width: calc(100vw - 32px);
+    padding: 14px 18px;
+    background: var(--warning-soft);
+    border: 1px solid var(--warning-soft-border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--warning-text);
+    animation: bannerSlide 400ms ease;
+  }
+  .pw-banner-body { flex: 1; line-height: 1.5; }
+  .pw-banner-body strong { display: block; margin-bottom: 2px; font-size: 13.5px; }
+  .pw-banner-close {
+    background: none; border: none; cursor: pointer;
+    color: inherit; opacity: 0.6; font-size: 15px;
+    padding: 4px; border-radius: 6px;
+    transition: all 140ms ease;
+  }
+  .pw-banner-close:hover { opacity: 1; background: rgba(0,0,0,.05); }
+  @media (max-width: 640px) {
+    .pw-banner { flex-direction: column; align-items: stretch; gap: 10px; }
+    .pw-banner .btn { width: 100%; justify-content: center; }
+  }
+</style>
+<script type="module">
+import { supabase, waitForSession } from './js/core.js';
+(async () => {
+  const session = await waitForSession(2000);
+  if (!session) return;
+  const { data: p } = await supabase.from('profiles').select('password_changed_at').eq('id', session.user.id).single();
+  if (!p || p.password_changed_at) return;
+  const banner = document.createElement('div');
+  banner.className = 'pw-banner';
+  banner.innerHTML = `
+    <i class="fas fa-shield-halved" style="font-size:18px;flex-shrink:0"></i>
+    <div class="pw-banner-body">
+      <strong>Password change required</strong>
+      Your account is still using the temporary password.
+    </div>
+    <a href="profile.html?first=1" class="btn btn-sm btn-primary" style="flex-shrink:0">Change now</a>
+    <button class="pw-banner-close" onclick="this.parentElement.remove()" title="Dismiss">
+      <i class="fas fa-xmark"></i>
+    </button>
+  `;
+  document.body.appendChild(banner);
+})();
+</script>
 </body>
 </html>
