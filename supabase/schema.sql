@@ -1,12 +1,55 @@
 -- ============================================================
--- LPU Scheduler — complete schema (admin + faculty only)
--- Run this ONCE in Supabase SQL Editor
+-- LPU Scheduler — PRODUCTION CLEAN INSTALL
+-- Run ONCE in Supabase SQL Editor
+-- Drops EVERYTHING and rebuilds from scratch
+-- Only creates: schema + config + one admin user
+-- Everything else (rooms, faculty, timetable) added via UI
 -- ============================================================
 
+-- ============================================================
+-- 1. DROP EVERYTHING
+-- ============================================================
+drop table if exists worker_calls cascade;
+drop table if exists sync_log cascade;
+drop table if exists activity_log cascade;
+drop table if exists system_settings cascade;
+drop table if exists academic_calendar cascade;
+drop table if exists faculty_unavailability cascade;
+drop table if exists bookings cascade;
+drop table if exists timetable cascade;
+drop table if exists courses cascade;
+drop table if exists sections cascade;
+drop table if exists time_slots cascade;
+drop table if exists rooms cascade;
+drop table if exists room_types cascade;
+drop table if exists building_floors cascade;
+drop table if exists buildings cascade;
+drop table if exists profiles cascade;
+
+drop function if exists admin_create_user(text,text,text,text,text,text,text) cascade;
+drop function if exists admin_create_user(text,text,text,text,text,text) cascade;
+drop function if exists admin_update_user(uuid,text,text,text,text,text,text) cascade;
+drop function if exists admin_reset_password(uuid,text) cascade;
+drop function if exists admin_delete_user(uuid) cascade;
+drop function if exists admin_set_setting(text,jsonb) cascade;
+drop function if exists admin_change_user_userid(uuid,text) cascade;
+drop function if exists admin_bulk_change_userids(jsonb) cascade;
+drop function if exists mark_password_changed() cascade;
+drop function if exists handle_new_user() cascade;
+drop function if exists my_role() cascade;
+drop function if exists apply_auto_approve() cascade;
+drop function if exists log_booking_change() cascade;
+drop function if exists import_timetable(jsonb) cascade;
+
+-- ============================================================
+-- 2. EXTENSIONS
+-- ============================================================
 create extension if not exists pgcrypto;
 
--- ---------- profiles ----------
-create table if not exists profiles (
+-- ============================================================
+-- 3. PROFILES
+-- ============================================================
+create table profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text unique not null,
   full_name text,
@@ -16,10 +59,11 @@ create table if not exists profiles (
   is_active boolean default true,
   suspended_at timestamptz,
   suspended_reason text,
+  password_changed_at timestamptz,
   last_active_at timestamptz default now(),
   created_at timestamptz default now()
 );
-create index if not exists profiles_role on profiles (role);
+create index profiles_role on profiles (role);
 
 create or replace function handle_new_user()
 returns trigger language plpgsql security definer as $$
@@ -37,8 +81,10 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
 
--- ---------- buildings ----------
-create table if not exists buildings (
+-- ============================================================
+-- 4. BUILDINGS
+-- ============================================================
+create table buildings (
   id text primary key,
   name text not null,
   address text,
@@ -47,7 +93,7 @@ create table if not exists buildings (
   created_at timestamptz default now()
 );
 
-create table if not exists building_floors (
+create table building_floors (
   id uuid primary key default gen_random_uuid(),
   building_id text references buildings(id) on delete cascade,
   floor int not null check (floor >= 1 and floor <= 20),
@@ -55,8 +101,10 @@ create table if not exists building_floors (
   unique(building_id, floor)
 );
 
--- ---------- room types ----------
-create table if not exists room_types (
+-- ============================================================
+-- 5. ROOM TYPES (config — must be seeded)
+-- ============================================================
+create table room_types (
   id text primary key,
   label text not null,
   icon text default 'fa-door-open',
@@ -75,11 +123,12 @@ insert into room_types (id, label, icon, bookable, sort_order) values
   ('staffroom','Staffroom', 'fa-user-tie',        false, 5),
   ('office',   'Office',    'fa-briefcase',       false, 6),
   ('store',    'Store',     'fa-box',             false, 7),
-  ('other',    'Other',     'fa-ellipsis',        false, 8)
-on conflict (id) do nothing;
+  ('other',    'Other',     'fa-ellipsis',        false, 8);
 
--- ---------- rooms ----------
-create table if not exists rooms (
+-- ============================================================
+-- 6. ROOMS
+-- ============================================================
+create table rooms (
   room_id text primary key,
   display_name text not null,
   building text not null,
@@ -95,10 +144,12 @@ create table if not exists rooms (
   notes text,
   created_at timestamptz default now()
 );
-create index if not exists rooms_lookup on rooms (building, floor, bookable);
+create index rooms_lookup on rooms (building, floor, bookable);
 
--- ---------- time slots ----------
-create table if not exists time_slots (
+-- ============================================================
+-- 7. TIME SLOTS
+-- ============================================================
+create table time_slots (
   slot_id text primary key,
   start_time time not null,
   end_time time not null,
@@ -107,18 +158,10 @@ create table if not exists time_slots (
   sort_order int default 0
 );
 
-insert into time_slots (slot_id, start_time, end_time, label, sort_order) values
-  ('P1','09:00','09:50','1st period',1),
-  ('P2','09:50','10:40','2nd period',2),
-  ('P3','10:50','11:40','3rd period',3),
-  ('P4','11:40','12:30','4th period',4),
-  ('P5','13:30','14:20','5th period',5),
-  ('P6','14:20','15:10','6th period',6),
-  ('P7','15:10','16:00','7th period',7)
-on conflict (slot_id) do nothing;
-
--- ---------- timetable ----------
-create table if not exists timetable (
+-- ============================================================
+-- 8. TIMETABLE
+-- ============================================================
+create table timetable (
   id uuid primary key default gen_random_uuid(),
   day_of_week int not null check (day_of_week between 0 and 6),
   slot_id text not null references time_slots(slot_id) on delete cascade,
@@ -127,14 +170,15 @@ create table if not exists timetable (
   course_code text,
   course_name text,
   is_active boolean default true,
-  created_at timestamptz default now(),
-  unique(faculty_id, day_of_week, slot_id)
+  created_at timestamptz default now()
 );
-create index if not exists tt_room_slot on timetable (room_id, day_of_week, slot_id);
-create index if not exists tt_faculty on timetable (faculty_id, day_of_week);
+create index tt_room_slot on timetable (room_id, day_of_week, slot_id);
+create index tt_faculty on timetable (faculty_id, day_of_week);
 
--- ---------- bookings ----------
-create table if not exists bookings (
+-- ============================================================
+-- 9. BOOKINGS
+-- ============================================================
+create table bookings (
   id uuid primary key default gen_random_uuid(),
   room_id text not null references rooms(room_id) on delete cascade,
   book_date date not null,
@@ -148,14 +192,16 @@ create table if not exists bookings (
   approved_by uuid references profiles(id) on delete set null,
   created_at timestamptz default now()
 );
-create unique index if not exists bookings_no_overlap
+create unique index bookings_no_overlap
   on bookings (room_id, book_date, slot_id)
   where status in ('pending','approved');
-create index if not exists bookings_date on bookings (book_date, slot_id, status);
-create index if not exists bookings_faculty on bookings (faculty_id, book_date);
+create index bookings_date on bookings (book_date, slot_id, status);
+create index bookings_faculty on bookings (faculty_id, book_date);
 
--- ---------- faculty leave ----------
-create table if not exists faculty_unavailability (
+-- ============================================================
+-- 10. FACULTY UNAVAILABILITY (leave)
+-- ============================================================
+create table faculty_unavailability (
   id uuid primary key default gen_random_uuid(),
   faculty_id uuid not null references profiles(id) on delete cascade,
   date date not null,
@@ -164,34 +210,40 @@ create table if not exists faculty_unavailability (
   created_at timestamptz default now(),
   unique(faculty_id, date, slot_id)
 );
-create index if not exists fu_lookup on faculty_unavailability (date, faculty_id);
+create index fu_lookup on faculty_unavailability (date, faculty_id);
 
--- ---------- academic calendar ----------
-create table if not exists academic_calendar (
+-- ============================================================
+-- 11. ACADEMIC CALENDAR
+-- ============================================================
+create table academic_calendar (
   date date primary key,
   kind text not null check (kind in ('holiday','event','exam_week','working_saturday','special')),
   label text,
   created_at timestamptz default now()
 );
 
--- ---------- settings ----------
-create table if not exists system_settings (
+-- ============================================================
+-- 12. SYSTEM SETTINGS
+-- ============================================================
+create table system_settings (
   key text primary key,
   value jsonb not null default 'null'::jsonb,
   updated_at timestamptz default now()
 );
-insert into system_settings (key, value) values
-  ('booking_auto_approve',   'false'::jsonb),
-  ('allow_faculty_makeup',   'true'::jsonb),
-  ('allow_faculty_exam',     'true'::jsonb),
-  ('allow_faculty_event',    'true'::jsonb),
-  ('site_banner',            '""'::jsonb),
-  ('lpu_api_url',            '""'::jsonb),
-  ('lpu_api_key',            '""'::jsonb)
-on conflict (key) do nothing;
 
--- ---------- activity log ----------
-create table if not exists activity_log (
+insert into system_settings (key, value) values
+  ('booking_auto_approve', 'false'::jsonb),
+  ('allow_faculty_makeup', 'true'::jsonb),
+  ('allow_faculty_exam',   'true'::jsonb),
+  ('allow_faculty_event',  'true'::jsonb),
+  ('site_banner',          '""'::jsonb),
+  ('lpu_api_url',          '""'::jsonb),
+  ('lpu_api_key',          '""'::jsonb);
+
+-- ============================================================
+-- 13. ACTIVITY LOG
+-- ============================================================
+create table activity_log (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references profiles(id) on delete set null,
   user_email text,
@@ -201,10 +253,10 @@ create table if not exists activity_log (
   details jsonb,
   created_at timestamptz default now()
 );
-create index if not exists al_created on activity_log (created_at desc);
+create index al_created on activity_log (created_at desc);
 
 -- ============================================================
--- RLS
+-- 14. ROW LEVEL SECURITY
 -- ============================================================
 alter table profiles enable row level security;
 alter table buildings enable row level security;
@@ -224,95 +276,55 @@ language sql stable security definer as $$
   select coalesce((select role from profiles where id = auth.uid()), 'faculty');
 $$;
 
--- profiles
-drop policy if exists "profiles read" on profiles;
 create policy "profiles read" on profiles for select
   using (id = auth.uid() or my_role() = 'admin');
-drop policy if exists "profiles admin write" on profiles;
 create policy "profiles admin write" on profiles for all
   using (my_role() = 'admin') with check (my_role() = 'admin');
-drop policy if exists "profiles self update" on profiles;
 create policy "profiles self update" on profiles for update
-  using (id = auth.uid()) with check (id = auth.uid() and role = (select role from profiles where id = auth.uid()));
+  using (id = auth.uid())
+  with check (id = auth.uid() and role = (select role from profiles where id = auth.uid()));
 
--- buildings / floors / types
-drop policy if exists "buildings read" on buildings;
 create policy "buildings read" on buildings for select using (auth.role() = 'authenticated');
-drop policy if exists "buildings write" on buildings;
 create policy "buildings write" on buildings for all using (my_role() = 'admin') with check (my_role() = 'admin');
-
-drop policy if exists "floors read" on building_floors;
 create policy "floors read" on building_floors for select using (auth.role() = 'authenticated');
-drop policy if exists "floors write" on building_floors;
 create policy "floors write" on building_floors for all using (my_role() = 'admin') with check (my_role() = 'admin');
-
-drop policy if exists "types read" on room_types;
 create policy "types read" on room_types for select using (auth.role() = 'authenticated');
-drop policy if exists "types write" on room_types;
 create policy "types write" on room_types for all using (my_role() = 'admin') with check (my_role() = 'admin');
 
--- rooms
-drop policy if exists "rooms read" on rooms;
 create policy "rooms read" on rooms for select using (auth.role() = 'authenticated');
-drop policy if exists "rooms write" on rooms;
 create policy "rooms write" on rooms for all using (my_role() = 'admin') with check (my_role() = 'admin');
 
--- timetable
-drop policy if exists "tt read" on timetable;
 create policy "tt read" on timetable for select using (auth.role() = 'authenticated');
-drop policy if exists "tt admin write" on timetable;
-create policy "tt admin write" on timetable for all using (my_role() = 'admin') with check (my_role() = 'admin');
+create policy "tt write" on timetable for all using (my_role() = 'admin') with check (my_role() = 'admin');
 
--- time slots
-drop policy if exists "slots read" on time_slots;
 create policy "slots read" on time_slots for select using (true);
-drop policy if exists "slots write" on time_slots;
 create policy "slots write" on time_slots for all using (my_role() = 'admin') with check (my_role() = 'admin');
 
--- bookings
-drop policy if exists "bk read" on bookings;
 create policy "bk read" on bookings for select using (auth.role() = 'authenticated');
-drop policy if exists "bk insert" on bookings;
 create policy "bk insert" on bookings for insert with check (
   my_role() in ('faculty','admin') and created_by = auth.uid()
 );
-drop policy if exists "bk update" on bookings;
 create policy "bk update" on bookings for update using (
   my_role() = 'admin' or (faculty_id = auth.uid() and status in ('pending','approved'))
 );
-drop policy if exists "bk delete" on bookings;
 create policy "bk delete" on bookings for delete using (my_role() = 'admin');
 
--- faculty unavailability
-drop policy if exists "fu read" on faculty_unavailability;
 create policy "fu read" on faculty_unavailability for select using (auth.role() = 'authenticated');
-drop policy if exists "fu write" on faculty_unavailability;
 create policy "fu write" on faculty_unavailability for all
   using (faculty_id = auth.uid() or my_role() = 'admin')
   with check (faculty_id = auth.uid() or my_role() = 'admin');
 
--- calendar
-drop policy if exists "cal read" on academic_calendar;
 create policy "cal read" on academic_calendar for select using (auth.role() = 'authenticated');
-drop policy if exists "cal write" on academic_calendar;
 create policy "cal write" on academic_calendar for all using (my_role() = 'admin') with check (my_role() = 'admin');
 
--- settings
-drop policy if exists "settings read" on system_settings;
 create policy "settings read" on system_settings for select using (auth.role() = 'authenticated');
-drop policy if exists "settings write" on system_settings;
 create policy "settings write" on system_settings for all using (my_role() = 'admin') with check (my_role() = 'admin');
 
--- activity log
-drop policy if exists "al admin read" on activity_log;
-create policy "al admin read" on activity_log for select using (my_role() = 'admin');
-drop policy if exists "al self read" on activity_log;
-create policy "al self read" on activity_log for select using (user_id = auth.uid());
-drop policy if exists "al insert" on activity_log;
+create policy "al read" on activity_log for select using (my_role() = 'admin' or user_id = auth.uid());
 create policy "al insert" on activity_log for insert with check (auth.role() = 'authenticated');
 
 -- ============================================================
--- RPCs
+-- 15. RPCs
 -- ============================================================
 create or replace function admin_create_user(
   p_email text, p_password text, p_full_name text, p_role text,
@@ -363,6 +375,56 @@ begin
 end; $$;
 grant execute on function admin_create_user(text,text,text,text,text,text) to authenticated;
 
+create or replace function admin_update_user(
+  p_user_id uuid, p_full_name text, p_department text, p_phone text,
+  p_role text, p_new_userid text default null, p_new_password text default null
+)
+returns jsonb language plpgsql security definer
+set search_path = public, auth, extensions as $$
+declare v_new_email text;
+begin
+  if my_role() <> 'admin' then return jsonb_build_object('error', 'Admin only'); end if;
+  if p_role not in ('admin','faculty') then
+    return jsonb_build_object('error', 'Role must be admin or faculty');
+  end if;
+  if p_user_id = auth.uid() and p_role <> 'admin' then
+    return jsonb_build_object('error', 'You cannot demote yourself');
+  end if;
+  update public.profiles set
+    full_name  = nullif(trim(coalesce(p_full_name, '')), ''),
+    department = nullif(trim(coalesce(p_department, '')), ''),
+    phone      = nullif(trim(coalesce(p_phone, '')), ''),
+    role       = p_role
+  where id = p_user_id;
+  if not found then return jsonb_build_object('error', 'User not found'); end if;
+  if p_new_userid is not null and length(trim(p_new_userid)) > 0 then
+    if p_new_userid !~ '^[0-9]{3,20}$' then
+      return jsonb_build_object('error', 'User ID must be 3–20 digits');
+    end if;
+    v_new_email := trim(p_new_userid) || '@lpu.in';
+    if exists(select 1 from auth.users where lower(email) = lower(v_new_email) and id <> p_user_id) then
+      return jsonb_build_object('error', 'User ID already taken');
+    end if;
+    update auth.users set email = v_new_email, updated_at = now() where id = p_user_id;
+    update auth.identities
+      set identity_data = jsonb_set(identity_data, '{email}', to_jsonb(v_new_email)),
+          provider_id = v_new_email
+      where user_id = p_user_id and provider = 'email';
+    update public.profiles set email = v_new_email where id = p_user_id;
+  end if;
+  if p_new_password is not null and length(p_new_password) > 0 then
+    if length(p_new_password) < 6 then
+      return jsonb_build_object('error', 'Password must be 6+ characters');
+    end if;
+    update auth.users
+      set encrypted_password = crypt(p_new_password, gen_salt('bf')), updated_at = now()
+      where id = p_user_id;
+    update public.profiles set password_changed_at = null where id = p_user_id;
+  end if;
+  return jsonb_build_object('success', true);
+end; $$;
+grant execute on function admin_update_user(uuid,text,text,text,text,text,text) to authenticated;
+
 create or replace function admin_reset_password(p_user_id uuid, p_new_password text)
 returns jsonb language plpgsql security definer
 set search_path = public, auth, extensions as $$
@@ -375,6 +437,7 @@ begin
     set encrypted_password = crypt(p_new_password, gen_salt('bf')), updated_at = now()
     where id = p_user_id;
   if not found then return jsonb_build_object('error', 'User not found'); end if;
+  update profiles set password_changed_at = null where id = p_user_id;
   return jsonb_build_object('success', true);
 end; $$;
 grant execute on function admin_reset_password(uuid, text) to authenticated;
@@ -391,6 +454,66 @@ begin
 end; $$;
 grant execute on function admin_delete_user(uuid) to authenticated;
 
+create or replace function admin_change_user_userid(p_user_id uuid, p_new_userid text)
+returns jsonb language plpgsql security definer
+set search_path = public, auth, extensions as $$
+declare v_new_email text;
+begin
+  if my_role() <> 'admin' then return jsonb_build_object('error', 'Admin only'); end if;
+  if p_new_userid !~ '^[0-9]{3,20}$' then
+    return jsonb_build_object('error', 'User ID must be 3–20 digits');
+  end if;
+  v_new_email := p_new_userid || '@lpu.in';
+  if exists(select 1 from auth.users where email = v_new_email and id <> p_user_id) then
+    return jsonb_build_object('error', 'User ID already taken');
+  end if;
+  update auth.users set email = v_new_email, updated_at = now() where id = p_user_id;
+  if not found then return jsonb_build_object('error', 'User not found'); end if;
+  update auth.identities
+    set identity_data = jsonb_set(identity_data, '{email}', to_jsonb(v_new_email)),
+        provider_id = v_new_email
+    where user_id = p_user_id and provider = 'email';
+  update public.profiles set email = v_new_email where id = p_user_id;
+  return jsonb_build_object('success', true, 'new_email', v_new_email);
+end; $$;
+grant execute on function admin_change_user_userid(uuid, text) to authenticated;
+
+create or replace function admin_bulk_change_userids(p_updates jsonb)
+returns jsonb language plpgsql security definer
+set search_path = public, auth, extensions as $$
+declare
+  v_item jsonb; v_uid uuid; v_new_id text; v_new_email text;
+  v_success int := 0; v_errors jsonb := '[]'::jsonb;
+begin
+  if my_role() <> 'admin' then return jsonb_build_object('error', 'Admin only'); end if;
+  for v_item in select * from jsonb_array_elements(p_updates) loop
+    v_uid := (v_item->>'user_id')::uuid;
+    v_new_id := v_item->>'new_userid';
+    v_new_email := v_new_id || '@lpu.in';
+    if v_new_id !~ '^[0-9]{3,20}$' then
+      v_errors := v_errors || jsonb_build_object('user_id', v_uid, 'error', 'Invalid format');
+      continue;
+    end if;
+    if exists(select 1 from auth.users where email = v_new_email and id <> v_uid) then
+      v_errors := v_errors || jsonb_build_object('user_id', v_uid, 'error', 'Already taken');
+      continue;
+    end if;
+    update auth.users set email = v_new_email, updated_at = now() where id = v_uid;
+    if not found then
+      v_errors := v_errors || jsonb_build_object('user_id', v_uid, 'error', 'User not found');
+      continue;
+    end if;
+    update auth.identities
+      set identity_data = jsonb_set(identity_data, '{email}', to_jsonb(v_new_email)),
+          provider_id = v_new_email
+      where user_id = v_uid and provider = 'email';
+    update public.profiles set email = v_new_email where id = v_uid;
+    v_success := v_success + 1;
+  end loop;
+  return jsonb_build_object('success', true, 'updated', v_success, 'errors', v_errors);
+end; $$;
+grant execute on function admin_bulk_change_userids(jsonb) to authenticated;
+
 create or replace function admin_set_setting(p_key text, p_value jsonb)
 returns jsonb language plpgsql security definer as $$
 begin
@@ -401,7 +524,16 @@ begin
 end; $$;
 grant execute on function admin_set_setting(text, jsonb) to authenticated;
 
--- Auto-approve trigger
+create or replace function mark_password_changed()
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  update profiles set password_changed_at = now() where id = auth.uid();
+end; $$;
+grant execute on function mark_password_changed() to authenticated;
+
+-- ============================================================
+-- 16. TRIGGERS
+-- ============================================================
 create or replace function apply_auto_approve()
 returns trigger language plpgsql as $$
 declare v_on boolean := false;
@@ -416,7 +548,6 @@ drop trigger if exists trg_auto_approve on bookings;
 create trigger trg_auto_approve before insert on bookings
   for each row execute function apply_auto_approve();
 
--- Activity logging triggers
 create or replace function log_booking_change()
 returns trigger language plpgsql security definer as $$
 declare v_email text;
@@ -428,28 +559,70 @@ begin
     case when TG_OP='DELETE' then to_jsonb(old) else to_jsonb(new) end);
   return coalesce(new, old);
 end; $$;
+
 drop trigger if exists trg_log_booking on bookings;
 create trigger trg_log_booking after insert or update or delete on bookings
   for each row execute function log_booking_change();
 
--- Seed buildings
-insert into buildings (id, name) values
-  ('25','Block 25'),('26','Block 26'),('27','Block 27'),('28','Block 28')
-on conflict (id) do nothing;
+-- ============================================================
+-- 17. CREATE THE FIRST (AND ONLY) ADMIN USER
+-- ============================================================
+-- ⚠️ CHANGE THESE BEFORE RUNNING:
+--   v_admin_uid → your preferred numeric login ID
+--   v_admin_pwd → your preferred password (min 6 chars)
+-- After running, you can log in with these credentials.
+-- ============================================================
 
-insert into building_floors (building_id, floor) values
-  ('25',1),('25',2),('25',3),('25',4),
-  ('26',1),('26',2),('26',3),('26',4),
-  ('27',1),('27',2),('27',3),('27',4),
-  ('28',1),('28',2),('28',3),('28',4)
-on conflict (building_id, floor) do nothing;
+do $$
+declare
+  v_admin_uid   text := '11111111';       -- ← change if you want
+  v_admin_pwd   text := 'admin123';        -- ← change if you want
+  v_admin_email text := v_admin_uid || '@lpu.in';
+  v_uid uuid;
+begin
+  select id into v_uid from auth.users where email = v_admin_email;
+  if v_uid is null then
+    v_uid := gen_random_uuid();
+    insert into auth.users (
+      instance_id, id, aud, role, email, encrypted_password,
+      email_confirmed_at, created_at, updated_at,
+      confirmation_token, email_change, email_change_token_new, recovery_token,
+      raw_app_meta_data, raw_user_meta_data
+    ) values (
+      '00000000-0000-0000-0000-000000000000', v_uid,
+      'authenticated', 'authenticated', v_admin_email,
+      crypt(v_admin_pwd, gen_salt('bf')),
+      now(), now(), now(), '', '', '', '',
+      jsonb_build_object('provider','email','providers',jsonb_build_array('email')),
+      jsonb_build_object('full_name','Administrator')
+    );
+    insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
+    values (gen_random_uuid(), v_uid, v_uid::text, 'email',
+      jsonb_build_object('sub', v_uid::text, 'email', v_admin_email),
+      now(), now(), now());
+  end if;
+  insert into public.profiles (id, email, full_name, role, is_active, password_changed_at)
+  values (v_uid, v_admin_email, 'Administrator', 'admin', true, now())
+  on conflict (id) do update set
+    role = 'admin',
+    is_active = true,
+    full_name = 'Administrator',
+    password_changed_at = now();
+end $$;
 
-insert into rooms (room_id, display_name, building, floor, floor_digit, room_number, suffix, type, capacity, bookable, weekend_open, facilities) values
-  ('27-107',  '27-107',   '27',1,'1','07','',  'lecture',60,true,false,'{projector,fan}'),
-  ('27-107A', '27-107 A', '27',1,'1','07','A', 'lecture',60,true,false,'{projector,fan}'),
-  ('27-108',  '27-108',   '27',1,'1','08','',  'lab',    30,true,true, '{computers,ac}'),
-  ('27-207A', '27-207 A', '27',2,'2','07','A', 'lecture',60,true,false,'{projector,fan}'),
-  ('27-208',  '27-208',   '27',2,'2','08','',  'lab',    30,true,false,'{computers,ac}')
-on conflict (room_id) do nothing;
+-- ============================================================
+-- 18. VERIFY
+-- ============================================================
+select 'Profiles' as section, count(*)::text as count from profiles
+union all select 'Buildings', count(*)::text from buildings
+union all select 'Rooms', count(*)::text from rooms
+union all select 'Time slots', count(*)::text from time_slots
+union all select 'Timetable', count(*)::text from timetable
+union all select 'Bookings', count(*)::text from bookings
+union all select 'Room types (config)', count(*)::text from room_types
+union all select 'Settings (config)', count(*)::text from system_settings;
 
-select 'Schema installed' as status;
+select email, role, is_active,
+       case when password_changed_at is null then 'needs change' else 'set' end as pwd_status
+from profiles
+order by role, email;

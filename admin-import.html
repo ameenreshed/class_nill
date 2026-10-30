@@ -10,321 +10,75 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/admin.css">
 <style>
-  .import-zone {
-    border: 2px dashed var(--border-strong);
-    border-radius: 14px;
-    padding: 48px 24px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 180ms ease;
-    background: var(--surface);
-  }
-  .import-zone:hover,
-  .import-zone.drag {
-    border-color: var(--brand);
-    background: var(--brand-soft);
-  }
-  .import-zone.has-file {
-    border-style: solid;
-    border-color: var(--brand);
-    background: var(--surface);
-  }
-  .import-zone i {
-    font-size: 42px;
-    color: var(--brand);
-    margin-bottom: 16px;
-    display: block;
-  }
-  .import-zone h3 {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 6px;
-  }
-  .import-zone p {
-    font-size: 13px;
-    color: var(--text-secondary);
-  }
-  .import-zone .file-name {
-    margin-top: 14px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    background: var(--brand-soft);
-    border: 1px solid var(--brand-soft-border);
-    border-radius: 8px;
-    color: var(--brand-text);
-    font-weight: 600;
-    font-size: 13px;
-  }
+  .import-zone{border:2px dashed var(--border-strong);border-radius:14px;padding:48px 24px;text-align:center;cursor:pointer;transition:all 180ms ease;background:var(--surface)}
+  .import-zone:hover,.import-zone.drag{border-color:var(--brand);background:var(--brand-soft)}
+  .import-zone i{font-size:42px;color:var(--brand);margin-bottom:16px;display:block}
+  .import-zone h3{font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px}
+  .import-zone p{font-size:13px;color:var(--text-secondary)}
+  .import-zone .file-name{margin-top:14px;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--brand-soft);border:1px solid var(--brand-soft-border);border-radius:8px;color:var(--brand-text);font-weight:600;font-size:13px}
 
-  .summary-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-  .summary-card {
-    padding: 16px 18px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-  }
-  .summary-val {
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--text);
-    line-height: 1;
-  }
-  .summary-lbl {
-    font-size: 11px;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    margin-top: 6px;
-  }
+  .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+  .summary-card{padding:16px 18px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+  .summary-val{font-size:26px;font-weight:700;letter-spacing:-0.02em;color:var(--text);line-height:1}
+  .summary-lbl{font-size:11px;color:var(--text-secondary);text-transform:uppercase;font-weight:600;letter-spacing:0.05em;margin-top:6px}
 
-  .preview-details {
-    margin-bottom: 12px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    background: var(--surface);
-  }
-  .preview-details summary {
-    padding: 12px 16px;
-    background: var(--bg-subtle);
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 13px;
-    color: var(--text);
-    list-style: none;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    transition: background 120ms ease;
-  }
-  .preview-details summary:hover {
-    background: var(--surface-hover);
-  }
-  .preview-details summary::-webkit-details-marker {
-    display: none;
-  }
-  .preview-details summary::after {
-    content: '\f078';
-    font-family: 'Font Awesome 6 Free';
-    font-weight: 900;
-    font-size: 10px;
-    color: var(--text-muted);
-    transition: transform 180ms ease;
-  }
-  .preview-details[open] summary::after {
-    transform: rotate(180deg);
-  }
-  .preview-list {
-    max-height: 320px;
-    overflow-y: auto;
-  }
-  .preview-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border);
-    font-size: 13px;
-    gap: 12px;
-  }
-  .preview-row:last-child { border-bottom: none; }
-  .preview-row:nth-child(even) { background: var(--bg-subtle); }
-  .preview-row strong { color: var(--text); font-weight: 600; }
-  .preview-row .mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
-  .preview-row .dim { color: var(--text-secondary); }
+  .preview-details{margin-bottom:12px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface)}
+  .preview-details summary{padding:12px 16px;background:var(--bg-subtle);cursor:pointer;font-weight:600;font-size:13px;color:var(--text);list-style:none;display:flex;align-items:center;justify-content:space-between}
+  .preview-details summary::-webkit-details-marker{display:none}
+  .preview-details summary::after{content:'\f078';font-family:'Font Awesome 6 Free';font-weight:900;font-size:10px;color:var(--text-muted);transition:transform 180ms ease}
+  .preview-details[open] summary::after{transform:rotate(180deg)}
+  .preview-list{max-height:320px;overflow-y:auto}
+  .preview-row{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;gap:12px}
+  .preview-row:last-child{border-bottom:none}
+  .preview-row:nth-child(even){background:var(--bg-subtle)}
+  .preview-row strong{color:var(--text);font-weight:600}
+  .preview-row .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+  .preview-row .dim{color:var(--text-secondary)}
 
-  .option-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 12px 14px;
-    background: var(--bg-subtle);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    transition: all 160ms ease;
-  }
-  .option-row:hover {
-    background: var(--surface-hover);
-    border-color: var(--border-strong);
-  }
-  .option-row:has(input:checked) {
-    background: var(--brand-soft);
-    border-color: var(--brand-soft-border);
-  }
-  .option-row input[type=checkbox] {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-  .option-row-body {
-    flex: 1;
-    min-width: 0;
-  }
-  .option-row-title {
-    font-weight: 600;
-    font-size: 13px;
-    color: var(--text);
-  }
-  .option-row-desc {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-top: 2px;
-    line-height: 1.5;
-  }
+  .option-row{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all 160ms ease}
+  .option-row:hover{background:var(--surface-hover);border-color:var(--border-strong)}
+  .option-row:has(input:checked){background:var(--brand-soft);border-color:var(--brand-soft-border)}
+  .option-row input[type=checkbox]{width:18px;height:18px;flex-shrink:0;margin-top:2px}
+  .option-row-body{flex:1;min-width:0}
+  .option-row-title{font-weight:600;font-size:13px;color:var(--text)}
+  .option-row-desc{font-size:12px;color:var(--text-secondary);margin-top:2px;line-height:1.5}
 
-  .error-row {
-    padding: 10px 14px;
-    background: var(--danger-soft);
-    border: 1px solid var(--danger-soft-border);
-    color: var(--danger-text);
-    border-radius: 8px;
-    font-size: 12px;
-    margin-bottom: 6px;
-    line-height: 1.5;
-  }
+  .error-row{padding:10px 14px;background:var(--danger-soft);border:1px solid var(--danger-soft-border);color:var(--danger-text);border-radius:8px;font-size:12px;margin-bottom:6px;line-height:1.5}
 
-  .credentials-box {
-    padding: 14px 16px;
-    background: var(--info-soft);
-    border: 1px solid var(--info-soft-border);
-    border-radius: 10px;
-    margin-top: 12px;
-  }
-  .credentials-box h4 {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--info-text);
-    margin-bottom: 10px;
-  }
-  .cred-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--info-soft-border);
-    font-size: 12px;
-    color: var(--info-text);
-    font-family: 'JetBrains Mono', monospace;
-    gap: 12px;
-  }
-  .cred-row:last-child { border-bottom: none; }
+  .credentials-box{padding:14px 16px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:10px;margin-top:12px}
+  .credentials-box h4{font-size:13px;font-weight:600;color:var(--info-text);margin-bottom:10px}
+  .cred-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--info-soft-border);font-size:12px;color:var(--info-text);font-family:'JetBrains Mono',monospace;gap:12px}
+  .cred-row:last-child{border-bottom:none}
 
-  /* Faculty user ID section */
-  .faculty-list {
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    background: var(--surface);
-  }
-  .faculty-item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-  }
-  .faculty-item:last-child { border-bottom: none; }
-  .faculty-item:nth-child(even) { background: var(--bg-subtle); }
+  .reused-box{padding:14px 16px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:10px;margin-top:12px}
+  .reused-box h4{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px}
+  .reused-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;gap:12px}
+  .reused-row:last-child{border-bottom:none}
+  .reused-row strong{color:var(--text)}
 
-  .faculty-item-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    flex-shrink: 0;
-    font-weight: 600;
-    text-transform: uppercase;
-  }
-  .faculty-item-icon.exists {
-    background: var(--success-soft);
-    color: var(--success);
-  }
-  .faculty-item-icon.new {
-    background: var(--brand-soft);
-    color: var(--brand);
-  }
-
-  .faculty-item-body { flex: 1; min-width: 0; }
-  .faculty-item-name {
-    font-weight: 600;
-    font-size: 13px;
-    color: var(--text);
-    line-height: 1.35;
-  }
-  .faculty-item-status {
-    font-size: 11px;
-    color: var(--text-secondary);
-    margin-top: 2px;
-    line-height: 1.4;
-  }
-  .faculty-item-status.exists { color: var(--success-text); }
-
-  .faculty-item-input {
-    width: 140px;
-    flex-shrink: 0;
-  }
-  .faculty-item-input input {
-    width: 100%;
-    padding: 7px 10px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-size: 13px;
-    font-family: 'JetBrains Mono', monospace;
-    background: var(--surface);
-    color: var(--text);
-    text-align: right;
-    transition: all 160ms ease;
-  }
-  .faculty-item-input input:focus {
-    border-color: var(--brand);
-    box-shadow: 0 0 0 3px var(--brand-soft);
-    outline: none;
-  }
-  .faculty-item-input input.invalid {
-    border-color: var(--danger);
-    background: var(--danger-soft);
-  }
-  .faculty-item-input .hint {
-    font-size: 10px;
-    color: var(--text-muted);
-    text-align: right;
-    margin-top: 3px;
-    font-family: 'Inter', sans-serif;
-  }
-  .faculty-item-input .hint.invalid {
-    color: var(--danger);
-    font-weight: 600;
-  }
+  .faculty-list{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface)}
+  .faculty-item{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--border)}
+  .faculty-item:last-child{border-bottom:none}
+  .faculty-item:nth-child(even){background:var(--bg-subtle)}
+  .faculty-item-icon{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;font-weight:600;text-transform:uppercase}
+  .faculty-item-icon.exists{background:var(--success-soft);color:var(--success)}
+  .faculty-item-icon.new{background:var(--brand-soft);color:var(--brand)}
+  .faculty-item-body{flex:1;min-width:0}
+  .faculty-item-name{font-weight:600;font-size:13px;color:var(--text);line-height:1.35}
+  .faculty-item-status{font-size:11px;color:var(--text-secondary);margin-top:2px;line-height:1.4}
+  .faculty-item-status.exists{color:var(--success-text)}
+  .faculty-item-input{width:140px;flex-shrink:0}
+  .faculty-item-input input{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'JetBrains Mono',monospace;background:var(--surface);color:var(--text);text-align:right;transition:all 160ms ease}
+  .faculty-item-input input:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);outline:none}
+  .faculty-item-input input.invalid{border-color:var(--danger);background:var(--danger-soft)}
+  .faculty-item-input .hint{font-size:10px;color:var(--text-muted);text-align:right;margin-top:3px;font-family:'Inter',sans-serif}
+  .faculty-item-input .hint.invalid{color:var(--danger);font-weight:600}
 
   @media (max-width: 640px) {
-    .faculty-item {
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .faculty-item-input {
-      width: 100%;
-    }
-    .faculty-item-input input {
-      text-align: left;
-    }
-    .faculty-item-input .hint {
-      text-align: left;
-    }
+    .faculty-item{flex-wrap:wrap;gap:10px}
+    .faculty-item-input{width:100%}
+    .faculty-item-input input{text-align:left}
+    .faculty-item-input .hint{text-align:left}
   }
 </style>
 </head>
@@ -349,7 +103,6 @@
     <a href="admin-settings.html" class="admin-tab"><i class="fas fa-gear"></i> Settings</a>
   </div>
 
-  <!-- STEP 1: Upload -->
   <div id="step1">
     <div class="card" style="padding:28px">
       <div class="import-zone" id="dropZone">
@@ -364,7 +117,6 @@
     </div>
   </div>
 
-  <!-- STEP 2: Preview + Options -->
   <div id="step2" style="display:none">
     <div class="summary-grid" id="summaryGrid"></div>
 
@@ -393,32 +145,31 @@
         <input type="checkbox" id="optRooms" checked>
         <div class="option-row-body">
           <div class="option-row-title">Create missing rooms</div>
-          <div class="option-row-desc">Room records (e.g. 27-104, 36-805) will be added automatically. Labs get 30 seats, lectures get 60.</div>
+          <div class="option-row-desc">Room records (e.g. 27-104, 36-805) will be added automatically.</div>
         </div>
       </label>
       <label class="option-row">
         <input type="checkbox" id="optSlots" checked>
         <div class="option-row-body">
           <div class="option-row-title">Create missing time slots</div>
-          <div class="option-row-desc">LPU's 09:20-10:10, 10:10-11:00 … slots will be added. Existing P1-P7 slots are not touched.</div>
+          <div class="option-row-desc">LPU's time slots will be added. Existing slots are not touched.</div>
         </div>
       </label>
       <label class="option-row">
         <input type="checkbox" id="optFaculty">
         <div class="option-row-body">
-          <div class="option-row-title">Create missing faculty accounts (using their user ID)</div>
-          <div class="option-row-desc">Enter each faculty's numeric user ID below — they'll log in with <code>{userid}@lpu.in</code>. Existing faculty (matched by name) are reused.</div>
+          <div class="option-row-title">Create missing faculty accounts</div>
+          <div class="option-row-desc">Existing faculty are matched by name — the rest are created with the user ID you enter. Emails already in the system are reused or recovered.</div>
         </div>
       </label>
       <label class="option-row">
         <input type="checkbox" id="optReplace">
         <div class="option-row-body">
           <div class="option-row-title" style="color:var(--danger)">Delete ALL existing timetable rows first</div>
-          <div class="option-row-desc">Recommended on first import — clears the demo data. Existing bookings are not affected.</div>
+          <div class="option-row-desc">Clears the current timetable. Bookings are not affected.</div>
         </div>
       </label>
 
-      <!-- Faculty user ID section — shows when optFaculty is checked -->
       <div id="facultySection" style="display:none;margin-top:16px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap">
           <div style="font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px">
@@ -430,7 +181,7 @@
           </div>
         </div>
         <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;line-height:1.55">
-          Existing faculty are matched by name. For new faculty, enter their numeric registration ID — they'll use this to log in (e.g. <code class="mono">9001</code> → <code class="mono">9001@lpu.in</code>).
+          Existing faculty are matched by name. For new faculty, enter their numeric registration ID.
         </p>
         <div class="faculty-list" id="facultyList"></div>
       </div>
@@ -442,12 +193,12 @@
     </div>
   </div>
 
-  <!-- STEP 3: Result -->
   <div id="step3" style="display:none">
     <div class="card" style="padding:24px">
       <div class="card-title" style="margin-bottom:16px"><i class="fas fa-circle-check" style="color:var(--success)"></i> Import complete</div>
       <div class="summary-grid" id="resultGrid"></div>
       <div id="credentialsContainer"></div>
+      <div id="reusedContainer"></div>
       <div id="errorsContainer" style="margin-top:16px"></div>
       <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
         <button class="btn" id="againBtn"><i class="fas fa-rotate"></i> Import another file</button>
@@ -469,26 +220,20 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   const $ = id => document.getElementById(id);
   let parsed = null;
   let rawFileName = '';
-  let existingFaculty = []; // { id, full_name, email }
-  let facultyNameToProfile = new Map(); // lowercase name -> profile
-  let facultyUserIds = new Map(); // lowercase name -> user ID for new faculty
+  let existingFaculty = [];
+  let facultyNameToProfile = new Map();
+  let facultyUserIds = new Map();
 
-  /* ============================================================
-     CSV PARSER
-     ============================================================ */
+  /* ============ CSV PARSER ============ */
   function parseCSVLine(line) {
-    const out = [];
-    let cur = '', inQ = false;
+    const out = []; let cur = '', inQ = false;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (ch === '"') {
         if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
         else inQ = !inQ;
-      } else if (ch === ',' && !inQ) {
-        out.push(cur); cur = '';
-      } else {
-        cur += ch;
-      }
+      } else if (ch === ',' && !inQ) { out.push(cur); cur = ''; }
+      else cur += ch;
     }
     out.push(cur);
     return out;
@@ -500,16 +245,13 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     let sh = parseInt(m[1]), sm = parseInt(m[2]);
     let eh = parseInt(m[3]), em = parseInt(m[4]);
     const mer = (m[5] || '').toUpperCase();
-
     let startH;
     if (mer === 'AM') startH = sh === 12 ? 0 : sh;
     else if (mer === 'PM') startH = sh === 12 ? 12 : sh + 12;
     else startH = sh < 8 ? sh + 12 : sh;
-
     const startMin = startH * 60 + sm;
     let endMin = eh * 60 + em;
     if (endMin <= startMin) endMin += 12 * 60;
-
     const fmt = mins => {
       const h = Math.floor(mins / 60) % 24;
       const mm = mins % 60;
@@ -523,35 +265,22 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     if (!trimmed) return null;
     if (trimmed.toLowerCase().includes('project work')) return null;
     if (!trimmed.includes('/')) return null;
-
     const parts = trimmed.split('/').map(p => p.trim());
     const type = parts[0].toLowerCase();
     if (!['lecture', 'practical', 'tutorial'].includes(type)) return null;
-
     const cPart = parts.find(p => /\bC:/.test(p));
     const rPart = parts.find(p => /\bR:/.test(p));
     if (!cPart || !rPart) return null;
-
     const cMatch = cPart.match(/C:\s*([A-Z]+\d+)/i);
     const rMatch = rPart.match(/R:\s*([A-Za-z0-9-]+)/);
     if (!cMatch || !rMatch) return null;
-
-    return {
-      type,
-      courseCode: cMatch[1].toUpperCase(),
-      roomId: rMatch[1].toUpperCase(),
-    };
+    return { type, courseCode: cMatch[1].toUpperCase(), roomId: rMatch[1].toUpperCase() };
   }
 
   function parseRoomId(roomId) {
     const m = String(roomId || '').match(/^(\d+)-(\d)(\d{2})([A-Z]*)$/i);
     if (!m) return null;
-    return {
-      building: m[1],
-      floor: parseInt(m[2]),
-      room_number: m[3],
-      suffix: m[4].toUpperCase(),
-    };
+    return { building: m[1], floor: parseInt(m[2]), room_number: m[3], suffix: m[4].toUpperCase() };
   }
 
   function cleanFacultyName(info) {
@@ -565,65 +294,37 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     const attendanceIdx = lines.findIndex(l => l.startsWith('AttendanceDate,'));
     const courseIdx = lines.findIndex(l => l.startsWith('CourseCode,'));
 
-    const result = {
-      slots: new Map(),
-      rooms: new Map(),
-      courses: new Map(),
-      entries: [],
-      warnings: [],
-    };
+    const result = { slots: new Map(), rooms: new Map(), courses: new Map(), entries: [], warnings: [] };
 
     if (timingIdx >= 0) {
       const header = parseCSVLine(lines[timingIdx]);
       const dayMap = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 0 };
       const dayCols = header.map((h, i) => ({ idx: i, day: dayMap[h.trim()] ?? null }));
-
       const endIdx = attendanceIdx > timingIdx ? attendanceIdx : lines.length;
       for (let i = timingIdx + 1; i < endIdx; i++) {
         const line = lines[i];
         if (!line.trim()) continue;
         const cells = parseCSVLine(line);
         if (!cells[0] || !cells[0].includes('-')) continue;
-
-        const slotRange = cells[0].trim();
-        const time = parseTimeRange(slotRange);
-        if (!time) { result.warnings.push(`Could not parse time range: "${slotRange}"`); continue; }
-
+        const time = parseTimeRange(cells[0].trim());
+        if (!time) { result.warnings.push(`Could not parse time range: "${cells[0]}"`); continue; }
         const slotId = `T${time.start.replace(':', '')}`;
         if (!result.slots.has(slotId)) {
           result.slots.set(slotId, {
-            slot_id: slotId,
-            start_time: time.start,
-            end_time: time.end,
-            label: `${time.start}–${time.end}`,
-            sort_order: result.slots.size + 1,
+            slot_id: slotId, start_time: time.start, end_time: time.end,
+            label: `${time.start}–${time.end}`, sort_order: result.slots.size + 1,
           });
         }
-
         for (const { idx, day } of dayCols) {
           if (day === null) continue;
-          const parsedCell = parseCell(cells[idx]);
-          if (!parsedCell) continue;
-
-          const roomParts = parseRoomId(parsedCell.roomId);
-          if (!roomParts) {
-            result.warnings.push(`Unparseable room ID: ${parsedCell.roomId}`);
-            continue;
+          const pc = parseCell(cells[idx]);
+          if (!pc) continue;
+          const rp = parseRoomId(pc.roomId);
+          if (!rp) { result.warnings.push(`Unparseable room: ${pc.roomId}`); continue; }
+          if (!result.rooms.has(pc.roomId)) {
+            result.rooms.set(pc.roomId, { room_id: pc.roomId, display_name: pc.roomId, ...rp });
           }
-          if (!result.rooms.has(parsedCell.roomId)) {
-            result.rooms.set(parsedCell.roomId, {
-              room_id: parsedCell.roomId,
-              display_name: parsedCell.roomId,
-              ...roomParts,
-            });
-          }
-          result.entries.push({
-            day_of_week: day,
-            slot_id: slotId,
-            room_id: parsedCell.roomId,
-            course_code: parsedCell.courseCode,
-            type: parsedCell.type,
-          });
+          result.entries.push({ day_of_week: day, slot_id: slotId, room_id: pc.roomId, course_code: pc.courseCode, type: pc.type });
         }
       }
     }
@@ -637,13 +338,9 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         const code = cells[0].trim().toUpperCase();
         if (!code || !/^[A-Z]+\d+$/.test(code)) continue;
         result.courses.set(code, {
-          code,
-          type: cells[1].trim(),
-          name: cells[2].trim(),
-          lectures: parseInt(cells[3]) || 0,
-          tutorials: parseInt(cells[4]) || 0,
-          practicals: parseInt(cells[5]) || 0,
-          credits: parseInt(cells[6]) || 0,
+          code, type: cells[1].trim(), name: cells[2].trim(),
+          lectures: parseInt(cells[3]) || 0, tutorials: parseInt(cells[4]) || 0,
+          practicals: parseInt(cells[5]) || 0, credits: parseInt(cells[6]) || 0,
           facultyName: cleanFacultyName(cells[7]),
         });
       }
@@ -652,12 +349,9 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     return result;
   }
 
-  /* ============================================================
-     EXISTING DATA (prefetch)
-     ============================================================ */
+  /* ============ EXISTING DATA ============ */
   async function fetchExistingData() {
-    const { data: fac } = await supabase
-      .from('profiles').select('id, full_name, email').eq('role', 'faculty');
+    const { data: fac } = await supabase.from('profiles').select('id, full_name, email').eq('role', 'faculty');
     existingFaculty = fac ?? [];
     facultyNameToProfile = new Map();
     existingFaculty.forEach(f => {
@@ -668,8 +362,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   function getNeededFacultyNames() {
     const set = new Set();
     [...parsed.courses.values()].forEach(c => {
-      const n = c.facultyName;
-      if (n && n.toUpperCase() !== 'NA') set.add(n);
+      if (c.facultyName && c.facultyName.toUpperCase() !== 'NA') set.add(c.facultyName);
     });
     return [...set].sort((a, b) => a.localeCompare(b));
   }
@@ -678,9 +371,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     return !facultyNameToProfile.has(name.toLowerCase().trim());
   }
 
-  /* Suggest a numeric user ID that doesn't collide */
   function suggestUserId(name, takenIds) {
-    // Try to derive from name hash for determinism, then fall back to sequential
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
       hash = ((hash << 5) - hash) + name.charCodeAt(i);
@@ -688,19 +379,13 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     }
     let candidate = 9000 + (Math.abs(hash) % 900);
     let attempts = 0;
-    while (takenIds.has(String(candidate)) && attempts < 1000) {
-      candidate++;
-      attempts++;
-    }
+    while (takenIds.has(String(candidate)) && attempts < 1000) { candidate++; attempts++; }
     return String(candidate);
   }
 
-  /* ============================================================
-     FILE UPLOAD
-     ============================================================ */
+  /* ============ FILE UPLOAD ============ */
   const dropZone = $('dropZone');
   const fileInput = $('fileInput');
-
   dropZone.onclick = () => fileInput.click();
   dropZone.ondragover = e => { e.preventDefault(); dropZone.classList.add('drag'); };
   dropZone.ondragleave = () => dropZone.classList.remove('drag');
@@ -716,9 +401,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   };
 
   async function handleFile(file) {
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      return toast('Please upload a .csv file', 'error');
-    }
+    if (!file.name.toLowerCase().endsWith('.csv')) return toast('Please upload a .csv file', 'error');
     rawFileName = file.name;
     const reader = new FileReader();
     reader.onload = async e => {
@@ -737,25 +420,21 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
 
   function initFacultyUserIds() {
     facultyUserIds = new Map();
-    const takenIds = new Set();
-    // Existing accounts' email prefixes are "taken"
+    const taken = new Set();
     existingFaculty.forEach(f => {
-      const localPart = (f.email || '').split('@')[0];
-      if (/^\d+$/.test(localPart)) takenIds.add(localPart);
+      const local = (f.email || '').split('@')[0];
+      if (/^\d+$/.test(local)) taken.add(local);
     });
-    // Suggest IDs for new faculty
     getNeededFacultyNames().forEach(name => {
       if (isNewFaculty(name)) {
-        const suggested = suggestUserId(name, takenIds);
-        takenIds.add(suggested);
+        const suggested = suggestUserId(name, taken);
+        taken.add(suggested);
         facultyUserIds.set(name.toLowerCase().trim(), suggested);
       }
     });
   }
 
-  /* ============================================================
-     FACULTY USER ID UI
-     ============================================================ */
+  /* ============ FACULTY LIST UI ============ */
   $('optFaculty').onchange = e => {
     $('facultySection').style.display = e.target.checked ? 'block' : 'none';
     if (e.target.checked) renderFacultyList();
@@ -764,54 +443,41 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   function renderFacultyList() {
     const names = getNeededFacultyNames();
     const container = $('facultyList');
-
     if (!names.length) {
       container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px"><i class="fas fa-inbox"></i> No faculty detected in CSV</div>`;
       $('facultyCountNew').textContent = '0';
       $('facultyCountExisting').textContent = '0';
       return;
     }
-
     let newCount = 0, existingCount = 0;
-
     container.innerHTML = names.map(name => {
       const key = name.toLowerCase().trim();
       const existing = facultyNameToProfile.get(key);
       const isNew = !existing;
       if (isNew) newCount++; else existingCount++;
-
       const initial = (name.trim()[0] || '?').toUpperCase();
-
       return `
         <div class="faculty-item">
           <div class="faculty-item-icon ${isNew ? 'new' : 'exists'}">${isNew ? initial : '<i class="fas fa-check"></i>'}</div>
           <div class="faculty-item-body">
             <div class="faculty-item-name">${escapeHtml(name)}</div>
             <div class="faculty-item-status ${isNew ? '' : 'exists'}">
-              ${isNew
-                ? 'Will be created as a new faculty account'
-                : `Existing account · ${escapeHtml(existing.email)}`}
+              ${isNew ? 'New faculty account' : `Existing · ${escapeHtml(existing.email)}`}
             </div>
           </div>
           ${isNew ? `
             <div class="faculty-item-input">
-              <input type="text"
-                     inputmode="numeric"
-                     pattern="[0-9]*"
-                     maxlength="20"
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="20"
                      placeholder="User ID"
                      data-faculty-key="${escapeHtml(key)}"
                      value="${escapeHtml(facultyUserIds.get(key) || '')}">
               <div class="hint" data-hint-for="${escapeHtml(key)}">Login: <span class="mono">${escapeHtml(facultyUserIds.get(key) || '?')}@lpu.in</span></div>
-            </div>
-          ` : ''}
+            </div>` : ''}
         </div>`;
     }).join('');
-
     $('facultyCountNew').textContent = newCount;
     $('facultyCountExisting').textContent = existingCount;
 
-    // Wire input change handlers
     container.querySelectorAll('input[data-faculty-key]').forEach(input => {
       input.oninput = () => {
         const raw = input.value.replace(/\D/g, '').slice(0, 20);
@@ -820,42 +486,29 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         facultyUserIds.set(key, raw);
         updateUserIdHint(key, raw, input);
       };
-    });
-
-    // Initial validation pass
-    container.querySelectorAll('input[data-faculty-key]').forEach(input => {
-      const key = input.dataset.facultyKey;
-      updateUserIdHint(key, input.value, input);
+      updateUserIdHint(input.dataset.facultyKey, input.value, input);
     });
   }
 
   function updateUserIdHint(key, userId, inputEl) {
     const hint = document.querySelector(`[data-hint-for="${key}"]`);
     if (!hint) return;
-
     const trimmed = String(userId || '').trim();
     const valid = /^\d{3,20}$/.test(trimmed);
-
-    // Check duplicate against existing emails
     const collides = valid && existingFaculty.some(f =>
-      (f.email || '').toLowerCase() === `${trimmed}@lpu.in`.toLowerCase()
-    );
-
-    // Check duplicate against other new faculty in this batch
+      (f.email || '').toLowerCase() === `${trimmed}@lpu.in`.toLowerCase());
     let dupInBatch = false;
     if (valid) {
       const values = [...facultyUserIds.values()].map(v => v.trim());
       dupInBatch = values.filter(v => v === trimmed).length > 1;
     }
-
     const ok = valid && !collides && !dupInBatch;
-
     if (!ok) {
       inputEl.classList.add('invalid');
       hint.classList.add('invalid');
       if (!valid) hint.innerHTML = 'Must be 3–20 digits';
-      else if (collides) hint.innerHTML = `Already taken · ${escapeHtml(trimmed)}@lpu.in`;
-      else if (dupInBatch) hint.innerHTML = 'Duplicate in this batch';
+      else if (collides) hint.innerHTML = `Already an existing user · will be reused on import`;
+      else if (dupInBatch) hint.innerHTML = 'Duplicate in batch';
     } else {
       inputEl.classList.remove('invalid');
       hint.classList.remove('invalid');
@@ -865,116 +518,68 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
 
   function validateAllUserIds() {
     const names = getNeededFacultyNames().filter(n => isNewFaculty(n));
+    const ids = [];
     for (const name of names) {
       const id = (facultyUserIds.get(name.toLowerCase().trim()) || '').trim();
       if (!/^\d{3,20}$/.test(id)) return { ok: false, msg: `Invalid user ID for "${name}"` };
-      const collides = existingFaculty.some(f =>
-        (f.email || '').toLowerCase() === `${id}@lpu.in`.toLowerCase()
-      );
-      if (collides) return { ok: false, msg: `User ID ${id} is already used by another account` };
+      ids.push(id);
     }
-    // Batch duplicates
-    const ids = names.map(n => (facultyUserIds.get(n.toLowerCase().trim()) || '').trim());
     if (new Set(ids).size !== ids.length) return { ok: false, msg: 'Duplicate user IDs in this batch' };
     return { ok: true };
   }
 
-  /* ============================================================
-     PREVIEW
-     ============================================================ */
+  /* ============ PREVIEW ============ */
   function showPreview() {
     $('step1').style.display = 'none';
     $('step2').style.display = 'block';
-
     $('fileName').style.display = 'inline-flex';
     $('fileNameText').textContent = rawFileName;
 
     const totalEntries = parsed.entries.length;
-    const courses = parsed.courses.size;
-    const rooms = parsed.rooms.size;
-    const slots = parsed.slots.size;
     const facultyNames = getNeededFacultyNames();
-
     $('summaryGrid').innerHTML = `
-      <div class="summary-card"><div class="summary-val">${slots}</div><div class="summary-lbl">Time slots</div></div>
-      <div class="summary-card"><div class="summary-val">${rooms}</div><div class="summary-lbl">Rooms</div></div>
-      <div class="summary-card"><div class="summary-val">${courses}</div><div class="summary-lbl">Courses</div></div>
+      <div class="summary-card"><div class="summary-val">${parsed.slots.size}</div><div class="summary-lbl">Time slots</div></div>
+      <div class="summary-card"><div class="summary-val">${parsed.rooms.size}</div><div class="summary-lbl">Rooms</div></div>
+      <div class="summary-card"><div class="summary-val">${parsed.courses.size}</div><div class="summary-lbl">Courses</div></div>
       <div class="summary-card"><div class="summary-val">${facultyNames.length}</div><div class="summary-lbl">Faculty</div></div>
       <div class="summary-card"><div class="summary-val" style="color:var(--brand)">${totalEntries}</div><div class="summary-lbl">Timetable entries</div></div>
-      <div class="summary-card"><div class="summary-val" style="color:${parsed.warnings.length ? 'var(--warning)' : 'var(--success)'}">${parsed.warnings.length}</div><div class="summary-lbl">Warnings</div></div>
-    `;
+      <div class="summary-card"><div class="summary-val" style="color:${parsed.warnings.length ? 'var(--warning)' : 'var(--success)'}">${parsed.warnings.length}</div><div class="summary-lbl">Warnings</div></div>`;
 
     const details = $('previewContainer');
     details.innerHTML = '';
 
-    details.innerHTML += renderPreviewDetails('Time slots', [...parsed.slots.values()].map(s =>
-      `<div class="preview-row">
-        <strong>${escapeHtml(s.label)}</strong>
-        <span class="mono dim">${escapeHtml(s.slot_id)}</span>
-      </div>`
-    ).join(''));
+    details.innerHTML += renderDetails('Time slots', [...parsed.slots.values()].map(s =>
+      `<div class="preview-row"><strong>${escapeHtml(s.label)}</strong><span class="mono dim">${escapeHtml(s.slot_id)}</span></div>`).join(''));
 
-    details.innerHTML += renderPreviewDetails('Rooms', [...parsed.rooms.values()].map(r =>
-      `<div class="preview-row">
-        <strong>${escapeHtml(r.room_id)}</strong>
-        <span class="dim">Block ${escapeHtml(r.building)} · Floor ${r.floor}</span>
-      </div>`
-    ).join(''));
+    details.innerHTML += renderDetails('Rooms', [...parsed.rooms.values()].map(r =>
+      `<div class="preview-row"><strong>${escapeHtml(r.room_id)}</strong><span class="dim">Block ${escapeHtml(r.building)} · Floor ${r.floor}</span></div>`).join(''));
 
-    details.innerHTML += renderPreviewDetails('Courses', [...parsed.courses.values()].map(c =>
-      `<div class="preview-row">
-        <div>
-          <strong>${escapeHtml(c.code)}</strong>
-          <span class="dim"> — ${escapeHtml(c.name)}</span>
-        </div>
-        <span class="dim">${escapeHtml(c.facultyName || 'No faculty')}</span>
-      </div>`
-    ).join(''));
+    details.innerHTML += renderDetails('Courses', [...parsed.courses.values()].map(c =>
+      `<div class="preview-row"><div><strong>${escapeHtml(c.code)}</strong><span class="dim"> — ${escapeHtml(c.name)}</span></div><span class="dim">${escapeHtml(c.facultyName || 'No faculty')}</span></div>`).join(''));
 
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    details.innerHTML += renderPreviewDetails(`Timetable entries (${parsed.entries.length})`,
-      [...parsed.entries]
-        .sort((a, b) => a.day_of_week - b.day_of_week)
-        .map(e => {
-          const slot = parsed.slots.get(e.slot_id);
-          return `<div class="preview-row">
-            <div>
-              <strong>${dayNames[e.day_of_week]}</strong>
-              <span class="dim"> ${escapeHtml(slot?.label || '')}</span>
-            </div>
-            <div class="mono dim">
-              ${escapeHtml(e.course_code)} · ${escapeHtml(e.room_id)} · ${escapeHtml(e.type)}
-            </div>
-          </div>`;
-        }).join('')
-    );
+    details.innerHTML += renderDetails(`Timetable entries (${parsed.entries.length})`,
+      [...parsed.entries].sort((a, b) => a.day_of_week - b.day_of_week).map(e => {
+        const slot = parsed.slots.get(e.slot_id);
+        return `<div class="preview-row"><div><strong>${dayNames[e.day_of_week]}</strong><span class="dim"> ${escapeHtml(slot?.label || '')}</span></div><div class="mono dim">${escapeHtml(e.course_code)} · ${escapeHtml(e.room_id)} · ${escapeHtml(e.type)}</div></div>`;
+      }).join(''));
 
     if (parsed.warnings.length) {
-      details.innerHTML += renderPreviewDetails('Warnings', parsed.warnings.map(w =>
-        `<div class="preview-row" style="background:var(--warning-soft);color:var(--warning-text)">
-          <span>${escapeHtml(w)}</span>
-        </div>`
-      ).join(''));
+      details.innerHTML += renderDetails('Warnings', parsed.warnings.map(w =>
+        `<div class="preview-row" style="background:var(--warning-soft);color:var(--warning-text)"><span>${escapeHtml(w)}</span></div>`).join(''));
     }
 
-    // If faculty creation is already checked, render the list
     if ($('optFaculty').checked) {
       $('facultySection').style.display = 'block';
       renderFacultyList();
     }
   }
 
-  function renderPreviewDetails(title, rowsHtml) {
-    return `
-      <details class="preview-details">
-        <summary>${escapeHtml(title)}</summary>
-        <div class="preview-list">${rowsHtml || '<div class="preview-row dim">None</div>'}</div>
-      </details>`;
+  function renderDetails(title, rowsHtml) {
+    return `<details class="preview-details"><summary>${escapeHtml(title)}</summary><div class="preview-list">${rowsHtml || '<div class="preview-row dim">None</div>'}</div></details>`;
   }
 
-  /* ============================================================
-     IMPORT EXECUTION
-     ============================================================ */
+  /* ============ IMPORT ============ */
   $('cancelBtn').onclick = resetAll;
   $('againBtn').onclick = resetAll;
 
@@ -999,19 +604,13 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       faculty: $('optFaculty').checked,
       replace: $('optReplace').checked,
     };
-
     if (opts.faculty) {
       const v = validateAllUserIds();
-      if (!v.ok) {
-        toast(v.msg, 'error');
-        return;
-      }
+      if (!v.ok) return toast(v.msg, 'error');
     }
-
     const btn = $('importBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing…';
-
     try {
       const result = await executeImport(opts);
       showResult(result);
@@ -1028,10 +627,12 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       created: { buildings: 0, floors: 0, rooms: 0, slots: 0, timetable: 0, faculty: 0 },
       skipped: 0,
       errors: [],
-      newFaculty: [], // { name, userId, email, password }
+      newFaculty: [],       // { name, userId, email, password } — freshly created
+      reusedFaculty: [],    // { name, userId, email } — matched existing by email
+      recoveredFaculty: [], // { name, userId, email } — auth user existed but no profile
     };
 
-    // --- 1. Buildings ---
+    /* --- BUILDINGS --- */
     if (opts.buildings) {
       const { data: existing } = await supabase.from('buildings').select('id');
       const haveIds = new Set((existing || []).map(b => b.id));
@@ -1046,7 +647,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       }
     }
 
-    // --- 2. Floors ---
+    /* --- FLOORS --- */
     if (opts.floors) {
       const { data: existing } = await supabase.from('building_floors').select('building_id, floor');
       const haveKeys = new Set((existing || []).map(f => `${f.building_id}|${f.floor}`));
@@ -1054,15 +655,13 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       for (const key of needKeys) {
         if (haveKeys.has(key)) continue;
         const [bid, fl] = key.split('|');
-        const { error } = await supabase.from('building_floors').insert({
-          building_id: bid, floor: parseInt(fl),
-        });
+        const { error } = await supabase.from('building_floors').insert({ building_id: bid, floor: parseInt(fl) });
         if (error) result.errors.push(`Floor ${key}: ${error.message}`);
         else result.created.floors++;
       }
     }
 
-    // --- 3. Rooms ---
+    /* --- ROOMS --- */
     if (opts.rooms) {
       const { data: existing } = await supabase.from('rooms').select('room_id');
       const haveIds = new Set((existing || []).map(r => r.room_id));
@@ -1075,24 +674,18 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         if (haveIds.has(room.room_id)) continue;
         const rtype = roomTypes.get(room.room_id) || 'lecture';
         const { error } = await supabase.from('rooms').insert({
-          room_id: room.room_id,
-          display_name: room.display_name,
-          building: room.building,
-          floor: room.floor,
-          floor_digit: String(room.floor),
-          room_number: room.room_number,
-          suffix: room.suffix,
-          type: rtype,
-          capacity: rtype === 'lab' ? 30 : 60,
-          bookable: true,
-          weekend_open: false,
+          room_id: room.room_id, display_name: room.display_name,
+          building: room.building, floor: room.floor,
+          floor_digit: String(room.floor), room_number: room.room_number, suffix: room.suffix,
+          type: rtype, capacity: rtype === 'lab' ? 30 : 60,
+          bookable: true, weekend_open: false,
         });
         if (error) result.errors.push(`Room ${room.room_id}: ${error.message}`);
         else result.created.rooms++;
       }
     }
 
-    // --- 4. Time slots ---
+    /* --- SLOTS --- */
     if (opts.slots) {
       const { data: existing } = await supabase.from('time_slots').select('slot_id');
       const haveIds = new Set((existing || []).map(s => s.slot_id));
@@ -1104,11 +697,9 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       }
     }
 
-    // --- 5. Faculty — use their entered USER ID as email local part ---
+    /* --- FACULTY --- */
     const facultyNameToId = new Map();
-    // Reload existing in case another admin added some
-    const { data: existingFac } = await supabase
-      .from('profiles').select('id, full_name, email').eq('role', 'faculty');
+    const { data: existingFac } = await supabase.from('profiles').select('id, full_name, email').eq('role', 'faculty');
     (existingFac || []).forEach(p => {
       if (p.full_name) facultyNameToId.set(p.full_name.toLowerCase().trim(), p.id);
     });
@@ -1125,17 +716,12 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
           result.errors.push(`Faculty "${name}": invalid user ID "${userId}"`);
           continue;
         }
-
         const email = `${userId}@lpu.in`;
         const pwd = Math.random().toString(36).slice(-10);
 
         const { data, error } = await supabase.rpc('admin_create_user', {
-          p_email: email,
-          p_password: pwd,
-          p_full_name: name,
-          p_role: 'faculty',
-          p_department: null,
-          p_phone: null,
+          p_email: email, p_password: pwd, p_full_name: name,
+          p_role: 'faculty', p_department: null, p_phone: null,
         });
 
         if (error || data?.error) {
@@ -1143,41 +729,45 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
           continue;
         }
         facultyNameToId.set(key, data.user_id);
-        result.created.faculty++;
-        result.newFaculty.push({ name, userId, email, password: pwd });
+
+        if (data?.status === 'created') {
+          result.created.faculty++;
+          result.newFaculty.push({ name, userId, email, password: pwd });
+        } else if (data?.status === 'reused') {
+          result.reusedFaculty.push({ name, userId, email });
+        } else if (data?.status === 'recovered') {
+          result.created.faculty++;
+          result.recoveredFaculty.push({ name, userId, email });
+          result.newFaculty.push({ name, userId, email, password: pwd });
+        } else {
+          // Fallback for older RPC responses without status
+          result.created.faculty++;
+          result.newFaculty.push({ name, userId, email, password: pwd });
+        }
       }
     }
 
-    // --- 6. Replace timetable ---
+    /* --- CLEAR TIMETABLE --- */
     if (opts.replace) {
       const { error } = await supabase.from('timetable').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       if (error) result.errors.push(`Clear timetable: ${error.message}`);
     }
 
-    // --- 7. Timetable entries ---
-    const { data: existingTT } = await supabase.from('timetable')
-      .select('day_of_week, slot_id, room_id').eq('is_active', true);
+    /* --- TIMETABLE ENTRIES --- */
+    const { data: existingTT } = await supabase.from('timetable').select('day_of_week, slot_id, room_id').eq('is_active', true);
     const ttKeys = new Set((existingTT || []).map(t => `${t.day_of_week}|${t.slot_id}|${t.room_id}`));
-
     for (const entry of parsed.entries) {
       const key = `${entry.day_of_week}|${entry.slot_id}|${entry.room_id}`;
       if (ttKeys.has(key)) { result.skipped++; continue; }
-
       const course = parsed.courses.get(entry.course_code);
       const facultyId = course?.facultyName
         ? facultyNameToId.get(course.facultyName.toLowerCase().trim()) || null
         : null;
-
       const { error } = await supabase.from('timetable').insert({
-        day_of_week: entry.day_of_week,
-        slot_id: entry.slot_id,
-        room_id: entry.room_id,
-        faculty_id: facultyId,
-        course_code: entry.course_code,
-        course_name: course?.name || null,
-        is_active: true,
+        day_of_week: entry.day_of_week, slot_id: entry.slot_id, room_id: entry.room_id,
+        faculty_id: facultyId, course_code: entry.course_code,
+        course_name: course?.name || null, is_active: true,
       });
-
       if (error) result.errors.push(`Timetable (${key}): ${error.message}`);
       else result.created.timetable++;
     }
@@ -1185,9 +775,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     return result;
   }
 
-  /* ============================================================
-     RESULT SCREEN
-     ============================================================ */
+  /* ============ RESULT ============ */
   function showResult(result) {
     $('step2').style.display = 'none';
     $('step3').style.display = 'block';
@@ -1198,56 +786,52 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       <div class="summary-card"><div class="summary-val" style="color:var(--success)">${result.created.rooms}</div><div class="summary-lbl">Rooms created</div></div>
       <div class="summary-card"><div class="summary-val" style="color:var(--success)">${result.created.slots}</div><div class="summary-lbl">Slots created</div></div>
       <div class="summary-card"><div class="summary-val" style="color:var(--success)">${result.created.faculty}</div><div class="summary-lbl">Faculty created</div></div>
+      <div class="summary-card"><div class="summary-val" style="color:var(--info)">${result.reusedFaculty.length}</div><div class="summary-lbl">Faculty reused</div></div>
       <div class="summary-card"><div class="summary-val" style="color:var(--brand)">${result.created.timetable}</div><div class="summary-lbl">Classes imported</div></div>
       <div class="summary-card"><div class="summary-val" style="color:var(--text-muted)">${result.skipped}</div><div class="summary-lbl">Already existed</div></div>
-      <div class="summary-card"><div class="summary-val" style="color:${result.errors.length ? 'var(--danger)' : 'var(--success)'}">${result.errors.length}</div><div class="summary-lbl">Errors</div></div>
-    `;
+      <div class="summary-card"><div class="summary-val" style="color:${result.errors.length ? 'var(--danger)' : 'var(--success)'}">${result.errors.length}</div><div class="summary-lbl">Errors</div></div>`;
 
     if (result.newFaculty.length) {
-      const lines = result.newFaculty.map(f =>
-        `${f.name}\t${f.userId}\t${f.email}\t${f.password}`
-      ).join('\n');
       const dataUrl = 'data:text/csv;charset=utf-8,' + encodeURIComponent(
         'Name,UserID,Email,Password\n' +
-        result.newFaculty.map(f =>
-          `"${f.name}","${f.userId}","${f.email}","${f.password}"`
-        ).join('\n')
-      );
-
+        result.newFaculty.map(f => `"${f.name}","${f.userId}","${f.email}","${f.password}"`).join('\n'));
       $('credentialsContainer').innerHTML = `
         <div class="credentials-box">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap">
-            <h4 style="margin:0"><i class="fas fa-key" style="margin-right:6px"></i>New faculty accounts — share these credentials</h4>
-            <a href="${dataUrl}" download="faculty-credentials-${Date.now()}.csv"
-               class="btn btn-sm" style="background:var(--surface);color:var(--info-text);border-color:var(--info-soft-border)">
-              <i class="fas fa-download"></i> Download CSV
-            </a>
+            <h4 style="margin:0"><i class="fas fa-key" style="margin-right:6px"></i>New faculty — share these credentials</h4>
+            <a href="${dataUrl}" download="faculty-credentials-${Date.now()}.csv" class="btn btn-sm" style="background:var(--surface);color:var(--info-text);border-color:var(--info-soft-border)"><i class="fas fa-download"></i> Download CSV</a>
           </div>
-          <div style="font-size:11px;color:var(--info-text);opacity:.75;margin-bottom:8px;font-family:'Inter',sans-serif">
-            Each faculty logs in with their <strong>User ID</strong> as the registration number, using the password shown.
-          </div>
-          ${result.newFaculty.map(f => `
-            <div class="cred-row">
-              <span>${escapeHtml(f.name)}</span>
-              <span>${escapeHtml(f.userId)} · ${escapeHtml(f.password)}</span>
-            </div>
-          `).join('')}
+          ${result.newFaculty.map(f => `<div class="cred-row"><span>${escapeHtml(f.name)}</span><span>${escapeHtml(f.userId)} · ${escapeHtml(f.password)}</span></div>`).join('')}
         </div>`;
     } else {
       $('credentialsContainer').innerHTML = '';
     }
 
+    if (result.reusedFaculty.length || result.recoveredFaculty.length) {
+      const rows = [
+        ...result.reusedFaculty.map(f => `<div class="reused-row"><span>${escapeHtml(f.name)}</span><span><strong>${escapeHtml(f.userId)}</strong> · existing account</span></div>`),
+        ...result.recoveredFaculty.map(f => `<div class="reused-row"><span>${escapeHtml(f.name)}</span><span><strong>${escapeHtml(f.userId)}</strong> · profile recovered</span></div>`),
+      ].join('');
+      $('reusedContainer').innerHTML = `
+        <div class="reused-box">
+          <h4><i class="fas fa-check-circle" style="color:var(--success);margin-right:6px"></i>Linked to existing accounts</h4>
+          <p style="font-size:12px;color:var(--text-secondary);line-height:1.55;margin-bottom:8px">These emails already existed in the system — their profiles were updated instead of creating duplicates. Their existing passwords were kept (or set to the temp password if never changed).</p>
+          ${rows}
+        </div>`;
+    } else {
+      $('reusedContainer').innerHTML = '';
+    }
+
     if (result.errors.length) {
       $('errorsContainer').innerHTML = `
-        <div style="font-size:13px;font-weight:600;color:var(--danger);margin-bottom:8px">
-          <i class="fas fa-triangle-exclamation"></i> Errors (${result.errors.length})
-        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--danger);margin-bottom:8px"><i class="fas fa-triangle-exclamation"></i> Errors (${result.errors.length})</div>
         ${result.errors.map(e => `<div class="error-row">${escapeHtml(e)}</div>`).join('')}`;
     } else {
       $('errorsContainer').innerHTML = '';
     }
 
-    toast(`Import complete — ${result.created.timetable} classes added, ${result.created.faculty} faculty created`, 'success');
+    const total = result.created.timetable + result.created.faculty + result.reusedFaculty.length;
+    toast(`Import complete — ${total} item${total === 1 ? '' : 's'} added`, 'success');
   }
 
 })();
