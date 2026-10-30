@@ -11,18 +11,12 @@
 <link rel="stylesheet" href="css/admin.css">
 <style>
   .section-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 9px;
-    border-radius: 6px;
-    background: var(--brand-soft);
-    color: var(--brand-text);
-    font-size: 11px;
-    font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
+    display: inline-flex;align-items: center;gap: 4px;
+    padding: 3px 9px;border-radius: 6px;
+    background: var(--brand-soft);color: var(--brand-text);
+    font-size: 11px;font-weight: 600;font-family: 'JetBrains Mono', monospace;
   }
-  .pw-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+  .pw-hint { font-size: 11px;color: var(--text-secondary);margin-top: 4px;line-height: 1.4; }
 </style>
 </head>
 <body>
@@ -38,8 +32,6 @@
 
   <div class="admin-tabs">
     <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-chalkboard-user"></i> Faculty</a>
-    <a href="admin-batches.html" class="admin-tab"><i class="fas fa-users-rectangle"></i> Batches</a>
-    <a href="admin-courses.html" class="admin-tab"><i class="fas fa-book"></i> Courses</a>
     <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
     <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
     <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
@@ -47,6 +39,7 @@
     <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
     <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
     <a href="admin-users.html" class="admin-tab active"><i class="fas fa-users"></i> Users</a>
+    <a href="admin-settings.html" class="admin-tab"><i class="fas fa-gear"></i> Settings</a>
   </div>
 
   <div class="stats" id="stats"></div>
@@ -147,7 +140,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
               <div style="color:var(--text);font-weight:500;font-size:13px">
                 ${escapeHtml(u.full_name || u.email)}${isMe ? ' <span class="badge badge-admin" style="font-size:9px;padding:1px 6px;margin-left:4px">you</span>' : ''}
               </div>
-              <div style="font-size:11px;color:var(--text-muted);margin-top:1px">${escapeHtml(u.email)}</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin-top:1px">${escapeHtml(u.email)}</div>
             </div>
           </div>
         </td>
@@ -170,7 +163,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => del(b.dataset.del));
   }
 
-  /* ===== ADD USER ===== */
   $('addBtn').onclick = () => {
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
@@ -250,7 +242,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     dialog.onclick = e => { if (e.target === dialog) close(); };
   };
 
-  /* ===== EDIT ===== */
   function openEdit(id) {
     const u = users.find(x => x.id === id);
     if (!u) return;
@@ -327,7 +318,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  /* ===== RESET PASSWORD ===== */
   function openResetPassword(id) {
     const u = users.find(x => x.id === id);
     if (!u) return;

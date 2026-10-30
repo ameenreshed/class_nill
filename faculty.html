@@ -6,755 +6,54 @@
 <title>Faculty · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
-
 <style>
-  /* ============ TABS ============ */
-  .fac-tabs {
-    display: flex; gap: 4px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 20px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .fac-tabs::-webkit-scrollbar { display: none; }
-  .fac-tab {
-    padding: 12px 18px;
-    border: none; background: transparent;
-    color: var(--text-muted);
-    font-family: inherit; font-size: 14px; font-weight: 500;
-    cursor: pointer; position: relative;
-    transition: color 160ms ease;
-    white-space: nowrap;
-    display: inline-flex; align-items: center; gap: 8px;
-  }
-  .fac-tab i { font-size: 13px; }
-  .fac-tab:hover { color: var(--text); }
-  .fac-tab.active { color: var(--brand); }
-  .fac-tab.active::after {
-    content: ''; position: absolute;
-    left: 12px; right: 12px; bottom: -1px; height: 2px;
-    background: var(--brand); border-radius: 2px;
-  }
-  .fac-tab .tab-count {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-width: 18px; height: 18px; padding: 0 5px;
-    background: var(--surface-active); color: var(--text-muted);
-    border-radius: 999px; font-size: 10px; font-weight: 600;
-  }
-  .fac-tab.active .tab-count {
-    background: var(--brand-soft); color: var(--brand-text);
-  }
+  .fac-tabs { display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto;scrollbar-width:none; }
+  .fac-tabs::-webkit-scrollbar { display:none; }
+  .fac-tab { padding:12px 16px;border:none;background:transparent;color:var(--text-secondary);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;position:relative;transition:color 160ms ease;white-space:nowrap;display:inline-flex;align-items:center;gap:8px; }
+  .fac-tab:hover { color:var(--text); }
+  .fac-tab.active { color:var(--brand); }
+  .fac-tab.active::after { content:'';position:absolute;left:8px;right:8px;bottom:-1px;height:2px;background:var(--brand);border-radius:2px; }
+  .fac-tab .tab-count { display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;background:var(--surface-active);color:var(--text-secondary);border-radius:999px;font-size:10px;font-weight:600; }
+  .fac-tab.active .tab-count { background:var(--brand-soft);color:var(--brand-text); }
 
-  .fac-panel { display: none; }
-  .fac-panel.active { display: block; animation: facFade 240ms ease; }
-  @keyframes facFade {
-    from { opacity: 0; transform: translateY(4px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+  .fac-panel { display:none; }
+  .fac-panel.active { display:block; animation:facFade 240ms ease; }
+  @keyframes facFade { from { opacity:0;transform:translateY(4px); } to { opacity:1;transform:translateY(0); } }
 
-  /* ============ SECTION CARDS (timetable tab) ============ */
-  .section-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 20px;
-    margin-bottom: 12px;
-  }
-  .section-card-head {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    gap: 12px; margin-bottom: 14px;
-    flex-wrap: wrap;
-  }
-  .section-card-title {
-    font-size: 15px; font-weight: 700; color: var(--text);
-    display: flex; align-items: center; gap: 8px;
-  }
-  .section-card-title .section-badge {
-    padding: 3px 9px;
-    background: var(--brand-soft); color: var(--brand-text);
-    border-radius: 6px; font-size: 11px; font-weight: 600;
-    letter-spacing: 0.04em;
-  }
-  .section-card-stats {
-    display: flex; gap: 16px;
-    font-size: 12px; color: var(--text-muted);
-  }
-  .section-card-stats strong { color: var(--text); font-weight: 600; }
+  .section-card { background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:12px; }
+  .section-card-head { display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;flex-wrap:wrap; }
+  .section-card-title { font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px; }
 
-  .course-row {
-    display: flex; justify-content: space-between; align-items: center;
-    gap: 12px; padding: 10px 12px;
-    background: var(--surface-hover); border-radius: 8px;
-    margin-bottom: 6px;
-    font-size: 13px;
-    flex-wrap: wrap;
-  }
-  .course-row:last-child { margin-bottom: 0; }
-  .course-code {
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 600; color: var(--brand); font-size: 12px;
-  }
-  .course-name { color: var(--text); font-weight: 500; flex: 1; min-width: 120px; }
-  .course-meta {
-    display: flex; gap: 12px;
-    font-size: 11px; color: var(--text-muted);
-    flex-wrap: wrap;
-  }
-  .course-meta span { display: inline-flex; align-items: center; gap: 4px; }
-  .course-meta i { font-size: 10px; opacity: 0.7; }
+  .period-row { display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;background:var(--surface-hover);border-radius:10px;margin-bottom:6px;flex-wrap:wrap; }
+  .period-row.now { background:var(--brand-soft);border:1.5px solid var(--brand); }
+  .period-time { font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--brand);min-width:100px; }
+  .period-course { flex:1;min-width:180px; }
+  .period-code { font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--text); }
+  .period-name { font-size:13px;color:var(--text);margin-top:2px; }
+  .period-meta { font-size:11px;color:var(--text-secondary);display:flex;gap:12px;flex-wrap:wrap; }
+  .period-meta span { display:inline-flex;align-items:center;gap:4px; }
 
-  /* ============ REQUEST CARDS (my requests tab) ============ */
-  .req-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 18px;
-    margin-bottom: 10px;
-    display: flex; gap: 16px; align-items: flex-start;
-    flex-wrap: wrap;
-    transition: all 160ms ease;
-  }
-  .req-card:hover {
-    border-color: var(--border-strong);
-    box-shadow: var(--shadow-sm);
-  }
-  .req-icon {
-    width: 44px; height: 44px; border-radius: 12px;
-    background: var(--surface-active); color: var(--text-secondary);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px; flex-shrink: 0;
-  }
-  .req-icon.pending { background: var(--warning-soft); color: var(--warning); }
-  .req-icon.approved { background: var(--success-soft); color: var(--success); }
-  .req-icon.rejected { background: var(--danger-soft); color: var(--danger); }
-  .req-icon.cancelled { background: var(--surface-active); color: var(--text-muted); }
-
-  .req-body { flex: 1; min-width: 200px; }
-  .req-title {
-    font-size: 14px; font-weight: 600; color: var(--text);
-    display: flex; align-items: center; gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 4px;
-  }
-  .req-title .req-badge {
-    padding: 2px 8px; border-radius: 6px;
-    font-size: 10px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.04em;
-  }
-  .req-title .req-badge.pending { background: var(--warning-soft); color: var(--warning-text); }
-  .req-title .req-badge.approved { background: var(--success-soft); color: var(--success-text); }
-  .req-title .req-badge.rejected { background: var(--danger-soft); color: var(--danger-text); }
-  .req-title .req-badge.cancelled { background: var(--surface-active); color: var(--text-secondary); }
-
-  .req-meta {
-    font-size: 12px; color: var(--text-muted);
-    display: flex; gap: 14px; flex-wrap: wrap;
-    margin-top: 4px;
-  }
-  .req-meta span { display: inline-flex; align-items: center; gap: 5px; }
-  .req-meta i { font-size: 10px; opacity: 0.7; }
-  .req-reason {
-    font-size: 12px; color: var(--text-secondary);
-    margin-top: 8px; padding: 8px 10px;
-    background: var(--surface-hover); border-radius: 6px;
-    border-left: 3px solid var(--border-strong);
-    line-height: 1.5;
-  }
-  .req-reason.danger { border-left-color: var(--danger); }
-  .req-actions {
-    display: flex; gap: 6px; align-items: flex-start;
-    flex-shrink: 0;
-  }
-
-  /* ============ MAKEUP WIZARD ============ */
-  .makeup-modal {
-    width: min(820px, calc(100vw - 32px));
-    max-height: calc(100vh - 48px);
-    overflow: hidden;
-    display: flex; flex-direction: column;
-    background: var(--surface);
-  }
-  .makeup-header {
-    padding: 24px 28px 16px;
-    border-bottom: 1px solid var(--border);
-    display: flex; justify-content: space-between;
-    align-items: flex-start; gap: 16px;
-    flex-shrink: 0;
-  }
-  .makeup-header-title {
-    font-size: 20px; font-weight: 700; letter-spacing: -0.02em;
-    color: var(--text); display: flex; align-items: center; gap: 10px;
-  }
-  .makeup-header-title i { color: var(--brand); font-size: 18px; }
-  .makeup-header-sub {
-    font-size: 13px; color: var(--text-muted); margin-top: 4px;
-    line-height: 1.5;
-  }
-
-  .makeup-stepper {
-    display: flex; align-items: center; gap: 8px;
-    padding: 16px 28px;
-    background: var(--bg-subtle);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .makeup-stepper .step {
-    display: flex; align-items: center; gap: 8px;
-    flex-shrink: 0; opacity: 0.5;
-    transition: opacity 200ms ease;
-  }
-  .makeup-stepper .step.active,
-  .makeup-stepper .step.done { opacity: 1; }
-  .makeup-stepper .step-num {
-    width: 26px; height: 26px; border-radius: 50%;
-    background: var(--surface-active); color: var(--text-secondary);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 700;
-    transition: all 220ms cubic-bezier(.4,0,.2,1);
-  }
-  .makeup-stepper .step.active .step-num {
-    background: var(--brand); color: #fff;
-    box-shadow: 0 0 0 4px var(--brand-soft);
-  }
-  .makeup-stepper .step.done .step-num {
-    background: var(--success); color: #fff;
-  }
-  .makeup-stepper .step.done .step-num::before {
-    content: '\f00c'; font-family: 'Font Awesome 6 Free';
-    font-weight: 900; font-size: 10px;
-  }
-  .makeup-stepper .step.done .step-num > * { display: none; }
-  .makeup-stepper .step-label {
-    font-size: 13px; font-weight: 600;
-    color: var(--text-secondary);
-    transition: color 200ms ease;
-  }
-  .makeup-stepper .step.active .step-label { color: var(--text); }
-  .makeup-stepper .step-divider {
-    flex: 1; height: 2px; background: var(--border);
-    border-radius: 2px; min-width: 12px;
-    transition: background 220ms ease;
-  }
-  .makeup-stepper .step-divider.done { background: var(--success); }
-
-  .makeup-body {
-    flex: 1; overflow-y: auto;
-    padding: 28px;
-  }
-  .makeup-step { display: none; }
-  .makeup-step.active { display: block; animation: makeupFade 280ms cubic-bezier(.4,0,.2,1); }
-  @keyframes makeupFade {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .makeup-step-title {
-    font-size: 16px; font-weight: 600; color: var(--text);
-    margin-bottom: 4px; letter-spacing: -0.01em;
-  }
-  .makeup-step-desc {
-    font-size: 13px; color: var(--text-muted);
-    margin-bottom: 22px; line-height: 1.55;
-  }
-
-  /* ---------- STEP 1: Section + Course ---------- */
-  .section-pick-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 10px;
-    margin-bottom: 22px;
-  }
-  .section-pick {
-    padding: 16px;
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: 12px;
-    cursor: pointer;
-    text-align: left;
-    font: inherit; color: inherit;
-    transition: all 180ms cubic-bezier(.4,0,.2,1);
-    position: relative;
-  }
-  .section-pick:hover {
-    border-color: var(--brand);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-  }
-  .section-pick.selected {
-    border-color: var(--brand);
-    background: var(--brand-soft);
-    box-shadow: 0 0 0 3px var(--brand-soft);
-  }
-  .section-pick.selected::after {
-    content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900;
-    position: absolute; top: 12px; right: 12px;
-    width: 20px; height: 20px; border-radius: 50%;
-    background: var(--brand); color: #fff;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 9px;
-  }
-  .section-pick-name {
-    font-size: 15px; font-weight: 700; color: var(--text);
-    margin-bottom: 4px;
-    padding-right: 28px;
-  }
-  .section-pick-meta {
-    font-size: 11px; color: var(--text-muted);
-    display: flex; gap: 10px; flex-wrap: wrap;
-  }
-  .section-pick-meta span { display: inline-flex; align-items: center; gap: 3px; }
-  .section-pick-meta i { font-size: 9px; opacity: 0.7; }
-
-  .course-pick-list {
-    display: grid;
-    gap: 8px;
-  }
-  .course-pick {
-    padding: 14px 16px;
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    cursor: pointer;
-    text-align: left;
-    font: inherit; color: inherit;
-    display: flex; justify-content: space-between; align-items: center;
-    gap: 12px;
-    transition: all 160ms ease;
-    flex-wrap: wrap;
-  }
-  .course-pick:hover {
-    border-color: var(--brand);
-    background: var(--surface-hover);
-  }
-  .course-pick.selected {
-    border-color: var(--brand);
-    background: var(--brand-soft);
-  }
-  .course-pick .cp-code {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px; font-weight: 600;
-    color: var(--brand);
-  }
-  .course-pick .cp-name {
-    font-size: 14px; font-weight: 500; color: var(--text);
-    flex: 1; min-width: 120px;
-  }
-  .course-pick .cp-meta {
-    font-size: 11px; color: var(--text-muted);
-    display: flex; gap: 10px;
-  }
-
-  .custom-course-toggle {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-size: 12px; font-weight: 500; color: var(--brand);
-    cursor: pointer; margin-top: 12px;
-    background: none; border: none; font-family: inherit;
-    padding: 0;
-  }
-  .custom-course-toggle:hover { text-decoration: underline; }
-
-  .custom-fields {
-    margin-top: 14px; padding: 16px;
-    background: var(--bg-subtle);
-    border-radius: 10px;
-    display: none;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-  .custom-fields.show { display: grid; }
-  .custom-fields .field { margin: 0; }
-  .custom-fields input {
-    width: 100%; padding: 10px 12px;
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    font-family: inherit; font-size: 13px;
-    color: var(--text);
-  }
-  .custom-fields input:focus {
-    border-color: var(--brand);
-    box-shadow: 0 0 0 3px var(--brand-soft);
-    outline: none;
-  }
-
-  /* ---------- STEP 2: When ---------- */
-  .date-input-wrap {
-    position: relative; margin-bottom: 22px;
-  }
-  .date-input-wrap input[type="date"] {
-    width: 100%; padding: 16px 18px 16px 52px;
-    font-size: 16px; font-weight: 500;
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: 12px;
-    color: var(--text);
-    transition: all 180ms ease;
-  }
-  .date-input-wrap input[type="date"]:focus {
-    border-color: var(--brand);
-    box-shadow: 0 0 0 4px var(--brand-soft);
-    outline: none;
-  }
-  .date-input-wrap i {
-    position: absolute; left: 18px; top: 50%;
-    transform: translateY(-50%);
-    color: var(--brand); font-size: 16px;
-    pointer-events: none;
-  }
-  .date-input-wrap .day-badge {
-    position: absolute; right: 16px; top: 50%;
-    transform: translateY(-50%);
-    font-size: 11px; font-weight: 600;
-    padding: 4px 10px; border-radius: 6px;
-    background: var(--brand-soft); color: var(--brand-text);
-    text-transform: uppercase; letter-spacing: 0.04em;
-  }
-
-  .slot-label-row {
-    display: flex; justify-content: space-between; align-items: baseline;
-    margin-bottom: 12px;
-  }
-  .slot-label-row .label-small { margin: 0; }
-  .slot-label-row .slot-hint { font-size: 11px; color: var(--text-muted); }
-
-  .slot-picker {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 8px;
-  }
-  .slot-btn {
-    position: relative;
-    padding: 14px 12px;
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    text-align: left; cursor: pointer;
-    font: inherit; color: inherit;
-    transition: all 180ms cubic-bezier(.4,0,.2,1);
-  }
-  .slot-btn:hover:not(:disabled) {
-    border-color: var(--brand);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-  }
-  .slot-btn.selected {
-    border-color: var(--brand);
-    background: var(--brand-soft);
-    box-shadow: 0 0 0 3px var(--brand-soft);
-  }
-  .slot-btn:disabled {
-    opacity: 0.4; cursor: not-allowed;
-    background: var(--bg-subtle);
-  }
-  .slot-btn.is-now { border-color: var(--brand); }
-  .slot-btn.is-now::before {
-    content: ''; position: absolute; top: 8px; right: 8px;
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--brand);
-    animation: pulse 2s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%      { opacity: 0.6; transform: scale(1.3); }
-  }
-  .slot-btn .slot-name {
-    font-size: 13px; font-weight: 600; color: var(--text);
-    margin-bottom: 2px;
-  }
-  .slot-btn .slot-time {
-    font-size: 11px; color: var(--text-muted);
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .slot-btn .slot-availability {
-    margin-top: 6px;
-    font-size: 11px; font-weight: 500;
-    color: var(--success);
-    display: flex; align-items: center; gap: 4px;
-  }
-  .slot-btn .slot-availability.none { color: var(--danger); }
-
-  /* ---------- STEP 3: Room ---------- */
-  .capacity-banner {
-    display: flex; align-items: center; gap: 10px;
-    padding: 12px 14px;
-    background: var(--info-soft);
-    border: 1px solid var(--info-soft-border);
-    border-radius: 10px;
-    font-size: 12px; color: var(--info-text);
-    margin-bottom: 18px;
-  }
-  .capacity-banner i { font-size: 14px; color: var(--info); flex-shrink: 0; }
-
-  .room-filter-bar {
-    display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap;
-    align-items: center;
-  }
-  .room-search { position: relative; flex: 1; min-width: 200px; }
-  .room-search input {
-    width: 100%; padding: 10px 12px 10px 36px;
-    font-size: 13px;
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    transition: all 160ms ease;
-  }
-  .room-search input:focus {
-    border-color: var(--brand);
-    box-shadow: 0 0 0 3px var(--brand-soft);
-    outline: none;
-  }
-  .room-search i {
-    position: absolute; left: 14px; top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted); font-size: 12px;
-    pointer-events: none;
-  }
-  .building-pills { display: flex; gap: 6px; flex-wrap: wrap; }
-  .building-pill {
-    padding: 8px 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-size: 12px; font-weight: 500;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 140ms ease;
-    font-family: inherit;
-  }
-  .building-pill:hover { border-color: var(--border-strong); color: var(--text); }
-  .building-pill.active { background: var(--brand); border-color: var(--brand); color: #fff; }
-
-  .room-count-line {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 12px; color: var(--text-muted);
-    margin-bottom: 14px;
-  }
-  .room-count-line .count-badge {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 3px 9px; border-radius: 999px;
-    background: var(--success-soft); color: var(--success-text);
-    font-weight: 600; font-size: 11px;
-  }
-
-  .room-grid-modern {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 10px;
-  }
-  .room-tile {
-    position: relative;
-    padding: 16px;
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: 12px;
-    cursor: pointer;
-    text-align: left;
-    font: inherit; color: inherit;
-    transition: all 180ms cubic-bezier(.4,0,.2,1);
-  }
-  .room-tile:hover {
-    border-color: var(--brand);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-  }
-  .room-tile.selected {
-    border-color: var(--brand);
-    background: var(--brand-soft);
-    box-shadow: 0 0 0 3px var(--brand-soft);
-  }
-  .room-tile.selected::after {
-    content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900;
-    position: absolute; top: 12px; right: 12px;
-    width: 22px; height: 22px; border-radius: 50%;
-    background: var(--brand); color: #fff;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px;
-    animation: checkPop 220ms cubic-bezier(.68,-0.55,.27,1.55);
-  }
-  @keyframes checkPop {
-    0% { transform: scale(0); }
-    70% { transform: scale(1.15); }
-    100% { transform: scale(1); }
-  }
-  .room-tile-name {
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 600; font-size: 15px; color: var(--text);
-    margin-bottom: 6px; padding-right: 28px;
-  }
-  .room-tile-meta {
-    display: flex; flex-wrap: wrap; gap: 6px;
-    font-size: 11px; color: var(--text-muted);
-  }
-  .room-tile-meta span { display: inline-flex; align-items: center; gap: 3px; }
-  .room-tile-meta i { font-size: 9px; opacity: 0.7; }
-  .room-tile-badge {
-    position: absolute; bottom: 12px; right: 12px;
-    font-size: 10px; font-weight: 600;
-    padding: 3px 8px; border-radius: 999px;
-    background: var(--success-soft); color: var(--success-text);
-  }
-  .room-tile-badge.tight {
-    background: var(--warning-soft); color: var(--warning-text);
-  }
-
-  /* Empty state */
-  .makeup-empty {
-    padding: 40px 24px; text-align: center; color: var(--text-muted);
-  }
-  .makeup-empty-icon {
-    width: 64px; height: 64px; border-radius: 16px;
-    background: var(--surface-active);
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 26px; margin-bottom: 16px;
-    color: var(--text-muted);
-  }
-  .makeup-empty-title {
-    font-size: 15px; font-weight: 600; color: var(--text);
-    margin-bottom: 4px;
-  }
-  .makeup-empty-sub {
-    font-size: 13px; line-height: 1.5; max-width: 340px; margin: 0 auto;
-  }
-
-  /* ---------- STEP 4: Confirm ---------- */
-  .summary-card {
-    padding: 24px;
-    background: linear-gradient(135deg, var(--brand-soft) 0%, var(--surface) 100%);
-    border: 1.5px solid var(--brand-soft-border);
-    border-radius: 16px;
-    margin-bottom: 20px;
-    position: relative; overflow: hidden;
-  }
-  .summary-card::before {
-    content: ''; position: absolute; top: 0; right: 0;
-    width: 200px; height: 200px;
-    background: radial-gradient(circle, rgba(234, 88, 12, 0.08), transparent 70%);
-    pointer-events: none;
-  }
-  .summary-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 4px 10px; border-radius: 999px;
-    background: var(--brand); color: #fff;
-    font-size: 10px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.06em;
-    margin-bottom: 16px;
-  }
-  .summary-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 16px;
-    position: relative; z-index: 1;
-  }
-  .summary-item { display: flex; gap: 12px; align-items: flex-start; }
-  .summary-icon {
-    width: 36px; height: 36px; border-radius: 10px;
-    background: var(--surface); border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    color: var(--brand); font-size: 14px;
-    flex-shrink: 0;
-  }
-  .summary-label {
-    font-size: 10px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.06em;
-    color: var(--text-muted); margin-bottom: 2px;
-  }
-  .summary-value {
-    font-size: 14px; font-weight: 600; color: var(--text);
-    line-height: 1.3;
-  }
-  .summary-value.mono { font-family: 'JetBrains Mono', monospace; }
-
-  .reason-field { margin-bottom: 18px; }
-  .reason-field textarea {
-    width: 100%; min-height: 70px;
-    padding: 14px 16px;
-    font-family: inherit; font-size: 14px;
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: 12px;
-    color: var(--text); resize: vertical;
-    transition: all 160ms ease;
-  }
-  .reason-field textarea:focus {
-    border-color: var(--brand);
-    box-shadow: 0 0 0 3px var(--brand-soft);
-    outline: none;
-  }
-
-  .info-note {
-    display: flex; gap: 10px; align-items: flex-start;
-    padding: 12px 14px;
-    background: var(--info-soft);
-    border: 1px solid var(--info-soft-border);
-    border-radius: 10px;
-    font-size: 12px; color: var(--info-text);
-    line-height: 1.55;
-  }
-  .info-note i { color: var(--info); font-size: 14px; flex-shrink: 0; margin-top: 1px; }
-
-  /* Footer */
-  .makeup-footer {
-    padding: 16px 28px;
-    border-top: 1px solid var(--border);
-    display: flex; justify-content: space-between; align-items: center;
-    gap: 12px;
-    background: var(--surface);
-    flex-shrink: 0;
-  }
-  .makeup-footer-step {
-    font-size: 12px; color: var(--text-muted); font-weight: 500;
-  }
-  .makeup-footer-actions { display: flex; gap: 8px; }
-
-  /* Success */
-  .makeup-success {
-    padding: 48px 28px; text-align: center;
-    animation: makeupFade 280ms cubic-bezier(.4,0,.2,1);
-  }
-  .success-icon {
-    width: 72px; height: 72px; border-radius: 50%;
-    background: var(--success-soft); color: var(--success);
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 32px; margin-bottom: 20px;
-    animation: successBounce 600ms cubic-bezier(.68,-0.55,.27,1.55);
-  }
-  @keyframes successBounce {
-    0%   { transform: scale(0); }
-    60%  { transform: scale(1.15); }
-    100% { transform: scale(1); }
-  }
-  .success-title {
-    font-size: 20px; font-weight: 700; color: var(--text);
-    margin-bottom: 8px; letter-spacing: -0.02em;
-  }
-  .success-sub {
-    font-size: 14px; color: var(--text-muted);
-    line-height: 1.6; max-width: 380px; margin: 0 auto 24px;
-  }
-
-  /* Mobile */
-  @media (max-width: 640px) {
-    .makeup-modal { width: 100vw; max-height: 100vh; border-radius: 0; }
-    .makeup-header { padding: 20px 20px 14px; }
-    .makeup-stepper { padding: 14px 20px; }
-    .makeup-stepper .step-label { display: none; }
-    .makeup-stepper .step.active .step-label { display: inline; }
-    .makeup-body { padding: 20px; }
-    .makeup-footer { padding: 14px 20px; }
-    .slot-picker { grid-template-columns: repeat(2, 1fr); }
-    .room-grid-modern { grid-template-columns: 1fr; }
-    .summary-grid { grid-template-columns: 1fr; }
-    .section-pick-grid { grid-template-columns: 1fr; }
-    .custom-fields { grid-template-columns: 1fr; }
-    .req-card { padding: 14px; }
-    .req-actions { width: 100%; justify-content: flex-end; }
-  }
+  .req-card { background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:10px;display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;transition:all 160ms ease; }
+  .req-card:hover { border-color:var(--border-strong);box-shadow:var(--shadow-sm); }
+  .req-icon { width:44px;height:44px;border-radius:12px;background:var(--surface-active);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0; }
+  .req-icon.pending { background:var(--warning-soft);color:var(--warning); }
+  .req-icon.approved { background:var(--success-soft);color:var(--success); }
+  .req-icon.rejected { background:var(--danger-soft);color:var(--danger); }
+  .req-icon.cancelled { background:var(--surface-active);color:var(--text-secondary); }
+  .req-body { flex:1;min-width:200px; }
+  .req-title { font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px; }
+  .req-title .req-badge { padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em; }
+  .req-title .req-badge.pending { background:var(--warning-soft);color:var(--warning-text); }
+  .req-title .req-badge.approved { background:var(--success-soft);color:var(--success-text); }
+  .req-title .req-badge.rejected { background:var(--danger-soft);color:var(--danger-text); }
+  .req-title .req-badge.cancelled { background:var(--surface-active);color:var(--text-secondary); }
+  .req-meta { font-size:12px;color:var(--text-secondary);display:flex;gap:14px;flex-wrap:wrap;margin-top:4px; }
+  .req-meta span { display:inline-flex;align-items:center;gap:5px; }
+  .req-reason { font-size:12px;color:var(--text-secondary);margin-top:8px;padding:8px 10px;background:var(--surface-hover);border-radius:6px;border-left:3px solid var(--border-strong);line-height:1.5; }
+  .req-actions { display:flex;gap:6px;align-items:flex-start;flex-shrink:0;flex-wrap:wrap; }
 </style>
 </head>
 <body>
@@ -766,30 +65,23 @@
       <h1 class="page-title"><i class="fas fa-gauge-high"></i> Faculty dashboard</h1>
       <p class="page-subtitle">Welcome back, <strong id="welcomeName" style="color:var(--text)">…</strong> · <span id="liveTime" class="mono">--:--</span></p>
     </div>
-    <button class="btn btn-primary" id="makeupBtn"><i class="fas fa-plus"></i> Request makeup</button>
+    <button class="btn btn-primary" id="bookBtn"><i class="fas fa-plus"></i> Book a room</button>
   </div>
 
-  <div class="stats" id="stats">
-    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
-    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
-    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
-    <div class="stat"><div class="skeleton" style="height:32px;width:40%;margin-bottom:12px"></div><div class="skeleton" style="height:12px;width:60%"></div></div>
-  </div>
+  <div class="stats" id="stats"></div>
 
   <div class="fac-tabs" id="tabs" style="margin-top:24px">
     <button class="fac-tab active" data-tab="today"><i class="fas fa-calendar-day"></i> Today</button>
     <button class="fac-tab" data-tab="timetable"><i class="fas fa-table"></i> My timetable</button>
-    <button class="fac-tab" data-tab="requests"><i class="fas fa-paper-plane"></i> My requests <span class="tab-count" id="reqCount">0</span></button>
+    <button class="fac-tab" data-tab="upload"><i class="fas fa-cloud-arrow-up"></i> Upload schedule</button>
+    <button class="fac-tab" data-tab="leave"><i class="fas fa-plane-departure"></i> Mark leave</button>
+    <button class="fac-tab" data-tab="requests"><i class="fas fa-paper-plane"></i> My requests <span class="tab-count" id="reqCount" style="display:none">0</span></button>
   </div>
 
-  <div class="fac-panel active" data-panel="today">
-    <div id="todaySchedule"><div class="card" style="padding:32px"><div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</div></div></div>
-  </div>
-
-  <div class="fac-panel" data-panel="timetable">
-    <div id="timetableView"><div class="card" style="padding:32px"><div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</div></div></div>
-  </div>
-
+  <div class="fac-panel active" data-panel="today"><div id="todayView"></div></div>
+  <div class="fac-panel" data-panel="timetable"><div id="timetableView"></div></div>
+  <div class="fac-panel" data-panel="upload"><div id="uploadView"></div></div>
+  <div class="fac-panel" data-panel="leave"><div id="leaveView"></div></div>
   <div class="fac-panel" data-panel="requests">
     <div class="chips" id="reqFilter" style="margin-bottom:16px">
       <button class="chip on" data-f="all">All</button>
@@ -798,15 +90,15 @@
       <button class="chip" data-f="rejected">Rejected</button>
       <button class="chip" data-f="cancelled">Cancelled</button>
     </div>
-    <div id="requestsList"><div class="card" style="padding:32px"><div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</div></div></div>
+    <div id="requestsList"></div>
   </div>
 </div>
 
 <script type="module">
 import {
   requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, formatTime,
-  dayOfWeekNum, humanDate, loadBaseData, loadDataForDate, classifyCell,
-  minutesUntilStart, currentSlot, toast, dayName, formatRelativeTime
+  dayOfWeekNum, humanDate, loadBaseData, currentSlot, minutesUntilStart,
+  toast, formatRelativeTime, getSettings, bookingTypeAllowed
 } from './js/core.js';
 
 (async () => {
@@ -818,342 +110,305 @@ import {
   const myId = auth.session.user.id;
   $('welcomeName').textContent = auth.profile.full_name || auth.profile.email || 'Faculty';
 
-  let base = { rooms: [], slots: [], sections: [] };
-  let myTeaching = [];       // all my timetable rows with section info joined
-  let myRequests = [];       // all my makeup bookings
+  let base = { rooms: [], slots: [] };
+  let myTeaching = [];
+  let myRequests = [];
+  let myLeave = [];
+  let settings = {};
   let reqFilter = 'all';
-  let currentTab = 'today';
 
-  /* ============ LOAD ALL DATA ============ */
   async function loadAll() {
     base = await loadBaseData();
+    settings = await getSettings();
 
-    // My timetable + joined section metadata (name, strength)
-    const { data: teaching } = await supabase
-      .from('timetable')
-      .select(`
-        id, section_id, day_of_week, slot_id, room_id, course_code, course_name, semester,
-        sections ( section_id, name, strength, department )
-      `)
-      .eq('faculty_id', myId)
-      .eq('is_active', true)
-      .order('day_of_week')
-      .order('slot_id');
-
+    const [{ data: teaching }, { data: reqs }, { data: leave }] = await Promise.all([
+      supabase.from('timetable').select('*').eq('faculty_id', myId).eq('is_active', true)
+        .order('day_of_week').order('slot_id'),
+      supabase.from('bookings').select('*').eq('faculty_id', myId)
+        .order('book_date', { ascending: false }).limit(100),
+      supabase.from('faculty_unavailability').select('*').eq('faculty_id', myId)
+        .gte('date', todayISO()).order('date'),
+    ]);
     myTeaching = teaching ?? [];
-
-    // My makeup requests
-    const { data: reqs } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('faculty_id', myId)
-      .eq('type', 'makeup')
-      .order('book_date', { ascending: false })
-      .limit(100);
-
     myRequests = reqs ?? [];
+    myLeave = leave ?? [];
 
     renderStats();
     renderToday();
     renderTimetable();
+    renderUpload();
+    renderLeave();
     renderRequests();
     updateReqCount();
   }
 
-  /* ============ STATS ============ */
   function renderStats() {
     const today = todayISO();
     const dow = dayOfWeekNum(today);
     const todayClasses = myTeaching.filter(t => t.day_of_week === dow);
     const nowSlot = currentSlot(base.slots);
     const teachingNow = todayClasses.filter(c => c.slot_id === nowSlot?.slot_id).length;
-    const pendingCount = myRequests.filter(r => r.status === 'pending').length;
-    const approvedThisMonth = myRequests.filter(r => {
-      if (r.status !== 'approved') return false;
-      const d = new Date(`${r.book_date}T12:00:00`);
-      const now = nowDate();
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).length;
-
+    const pending = myRequests.filter(r => r.status === 'pending').length;
+    const autoApprove = !!settings['booking_auto_approve'];
     $('stats').innerHTML = `
-      <div class="stat">
-        <i class="fas fa-chalkboard-user stat-icon"></i>
-        <div class="stat-value">${todayClasses.length}</div>
-        <div class="stat-label">Classes today</div>
-      </div>
-      <div class="stat">
-        <i class="fas fa-circle-check stat-icon" style="color:${teachingNow > 0 ? 'var(--success)' : 'var(--text-muted)'}"></i>
-        <div class="stat-value" style="color:${teachingNow > 0 ? 'var(--success)' : 'var(--text-muted)'}">${teachingNow > 0 ? 'In class' : 'Free'}</div>
-        <div class="stat-label">Status now</div>
-      </div>
-      <div class="stat">
-        <i class="fas fa-hourglass-half stat-icon" style="color:var(--warning)"></i>
-        <div class="stat-value" style="color:var(--warning)">${pendingCount}</div>
-        <div class="stat-label">Pending requests</div>
-      </div>
-      <div class="stat">
-        <i class="fas fa-calendar-check stat-icon" style="color:var(--success)"></i>
-        <div class="stat-value" style="color:var(--success)">${approvedThisMonth}</div>
-        <div class="stat-label">Approved this month</div>
-      </div>
-    `;
+      <div class="stat"><i class="fas fa-chalkboard-user stat-icon"></i><div class="stat-value">${todayClasses.length}</div><div class="stat-label">Classes today</div></div>
+      <div class="stat"><i class="fas fa-circle-check stat-icon" style="color:${teachingNow ? 'var(--success)' : 'var(--text-muted)'}"></i><div class="stat-value" style="color:${teachingNow ? 'var(--success)' : 'var(--text-muted)'}">${teachingNow ? 'In class' : 'Free'}</div><div class="stat-label">Status now</div></div>
+      <div class="stat"><i class="fas fa-hourglass-half stat-icon" style="color:${autoApprove ? 'var(--success)' : 'var(--warning)'}"></i><div class="stat-value" style="color:${autoApprove ? 'var(--success)' : 'var(--warning)'}">${pending}</div><div class="stat-label">${autoApprove ? 'Auto-approved' : 'Pending approval'}</div></div>
+      <div class="stat"><i class="fas fa-plane-departure stat-icon" style="color:var(--info)"></i><div class="stat-value" style="color:var(--info)">${myLeave.length}</div><div class="stat-label">Upcoming leave</div></div>`;
   }
 
-  /* ============ TODAY PANEL ============ */
   function renderToday() {
     const today = todayISO();
     const dow = dayOfWeekNum(today);
     const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
     const roomById = new Map(base.rooms.map(r => [r.room_id, r]));
-
-    const todayClasses = myTeaching
-      .filter(t => t.day_of_week === dow)
+    const list = myTeaching.filter(t => t.day_of_week === dow)
       .sort((a, b) => (slotById.get(a.slot_id)?.start_time || '').localeCompare(slotById.get(b.slot_id)?.start_time || ''));
-
-    if (!todayClasses.length) {
-      $('todaySchedule').innerHTML = `
-        <div class="card"><div class="empty-action">
-          <div class="empty-action-icon"><i class="fas fa-mug-hot"></i></div>
-          <div class="empty-action-title">No classes today</div>
-          <div class="empty-action-sub">Enjoy your free day — or book a makeup class.</div>
-        </div></div>`;
+    if (!list.length) {
+      $('todayView').innerHTML = `<div class="card"><div class="empty-action">
+        <div class="empty-action-icon"><i class="fas fa-mug-hot"></i></div>
+        <div class="empty-action-title">No classes today</div>
+        <div class="empty-action-sub">Use "Upload schedule" to add your own classes if LPU hasn't provided your timetable yet.</div>
+      </div></div>`;
       return;
     }
-
     const nowSlot = currentSlot(base.slots);
-
-    $('todaySchedule').innerHTML = todayClasses.map(c => {
+    $('todayView').innerHTML = list.map(c => {
       const slot = slotById.get(c.slot_id);
       const room = roomById.get(c.room_id);
       const mins = minutesUntilStart(slot, today);
       const isNow = slot?.slot_id === nowSlot?.slot_id;
-      const sectionInfo = c.sections || {};
-      return `
-        <div class="card ${isNow ? 'card-hover' : ''}" style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;${isNow ? 'border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)' : ''}">
-          <div style="display:flex;gap:16px;align-items:center;min-width:0;flex:1">
-            <div style="width:48px;height:48px;border-radius:12px;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
-              <i class="fas fa-book"></i>
-            </div>
-            <div style="min-width:0">
-              <div style="color:var(--text);font-weight:600;font-size:14px">
-                ${escapeHtml(c.course_name || c.course_code || 'Class')}
-                <span class="badge badge-gray" style="margin-left:6px">${escapeHtml(c.section_id)}</span>
-                ${sectionInfo.strength ? `<span class="dim" style="font-size:11px;margin-left:6px">· ${sectionInfo.strength} students</span>` : ''}
-              </div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
-                <i class="fas fa-door-open"></i> ${escapeHtml(room?.display_name || c.room_id)}
-                · <span class="mono">${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)}</span>
-                ${isNow ? '<span class="badge badge-approved" style="margin-left:6px"><i class="fas fa-circle" style="font-size:6px"></i>NOW</span>'
-                        : mins > 0 && mins < 120 ? `<span class="dim" style="margin-left:6px">in ${mins} min</span>` : ''}
-              </div>
+      return `<div class="card" style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;${isNow ? 'border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)' : ''}">
+        <div style="display:flex;gap:16px;align-items:center;flex:1;min-width:0">
+          <div style="width:44px;height:44px;border-radius:10px;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0"><i class="fas fa-book"></i></div>
+          <div style="min-width:0">
+            <div style="color:var(--text);font-weight:600;font-size:14px">${escapeHtml(c.course_name || c.course_code || 'Class')}</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">
+              <i class="fas fa-door-open"></i> ${escapeHtml(room?.display_name || c.room_id)}
+              · <span class="mono">${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)}</span>
+              ${isNow ? '<span class="badge badge-approved" style="margin-left:6px"><i class="fas fa-circle" style="font-size:6px"></i>NOW</span>' : mins > 0 && mins < 120 ? `<span style="margin-left:6px">in ${mins} min</span>` : ''}
             </div>
           </div>
-        </div>`;
+        </div>
+      </div>`;
     }).join('');
   }
 
-  /* ============ TIMETABLE PANEL ============ */
   function renderTimetable() {
     if (!myTeaching.length) {
-      $('timetableView').innerHTML = `
-        <div class="card"><div class="empty-action">
-          <div class="empty-action-icon"><i class="fas fa-table"></i></div>
-          <div class="empty-action-title">No timetable assigned yet</div>
-          <div class="empty-action-sub">Contact your administrator to have your schedule loaded.</div>
-        </div></div>`;
+      $('timetableView').innerHTML = `<div class="card"><div class="empty-action">
+        <div class="empty-action-icon"><i class="fas fa-table"></i></div>
+        <div class="empty-action-title">No timetable yet</div>
+        <div class="empty-action-sub">Use "Upload schedule" to add your classes manually.</div>
+      </div></div>`;
       return;
     }
-
     const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
     const roomById = new Map(base.rooms.map(r => [r.room_id, r]));
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const byDay = new Map();
+    myTeaching.forEach(c => { if (!byDay.has(c.day_of_week)) byDay.set(c.day_of_week, []); byDay.get(c.day_of_week).push(c); });
 
-    // Group by section
-    const bySection = new Map();
-    for (const t of myTeaching) {
-      if (!bySection.has(t.section_id)) {
-        bySection.set(t.section_id, {
-          info: t.sections || {},
-          courses: [],
-        });
-      }
-      bySection.get(t.section_id).courses.push(t);
-    }
-
-    $('timetableView').innerHTML = [...bySection.entries()].map(([sid, s]) => {
-      // Group courses by course_code to show combined days
-      const byCourse = new Map();
-      for (const c of s.courses) {
-        const key = c.course_code || c.course_name || 'Custom';
-        if (!byCourse.has(key)) {
-          byCourse.set(key, { name: c.course_name, code: c.course_code, entries: [] });
-        }
-        byCourse.get(key).entries.push(c);
-      }
-
-      const coursesHtml = [...byCourse.values()].map(course => {
-        const entriesHtml = course.entries
-          .sort((a, b) => a.day_of_week - b.day_of_week)
-          .map(e => {
-            const slot = slotById.get(e.slot_id);
-            const room = roomById.get(e.room_id);
-            return `<span class="badge badge-gray" style="margin-right:4px">
-              ${dayNames[e.day_of_week]} · ${escapeHtml(slot?.label || e.slot_id)} · ${escapeHtml(room?.display_name || e.room_id)}
-            </span>`;
-          }).join('');
-        return `
-          <div class="course-row">
-            <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:180px;flex-wrap:wrap">
-              ${course.code ? `<span class="course-code">${escapeHtml(course.code)}</span>` : ''}
-              <span class="course-name">${escapeHtml(course.name || course.code || 'Untitled')}</span>
+    $('timetableView').innerHTML = [1,2,3,4,5,6,0].filter(d => byDay.has(d)).map(d => `
+      <div class="section-card">
+        <div class="section-card-head">
+          <div class="section-card-title">${dayNames[d]}</div>
+          <span class="dim" style="font-size:12px">${byDay.get(d).length} class${byDay.get(d).length === 1 ? '' : 'es'}</span>
+        </div>
+        ${byDay.get(d).sort((a, b) => (slotById.get(a.slot_id)?.start_time || '').localeCompare(slotById.get(b.slot_id)?.start_time || '')).map(c => {
+          const slot = slotById.get(c.slot_id);
+          const room = roomById.get(c.room_id);
+          return `<div class="period-row">
+            <div class="period-course">
+              <div class="period-code">${escapeHtml(c.course_code || '—')}</div>
+              <div class="period-name">${escapeHtml(c.course_name || 'Untitled')}</div>
             </div>
-            <div class="course-meta">${entriesHtml}</div>
+            <div class="period-meta">
+              <span><i class="fas fa-clock"></i>${escapeHtml(slot?.label || c.slot_id)}</span>
+              <span><i class="fas fa-door-open"></i>${escapeHtml(room?.display_name || c.room_id)}</span>
+            </div>
+            <button class="btn btn-sm" data-del-class="${c.id}" title="Delete"><i class="fas fa-trash"></i></button>
           </div>`;
-      }).join('');
+        }).join('')}
+      </div>`).join('');
 
-      return `
-        <div class="section-card">
-          <div class="section-card-head">
-            <div>
-              <div class="section-card-title">
-                <span class="section-badge">${escapeHtml(sid)}</span>
-                ${escapeHtml(s.info.name || sid)}
-              </div>
-            </div>
-            <div class="section-card-stats">
-              ${s.info.strength ? `<span><strong>${s.info.strength}</strong> students</span>` : ''}
-              ${s.info.department ? `<span><strong>${escapeHtml(s.info.department)}</strong></span>` : ''}
-              <span><strong>${byCourse.size}</strong> course${byCourse.size === 1 ? '' : 's'}</span>
-            </div>
-          </div>
-          ${coursesHtml}
-        </div>`;
-    }).join('');
+    document.querySelectorAll('[data-del-class]').forEach(btn => {
+      btn.onclick = async () => {
+        if (!confirm('Delete this class from your schedule?')) return;
+        const { error } = await supabase.from('timetable').delete().eq('id', btn.dataset.delClass);
+        if (error) return toast(error.message, 'error');
+        toast('Deleted', 'success'); await loadAll();
+      };
+    });
   }
 
-  /* ============ REQUESTS PANEL ============ */
+  function renderUpload() {
+    if (!base.slots.length || !base.rooms.length) {
+      $('uploadView').innerHTML = '<div class="card"><div class="empty"><i class="fas fa-exclamation-triangle"></i>Rooms and time slots must be configured by admin first</div></div>';
+      return;
+    }
+    const slotOpts = base.slots.map(s => `<option value="${escapeHtml(s.slot_id)}">${escapeHtml(s.label || s.slot_id)} (${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)})</option>`).join('');
+    const roomOpts = base.rooms.map(r => `<option value="${escapeHtml(r.room_id)}">${escapeHtml(r.display_name)}</option>`).join('');
+    $('uploadView').innerHTML = `
+      <div class="card">
+        <div class="card-title"><i class="fas fa-cloud-arrow-up"></i> Add a class to your schedule</div>
+        <p style="font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px">
+          If LPU hasn't provided your timetable yet, add your classes manually. These appear on the free-rooms grid as <strong>Class</strong>.
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+          <label class="field" style="margin:0"><span>Day *</span>
+            <select class="input" id="upDay">
+              ${[1,2,3,4,5,6,0].map(d => `<option value="${d}">${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d]}</option>`).join('')}
+            </select>
+          </label>
+          <label class="field" style="margin:0"><span>Period *</span><select class="input" id="upSlot">${slotOpts}</select></label>
+          <label class="field" style="margin:0"><span>Room *</span><select class="input" id="upRoom">${roomOpts}</select></label>
+          <label class="field" style="margin:0"><span>Course code</span><input class="input" id="upCode" placeholder="CS401"></label>
+          <label class="field" style="margin:0"><span>Course name</span><input class="input" id="upName" placeholder="Compiler Design"></label>
+        </div>
+        <button class="btn btn-primary" id="upAddBtn" style="margin-top:14px"><i class="fas fa-plus"></i> Add class</button>
+      </div>`;
+    $('upAddBtn').onclick = async () => {
+      const day = parseInt($('upDay').value);
+      const slot = $('upSlot').value;
+      const room = $('upRoom').value;
+      const btn = $('upAddBtn'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      const { error } = await supabase.from('timetable').insert({
+        section_id: null, faculty_id: myId, day_of_week: day, slot_id: slot, room_id: room,
+        course_code: $('upCode').value.trim() || null, course_name: $('upName').value.trim() || null,
+        is_active: true,
+      });
+      btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Add class';
+      if (error) return toast(error.message, 'error');
+      toast('Class added', 'success');
+      $('upCode').value = ''; $('upName').value = '';
+      await loadAll();
+    };
+  }
+
+  function renderLeave() {
+    if (!base.slots.length) {
+      $('leaveView').innerHTML = '<div class="card"><div class="empty"><i class="fas fa-exclamation-triangle"></i>Time slots must be configured by admin first</div></div>';
+      return;
+    }
+    const slotOpts = ['<option value="">Whole day</option>'].concat(
+      base.slots.map(s => `<option value="${escapeHtml(s.slot_id)}">${escapeHtml(s.label || s.slot_id)} (${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)})</option>`)
+    ).join('');
+    $('leaveView').innerHTML = `
+      <div class="card">
+        <div class="card-title"><i class="fas fa-plane-departure"></i> Mark yourself on leave</div>
+        <p style="font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px">
+          Any of your regular classes in that slot will show as <strong>Free</strong> on the room grid, so colleagues can book it for a makeup.
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+          <label class="field" style="margin:0"><span>Date *</span><input class="input" type="date" id="lvDate" min="${todayISO()}"></label>
+          <label class="field" style="margin:0"><span>Period</span><select class="input" id="lvSlot">${slotOpts}</select></label>
+          <label class="field" style="margin:0"><span>Reason</span><input class="input" id="lvReason" placeholder="Optional"></label>
+        </div>
+        <button class="btn btn-primary" id="lvAddBtn" style="margin-top:14px"><i class="fas fa-plus"></i> Mark leave</button>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fas fa-list"></i> Upcoming leave</div>
+        ${myLeave.length ? myLeave.map(l => {
+          const slot = base.slots.find(s => s.slot_id === l.slot_id);
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:8px;background:var(--surface-hover);margin-bottom:6px;gap:12px;flex-wrap:wrap">
+            <div><div style="font-weight:500;font-size:13px">${humanDate(l.date)}</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">${slot ? escapeHtml(slot.label || slot.slot_id) + ' · ' + slot.start_time.slice(0,5) + '–' + slot.end_time.slice(0,5) : 'Whole day'}${l.reason ? ' · ' + escapeHtml(l.reason) : ''}</div>
+            </div>
+            <button class="btn btn-sm btn-danger" data-del-leave="${l.id}"><i class="fas fa-trash"></i></button>
+          </div>`;
+        }).join('') : '<div class="empty" style="padding:20px"><i class="fas fa-inbox"></i>No leave marked</div>'}
+      </div>`;
+    $('lvDate').value = todayISO(new Date(Date.now() + 86400000));
+    $('lvAddBtn').onclick = async () => {
+      const date = $('lvDate').value;
+      if (!date) return toast('Pick a date', 'error');
+      const btn = $('lvAddBtn'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      const { error } = await supabase.from('faculty_unavailability').insert({
+        faculty_id: myId, date, slot_id: $('lvSlot').value || null, reason: $('lvReason').value.trim() || null,
+      });
+      btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Mark leave';
+      if (error) return toast(error.message, 'error');
+      toast('Leave marked', 'success'); await loadAll();
+    };
+    document.querySelectorAll('[data-del-leave]').forEach(btn => {
+      btn.onclick = async () => {
+        if (!confirm('Remove this leave?')) return;
+        const { error } = await supabase.from('faculty_unavailability').delete().eq('id', btn.dataset.delLeave);
+        if (error) return toast(error.message, 'error');
+        toast('Removed', 'success'); await loadAll();
+      };
+    });
+  }
+
   function updateReqCount() {
     const pending = myRequests.filter(r => r.status === 'pending').length;
-    $('reqCount').textContent = pending || '';
-    $('reqCount').style.display = pending ? 'inline-flex' : 'none';
+    const el = $('reqCount');
+    if (el) { el.textContent = pending || ''; el.style.display = pending ? 'inline-flex' : 'none'; }
   }
 
   function renderRequests() {
     const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
     const roomById = new Map(base.rooms.map(r => [r.room_id, r]));
-
     let filtered = myRequests;
     if (reqFilter !== 'all') filtered = filtered.filter(r => r.status === reqFilter);
-
-    // Sort: pending first, then by date desc
-    filtered.sort((a, b) => {
+    filtered = [...filtered].sort((a, b) => {
       if (a.status === 'pending' && b.status !== 'pending') return -1;
       if (b.status === 'pending' && a.status !== 'pending') return 1;
       return b.book_date.localeCompare(a.book_date);
     });
-
     if (!filtered.length) {
-      $('requestsList').innerHTML = `
-        <div class="card"><div class="empty-action">
-          <div class="empty-action-icon"><i class="fas fa-paper-plane"></i></div>
-          <div class="empty-action-title">No ${reqFilter === 'all' ? '' : reqFilter} requests</div>
-          <div class="empty-action-sub">Use "Request makeup" to book a room for a makeup class.</div>
-        </div></div>`;
+      $('requestsList').innerHTML = `<div class="card"><div class="empty-action">
+        <div class="empty-action-icon"><i class="fas fa-paper-plane"></i></div>
+        <div class="empty-action-title">No ${reqFilter === 'all' ? '' : reqFilter + ' '}requests</div>
+        <div class="empty-action-sub">Use "Book a room" to create one.</div>
+      </div></div>`;
       return;
     }
-
     $('requestsList').innerHTML = filtered.map(r => {
       const slot = slotById.get(r.slot_id);
       const room = roomById.get(r.room_id);
-      const dateHuman = humanDate(r.book_date);
-      const isPast = r.book_date < todayISO();
-
-      const iconMap = {
-        pending: 'fa-hourglass-half',
-        approved: 'fa-circle-check',
-        rejected: 'fa-circle-xmark',
-        cancelled: 'fa-ban',
-      };
-      const icon = iconMap[r.status] || 'fa-question';
-
+      const iconMap = { pending: 'fa-hourglass-half', approved: 'fa-circle-check', rejected: 'fa-circle-xmark', cancelled: 'fa-ban' };
       const actions = [];
-      if (r.status === 'pending') {
-        actions.push(`<button class="btn btn-sm" data-cancel="${r.id}" title="Cancel request"><i class="fas fa-times"></i> Cancel</button>`);
+      if (r.status === 'pending' || r.status === 'approved') {
+        actions.push(`<button class="btn btn-sm btn-danger" data-cancel="${r.id}"><i class="fas fa-times"></i> Cancel</button>`);
       }
-      if (r.status === 'rejected' || r.status === 'cancelled') {
-        actions.push(`<button class="btn btn-sm btn-primary" data-rebook="${r.id}" title="Rebook similar"><i class="fas fa-redo"></i> Rebook</button>`);
-      }
-
-      return `
-        <div class="req-card">
-          <div class="req-icon ${r.status}">
-            <i class="fas ${icon}"></i>
+      const typeLabel = r.type ? r.type.charAt(0).toUpperCase() + r.type.slice(1) : 'Booking';
+      return `<div class="req-card">
+        <div class="req-icon ${r.status}"><i class="fas ${iconMap[r.status] || 'fa-question'}"></i></div>
+        <div class="req-body">
+          <div class="req-title">
+            ${escapeHtml(typeLabel)} · ${escapeHtml(room?.display_name || r.room_id)}
+            <span class="req-badge ${r.status}">${r.status}</span>
           </div>
-          <div class="req-body">
-            <div class="req-title">
-              ${escapeHtml(r.course_code ? r.course_code + ' · ' : '')}${escapeHtml(room?.display_name || r.room_id)}
-              <span class="req-badge ${r.status}">${r.status}</span>
-              ${r.section_id ? `<span class="badge badge-gray" style="font-weight:500;text-transform:none">${escapeHtml(r.section_id)}</span>` : ''}
-            </div>
-            <div class="req-meta">
-              <span><i class="fas fa-calendar"></i>${dateHuman}${isPast ? ' (past)' : ''}</span>
-              <span><i class="fas fa-clock"></i>${escapeHtml(slot?.label || r.slot_id)} · ${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)}</span>
-              <span><i class="fas fa-paper-plane"></i>${formatRelativeTime(r.created_at)}</span>
-            </div>
-            ${r.reason ? `<div class="req-reason${r.status === 'rejected' ? ' danger' : ''}">
-              <i class="fas fa-quote-left" style="font-size:9px;opacity:.5;margin-right:4px"></i>
-              ${escapeHtml(r.reason)}
-            </div>` : ''}
+          <div class="req-meta">
+            <span><i class="fas fa-calendar"></i>${humanDate(r.book_date)}</span>
+            <span><i class="fas fa-clock"></i>${escapeHtml(slot?.label || r.slot_id)}</span>
+            <span><i class="fas fa-paper-plane"></i>${formatRelativeTime(r.created_at)}</span>
           </div>
-          <div class="req-actions">
-            ${actions.join('')}
-          </div>
-        </div>`;
+          ${r.reason ? `<div class="req-reason">${escapeHtml(r.reason)}</div>` : ''}
+        </div>
+        <div class="req-actions">${actions.join('')}</div>
+      </div>`;
     }).join('');
-
-    // Wire actions
     document.querySelectorAll('[data-cancel]').forEach(btn => {
-      btn.onclick = () => cancelRequest(btn.dataset.cancel, btn);
-    });
-    document.querySelectorAll('[data-rebook]').forEach(btn => {
-      btn.onclick = () => {
-        const r = myRequests.find(x => x.id === btn.dataset.rebook);
-        if (r) openMakeupWizard({
-          section_id: r.section_id,
-          course_code: r.course_code,
-          course_name: r.course_name || '',
-          room_id: r.room_id,
-        });
+      btn.onclick = async () => {
+        if (!confirm('Cancel this booking?')) return;
+        btn.disabled = true;
+        const { error } = await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', btn.dataset.cancel);
+        if (error) { toast(error.message, 'error'); btn.disabled = false; return; }
+        toast('Cancelled', 'success'); await loadAll();
       };
     });
   }
 
-  async function cancelRequest(id, btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    const { error } = await supabase.from('bookings')
-      .update({ status: 'cancelled' })
-      .eq('id', id);
-    if (error) {
-      toast(error.message, 'error');
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-times"></i> Cancel';
-      return;
-    }
-    toast('Request cancelled', 'success');
-    await loadAll();
-  }
-
-  /* ============ TABS ============ */
   document.querySelectorAll('[data-tab]').forEach(btn => {
     btn.onclick = () => {
-      currentTab = btn.dataset.tab;
+      const tab = btn.dataset.tab;
       document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b === btn));
-      document.querySelectorAll('[data-panel]').forEach(p =>
-        p.classList.toggle('active', p.dataset.panel === currentTab));
+      document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('active', p.dataset.panel === tab));
     };
   });
-
   document.querySelectorAll('[data-f]').forEach(btn => {
     btn.onclick = () => {
       reqFilter = btn.dataset.f;
@@ -1162,669 +417,88 @@ import {
     };
   });
 
-  /* ============ LIVE CLOCK ============ */
   function tick() { $('liveTime').textContent = formatTime(nowDate()).slice(0,5); }
   setInterval(tick, 1000); tick();
 
-  /* ============ MAKEUP WIZARD (4 steps) ============ */
-  $('makeupBtn').onclick = () => openMakeupWizard();
+  $('bookBtn').onclick = () => openBooking();
 
-  function openMakeupWizard(prefill = {}) {
-    const state = {
-      step: 1,
-      sectionId: prefill.section_id || null,
-      courseCode: prefill.course_code || null,
-      courseName: prefill.course_name || '',
-      customCourse: false,
-      date: todayISO(new Date(Date.now() + 86400000)),
-      slotId: null,
-      roomId: prefill.room_id || null,
-      reason: '',
-      dataCache: {},
-    };
+  function openBooking() {
+    if (!base.slots.length || !base.rooms.length) return toast('Admin must configure rooms and slots first', 'error');
+    const allowed = ['makeup', 'exam', 'event', 'maintenance'].filter(t => bookingTypeAllowed(settings, t));
+    if (!allowed.length) return toast('No booking types allowed — ask admin', 'error');
 
-    // Build map of sections the faculty teaches
-    const sectionsMap = new Map();
-    for (const t of myTeaching) {
-      if (!sectionsMap.has(t.section_id)) {
-        sectionsMap.set(t.section_id, {
-          id: t.section_id,
-          info: t.sections || {},
-          courses: new Map(),
-        });
-      }
-      const key = t.course_code || t.course_name || 'custom';
-      if (!sectionsMap.get(t.section_id).courses.has(key)) {
-        sectionsMap.get(t.section_id).courses.set(key, {
-          code: t.course_code,
-          name: t.course_name,
-          days: [],
-        });
-      }
-      sectionsMap.get(t.section_id).courses.get(key).days.push(t.day_of_week);
-    }
-
-    const selectedSection = state.sectionId ? sectionsMap.get(state.sectionId) : null;
-    const sectionStrength = selectedSection?.info?.strength || null;
+    const typeOpts = allowed.map(t => `<option value="${t}">${t.charAt(0).toUpperCase() + t.slice(1)}</option>`).join('');
+    const slotOpts = base.slots.map(s => `<option value="${escapeHtml(s.slot_id)}">${escapeHtml(s.label || s.slot_id)} (${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)})</option>`).join('');
+    const roomOpts = base.rooms.map(r => `<option value="${escapeHtml(r.room_id)}">${escapeHtml(r.display_name)}</option>`).join('');
+    const autoApprove = !!settings['booking_auto_approve'];
 
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
-    dialog.innerHTML = `
-      <div class="modal-content makeup-modal">
-        <div class="makeup-header">
-          <div>
-            <div class="makeup-header-title">
-              <i class="fas fa-chalkboard-user"></i> Request makeup class
-            </div>
-            <div class="makeup-header-sub">
-              Select the class that needs a makeup session, then pick a time and room. Admin approval required.
-            </div>
-          </div>
-          <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+    dialog.innerHTML = `<div class="modal-content">
+      <div class="modal-header">
+        <div><div class="modal-title">Book a room</div>
+          <div class="modal-sub">${autoApprove ? 'Your booking will be auto-approved.' : 'Your booking will be sent to admin for approval.'}</div>
         </div>
-
-        <div class="makeup-stepper" id="mkStepper">
-          <div class="step active" data-step="1"><span class="step-num">1</span><span class="step-label">Class</span></div>
-          <div class="step-divider"></div>
-          <div class="step" data-step="2"><span class="step-num">2</span><span class="step-label">When</span></div>
-          <div class="step-divider"></div>
-          <div class="step" data-step="3"><span class="step-num">3</span><span class="step-label">Room</span></div>
-          <div class="step-divider"></div>
-          <div class="step" data-step="4"><span class="step-num">4</span><span class="step-label">Confirm</span></div>
-        </div>
-
-        <div class="makeup-body" id="mkBody">
-
-          <!-- STEP 1: Section + Course -->
-          <div class="makeup-step active" data-panel="1">
-            <div class="makeup-step-title">Which class needs a makeup session?</div>
-            <div class="makeup-step-desc">Pick the section/batch, then choose the course. Student count helps us pick a room big enough.</div>
-
-            <div class="slot-label-row">
-              <div class="label-small">Select section / batch</div>
-              <div class="slot-hint">${sectionsMap.size} section${sectionsMap.size === 1 ? '' : 's'} you teach</div>
-            </div>
-            <div class="section-pick-grid" id="mkSections">
-              ${[...sectionsMap.values()].map(s => {
-                const isSel = state.sectionId === s.id;
-                return `
-                  <button class="section-pick ${isSel ? 'selected' : ''}" data-section="${escapeHtml(s.id)}">
-                    <div class="section-pick-name">${escapeHtml(s.info.name || s.id)}</div>
-                    <div class="section-pick-meta">
-                      <span><i class="fas fa-hashtag"></i>${escapeHtml(s.id)}</span>
-                      ${s.info.strength ? `<span><i class="fas fa-users"></i>${s.info.strength}</span>` : ''}
-                      <span><i class="fas fa-book"></i>${s.courses.size}</span>
-                    </div>
-                  </button>`;
-              }).join('') || '<div class="makeup-empty"><div class="makeup-empty-icon"><i class="fas fa-table"></i></div><div class="makeup-empty-title">No sections assigned</div><div class="makeup-empty-sub">Your administrator needs to load your timetable first.</div></div>'}
-            </div>
-
-            <div id="mkCourseSection" style="display:${state.sectionId ? 'block' : 'none'}">
-              <div class="slot-label-row" style="margin-top:8px">
-                <div class="label-small">Select course</div>
-                <div class="slot-hint" id="mkCourseHint">${selectedSection ? selectedSection.courses.size + ' course' + (selectedSection.courses.size === 1 ? '' : 's') : ''}</div>
-              </div>
-              <div class="course-pick-list" id="mkCourses"></div>
-              <button class="custom-course-toggle" id="mkCustomToggle">
-                <i class="fas fa-plus-circle"></i> Add custom course
-              </button>
-              <div class="custom-fields" id="mkCustomFields">
-                <label class="field"><span style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px">Course code</span>
-                  <input type="text" id="mkCustomCode" placeholder="e.g. CS499" value="${escapeHtml(prefill.course_code || '')}">
-                </label>
-                <label class="field"><span style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px">Course name</span>
-                  <input type="text" id="mkCustomName" placeholder="e.g. Extra session" value="${escapeHtml(prefill.course_name || '')}">
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <!-- STEP 2: When -->
-          <div class="makeup-step" data-panel="2">
-            <div class="makeup-step-title">When should the makeup happen?</div>
-            <div class="makeup-step-desc">Choose any future date. Past slots on today are disabled.</div>
-
-            <div class="date-input-wrap">
-              <i class="fas fa-calendar-days"></i>
-              <input type="date" id="mkDate" value="${state.date}" min="${todayISO()}">
-              <span class="day-badge" id="mkDayBadge">${dayName(state.date)}</span>
-            </div>
-
-            <div class="slot-label-row">
-              <div class="label-small">Pick a period</div>
-              <div class="slot-hint" id="mkSlotHint">Checking availability…</div>
-            </div>
-            <div class="slot-picker" id="mkSlotPicker">
-              <div class="makeup-empty" style="grid-column:1/-1;padding:32px">
-                <div class="makeup-empty-icon"><i class="fas fa-spinner fa-spin"></i></div>
-                <div class="makeup-empty-title">Loading slots</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- STEP 3: Room -->
-          <div class="makeup-step" data-panel="3">
-            <div class="makeup-step-title">Which room?</div>
-            <div class="makeup-step-desc" id="mkRoomDesc">Rooms available for your selected slot.</div>
-
-            ${sectionStrength ? `
-              <div class="capacity-banner">
-                <i class="fas fa-users"></i>
-                <div>Showing only rooms with <strong>capacity ≥ ${sectionStrength}</strong> to fit the section.</div>
-              </div>` : ''}
-
-            <div class="room-filter-bar">
-              <div class="room-search">
-                <i class="fas fa-search"></i>
-                <input type="text" id="mkRoomSearch" placeholder="Search by name or block…">
-              </div>
-            </div>
-
-            <div class="building-pills" id="mkBuildingPills" style="margin-bottom:16px"></div>
-
-            <div class="room-count-line" id="mkRoomCount">
-              <span class="count-badge"><i class="fas fa-door-open" style="font-size:10px"></i> <span id="mkFreeCount">0</span> free</span>
-            </div>
-
-            <div class="room-grid-modern" id="mkRoomGrid">
-              <div class="makeup-empty" style="grid-column:1/-1;padding:32px">
-                <div class="makeup-empty-icon"><i class="fas fa-spinner fa-spin"></i></div>
-                <div class="makeup-empty-title">Loading rooms</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- STEP 4: Confirm -->
-          <div class="makeup-step" data-panel="4">
-            <div class="makeup-step-title">Confirm your booking</div>
-            <div class="makeup-step-desc">Review the details. An admin will approve your request.</div>
-
-            <div class="summary-card">
-              <span class="summary-badge"><i class="fas fa-clock"></i> Makeup class</span>
-              <div class="summary-grid">
-                <div class="summary-item">
-                  <div class="summary-icon"><i class="fas fa-users-rectangle"></i></div>
-                  <div>
-                    <div class="summary-label">Section</div>
-                    <div class="summary-value" id="mkSumSection">—</div>
-                  </div>
-                </div>
-                <div class="summary-item">
-                  <div class="summary-icon"><i class="fas fa-book"></i></div>
-                  <div>
-                    <div class="summary-label">Course</div>
-                    <div class="summary-value" id="mkSumCourse">—</div>
-                  </div>
-                </div>
-                <div class="summary-item">
-                  <div class="summary-icon"><i class="fas fa-calendar-days"></i></div>
-                  <div>
-                    <div class="summary-label">Date</div>
-                    <div class="summary-value" id="mkSumDate">—</div>
-                  </div>
-                </div>
-                <div class="summary-item">
-                  <div class="summary-icon"><i class="fas fa-clock"></i></div>
-                  <div>
-                    <div class="summary-label">Period</div>
-                    <div class="summary-value" id="mkSumSlot">—</div>
-                  </div>
-                </div>
-                <div class="summary-item">
-                  <div class="summary-icon"><i class="fas fa-door-open"></i></div>
-                  <div>
-                    <div class="summary-label">Room</div>
-                    <div class="summary-value mono" id="mkSumRoom">—</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="reason-field">
-              <div class="label-small" style="margin-bottom:8px">Reason <span class="dim" style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
-              <textarea id="mkReason" placeholder="e.g. Extra doubt session for CS402 before mid-terms…"></textarea>
-            </div>
-
-            <div class="info-note">
-              <i class="fas fa-circle-info"></i>
-              <div>Your request will be <strong>pending</strong> until an admin approves it. You'll see the status in "My requests".</div>
-            </div>
-          </div>
-
-        </div>
-
-        <div class="makeup-footer" id="mkFooter">
-          <div class="makeup-footer-step" id="mkStepIndicator">Step 1 of 4</div>
-          <div class="makeup-footer-actions">
-            <button class="btn" id="mkBackBtn" disabled><i class="fas fa-arrow-left"></i> Back</button>
-            <button class="btn btn-primary" id="mkNextBtn" disabled>
-              Continue <i class="fas fa-arrow-right"></i>
-            </button>
-          </div>
-        </div>
+        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
-    `;
+      <div class="modal-body">
+        <label class="field"><span>Type *</span><select class="input" id="bkType">${typeOpts}</select></label>
+        <label class="field"><span>Date *</span><input class="input" type="date" id="bkDate" min="${todayISO()}" value="${todayISO(new Date(Date.now() + 86400000))}"></label>
+        <label class="field"><span>Period *</span><select class="input" id="bkSlot">${slotOpts}</select></label>
+        <label class="field"><span>Room *</span><select class="input" id="bkRoom">${roomOpts}</select></label>
+        <label class="field"><span>Course code</span><input class="input" id="bkCode" placeholder="CS401"></label>
+                <label class="field"><span>Reason (optional)</span><input class="input" id="bkReason" placeholder="Why are you booking this?"></label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-primary" id="bkSubmit"><i class="fas fa-check"></i> Book</button>
+      </div>
+    </div>`;
     document.body.appendChild(dialog);
     dialog.showModal();
 
-    /* ===== refs ===== */
-    const panels = dialog.querySelectorAll('.makeup-step');
-    const stepper = dialog.querySelector('#mkStepper');
-    const stepIndicator = dialog.querySelector('#mkStepIndicator');
-    const backBtn = dialog.querySelector('#mkBackBtn');
-    const nextBtn = dialog.querySelector('#mkNextBtn');
-    const footer = dialog.querySelector('#mkFooter');
-    const dateInput = dialog.querySelector('#mkDate');
-    const dayBadge = dialog.querySelector('#mkDayBadge');
-    const slotPicker = dialog.querySelector('#mkSlotPicker');
-    const slotHint = dialog.querySelector('#mkSlotHint');
-    const roomGrid = dialog.querySelector('#mkRoomGrid');
-    const roomSearch = dialog.querySelector('#mkRoomSearch');
-    const buildingPills = dialog.querySelector('#mkBuildingPills');
-    const freeCountEl = dialog.querySelector('#mkFreeCount');
-    const sumSection = dialog.querySelector('#mkSumSection');
-    const sumCourse = dialog.querySelector('#mkSumCourse');
-    const sumDate = dialog.querySelector('#mkSumDate');
-    const sumSlot = dialog.querySelector('#mkSumSlot');
-    const sumRoom = dialog.querySelector('#mkSumRoom');
-    const reasonInput = dialog.querySelector('#mkReason');
-    const roomDesc = dialog.querySelector('#mkRoomDesc');
-    const courseSection = dialog.querySelector('#mkCourseSection');
-    const coursesList = dialog.querySelector('#mkCourses');
-    const courseHint = dialog.querySelector('#mkCourseHint');
-    const customToggle = dialog.querySelector('#mkCustomToggle');
-    const customFields = dialog.querySelector('#mkCustomFields');
-    const customCode = dialog.querySelector('#mkCustomCode');
-    const customName = dialog.querySelector('#mkCustomName');
-
-    let selectedBuilding = 'all';
-
-    /* ===== step nav ===== */
-    function goToStep(n) {
-      state.step = n;
-      panels.forEach(p => p.classList.toggle('active', parseInt(p.dataset.panel) === n));
-      stepper.querySelectorAll('.step').forEach(el => {
-        const s = parseInt(el.dataset.step);
-        el.classList.toggle('active', s === n);
-        el.classList.toggle('done', s < n);
-      });
-      stepper.querySelectorAll('.step-divider').forEach((el, i) => {
-        el.classList.toggle('done', i + 1 < n);
-      });
-      stepIndicator.textContent = `Step ${n} of 4`;
-      backBtn.disabled = n === 1;
-
-      if (n === 4) {
-        nextBtn.innerHTML = '<i class="fas fa-check"></i> Send request';
-        nextBtn.classList.remove('btn-primary');
-        nextBtn.classList.add('btn-success');
-      } else {
-        nextBtn.innerHTML = 'Continue <i class="fas fa-arrow-right"></i>';
-        nextBtn.classList.add('btn-primary');
-        nextBtn.classList.remove('btn-success');
-      }
-      updateNextState();
-      dialog.querySelector('#mkBody').scrollTop = 0;
-    }
-
-    function updateNextState() {
-      const ok = (
-        (state.step === 1 && state.sectionId && (state.courseCode || state.customCourse && customCode.value.trim())) ||
-        (state.step === 2 && state.slotId) ||
-        (state.step === 3 && state.roomId) ||
-        (state.step === 4)
-      );
-      nextBtn.disabled = !ok;
-    }
-
-    /* ===== step 1: sections + courses ===== */
-    function renderCourses() {
-      const sec = state.sectionId ? sectionsMap.get(state.sectionId) : null;
-      if (!sec) {
-        courseSection.style.display = 'none';
-        return;
-      }
-      courseSection.style.display = 'block';
-      courseHint.textContent = `${sec.courses.size} course${sec.courses.size === 1 ? '' : 's'}`;
-
-      const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-      coursesList.innerHTML = [...sec.courses.values()].map(c => {
-        const isSel = !state.customCourse && state.courseCode === c.code;
-        const daysLabel = [...new Set(c.days)].sort().map(d => dayNames[d]).join(', ');
-        return `
-          <button class="course-pick ${isSel ? 'selected' : ''}" data-course="${escapeHtml(c.code || '')}" data-course-name="${escapeHtml(c.name || '')}">
-            <span class="cp-code">${escapeHtml(c.code || '—')}</span>
-            <span class="cp-name">${escapeHtml(c.name || 'Untitled')}</span>
-            <span class="cp-meta"><i class="fas fa-calendar" style="font-size:10px"></i>${daysLabel}</span>
-          </button>`;
-      }).join('');
-
-      coursesList.querySelectorAll('[data-course]').forEach(btn => {
-        btn.onclick = () => {
-          coursesList.querySelectorAll('.course-pick').forEach(b => b.classList.remove('selected'));
-          btn.classList.add('selected');
-          state.customCourse = false;
-          state.courseCode = btn.dataset.course;
-          state.courseName = btn.dataset.courseName;
-          customFields.classList.remove('show');
-          updateNextState();
-        };
-      });
-    }
-
-    dialog.querySelectorAll('[data-section]').forEach(btn => {
-      btn.onclick = () => {
-        dialog.querySelectorAll('[data-section]').forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        state.sectionId = btn.dataset.section;
-        state.courseCode = null;
-        state.courseName = '';
-        state.customCourse = false;
-        customFields.classList.remove('show');
-        renderCourses();
-        updateNextState();
-      };
-      // re-select if prefill matches
-      if (btn.dataset.section === state.sectionId) {
-        setTimeout(() => { btn.classList.add('selected'); renderCourses(); updateNextState(); }, 0);
-      }
-    });
-
-    customToggle.onclick = () => {
-      state.customCourse = !state.customCourse;
-      customFields.classList.toggle('show', state.customCourse);
-      if (state.customCourse) {
-        state.courseCode = null;
-        state.courseName = '';
-        coursesList.querySelectorAll('.course-pick').forEach(b => b.classList.remove('selected'));
-        setTimeout(() => customCode.focus(), 50);
-      }
-      updateNextState();
-    };
-
-    customCode.oninput = () => { state.courseCode = customCode.value.trim().toUpperCase(); updateNextState(); };
-    customName.oninput = () => { state.courseName = customName.value.trim(); };
-
-    /* ===== step 2: slots ===== */
-    async function loadSlots() {
-      dateInput.value = state.date;
-      dayBadge.textContent = dayName(state.date);
-      slotHint.textContent = 'Checking availability…';
-      slotPicker.innerHTML = `
-        <div class="makeup-empty" style="grid-column:1/-1;padding:24px">
-          <div class="makeup-empty-icon"><i class="fas fa-spinner fa-spin"></i></div>
-          <div class="makeup-empty-title">Loading slots</div>
-        </div>`;
-
-      const cacheKey = state.date;
-      let data = state.dataCache[cacheKey];
-      if (!data) {
-        data = await loadDataForDate(state.date);
-        state.dataCache[cacheKey] = data;
-      }
-
-      const today = todayISO();
-      const isToday = state.date === today;
-      const nowStr = formatTime(nowDate());
-      const secInfo = sectionsMap.get(state.sectionId)?.info || {};
-      const minCapacity = secInfo.strength || 0;
-
-      const slotInfo = base.slots.map(s => {
-        const isPast = isToday && s.end_time <= nowStr;
-        const isNow = isToday && nowStr >= s.start_time && nowStr < s.end_time;
-        const freeCount = isPast ? 0 : base.rooms.filter(r => {
-          if (minCapacity && r.capacity && r.capacity < minCapacity) return false;
-          const c = classifyCell({
-            roomId: r.room_id, slotId: s.slot_id, dateStr: state.date,
-            timetable: data.timetable, bookings: data.bookings,
-            calendarEntry: data.calendarEntry,
-          });
-          return c.state === 'free';
-        }).length;
-        return { slot: s, isPast, isNow, freeCount };
-      });
-
-      const usable = slotInfo.filter(x => !x.isPast && x.freeCount > 0).length;
-      slotHint.textContent = usable > 0
-        ? `${usable} slot${usable === 1 ? '' : 's'} with rooms${minCapacity ? ` ≥ ${minCapacity} seats` : ''}`
-        : 'No slots available';
-
-      if (data.calendarEntry?.kind === 'holiday') {
-        slotPicker.innerHTML = `
-          <div class="makeup-empty" style="grid-column:1/-1;padding:32px">
-            <div class="makeup-empty-icon"><i class="fas fa-calendar-xmark"></i></div>
-            <div class="makeup-empty-title">${escapeHtml(data.calendarEntry.label || 'Holiday')}</div>
-            <div class="makeup-empty-sub">No classes scheduled. Pick another date.</div>
-          </div>`;
-        nextBtn.disabled = true;
-        return;
-      }
-
-      slotPicker.innerHTML = slotInfo.map(({ slot, isPast, isNow, freeCount }) => {
-        const disabled = isPast || freeCount === 0;
-        const selected = state.slotId === slot.slot_id;
-        const availText = isPast ? 'Ended' : (freeCount === 0 ? 'Full' : `${freeCount} free`);
-        const availIcon = isPast ? 'fa-clock' : (freeCount === 0 ? 'fa-lock' : 'fa-door-open');
-        return `
-          <button class="slot-btn ${selected ? 'selected' : ''} ${isNow ? 'is-now' : ''}"
-                  data-slot="${slot.slot_id}" ${disabled ? 'disabled' : ''}>
-            <div class="slot-name">${escapeHtml(slot.label || slot.slot_id)}</div>
-            <div class="slot-time">${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)}</div>
-            <div class="slot-availability ${disabled ? 'none' : ''}">
-              <i class="fas ${availIcon}" style="font-size:10px"></i>${availText}
-            </div>
-          </button>`;
-      }).join('');
-
-      slotPicker.querySelectorAll('[data-slot]').forEach(btn => {
-        btn.onclick = () => {
-          slotPicker.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
-          btn.classList.add('selected');
-          state.slotId = btn.dataset.slot;
-          state.roomId = null;
-          updateNextState();
-        };
-      });
-      updateNextState();
-    }
-
-    dateInput.onchange = () => {
-      state.date = dateInput.value;
-      state.slotId = null;
-      loadSlots();
-    };
-
-    /* ===== step 3: rooms ===== */
-    async function loadRooms() {
-      if (!state.slotId) return;
-      const data = state.dataCache[state.date] || await loadDataForDate(state.date);
-      const slot = base.slots.find(s => s.slot_id === state.slotId);
-      const secInfo = sectionsMap.get(state.sectionId)?.info || {};
-      const minCapacity = secInfo.strength || 0;
-
-      roomDesc.textContent = `Available rooms for ${humanDate(state.date)} · ${slot?.label || state.slotId} (${slot?.start_time.slice(0,5)}–${slot?.end_time.slice(0,5)})`;
-
-      const free = base.rooms.filter(r => {
-        if (minCapacity && r.capacity && r.capacity < minCapacity) return false;
-        const c = classifyCell({
-          roomId: r.room_id, slotId: state.slotId, dateStr: state.date,
-          timetable: data.timetable, bookings: data.bookings,
-          calendarEntry: data.calendarEntry,
-        });
-        return c.state === 'free';
-      });
-
-      const buildings = ['all', ...new Set(free.map(r => r.building).sort())];
-      buildingPills.innerHTML = buildings.map(b => `
-        <button class="building-pill ${b === selectedBuilding ? 'active' : ''}" data-building="${b}">
-          ${b === 'all' ? 'All blocks' : `Block ${b}`}
-        </button>`).join('');
-      buildingPills.querySelectorAll('[data-building]').forEach(btn => {
-        btn.onclick = () => {
-          selectedBuilding = btn.dataset.building;
-          renderRooms();
-        };
-      });
-
-      freeCountEl.textContent = free.length;
-      renderRooms();
-
-      function renderRooms() {
-        let filtered = free;
-        if (selectedBuilding !== 'all') filtered = filtered.filter(r => r.building === selectedBuilding);
-        const q = (roomSearch.value || '').toLowerCase().trim();
-        if (q) {
-          filtered = filtered.filter(r =>
-            r.display_name.toLowerCase().includes(q) ||
-            r.building.toLowerCase().includes(q) ||
-            r.type.toLowerCase().includes(q)
-          );
-        }
-
-        if (filtered.length === 0) {
-          roomGrid.innerHTML = `
-            <div class="makeup-empty" style="grid-column:1/-1;padding:40px">
-              <div class="makeup-empty-icon"><i class="fas fa-door-closed"></i></div>
-              <div class="makeup-empty-title">No matching rooms</div>
-              <div class="makeup-empty-sub">${minCapacity ? `No rooms with ${minCapacity}+ seats available. Try another slot.` : 'Try clearing filters.'}</div>
-            </div>`;
-          updateNextState();
-          return;
-        }
-
-        roomGrid.innerHTML = filtered.map(r => {
-          const isSel = state.roomId === r.room_id;
-          const tight = r.capacity && minCapacity && r.capacity - minCapacity < 10;
-          return `
-            <button class="room-tile ${isSel ? 'selected' : ''}" data-room="${escapeHtml(r.room_id)}">
-              <div class="room-tile-name">${escapeHtml(r.display_name)}</div>
-              <div class="room-tile-meta">
-                <span><i class="fas fa-building"></i>B${r.building}</span>
-                <span><i class="fas fa-layer-group"></i>F${r.floor}</span>
-                <span><i class="fas fa-door-open"></i>${escapeHtml(r.type)}</span>
-                ${r.capacity ? `<span><i class="fas fa-users"></i>${r.capacity}</span>` : ''}
-              </div>
-              <span class="room-tile-badge ${tight ? 'tight' : ''}">${tight ? 'Tight fit' : 'Free'}</span>
-            </button>`;
-        }).join('');
-
-        roomGrid.querySelectorAll('[data-room]').forEach(btn => {
-          btn.onclick = () => {
-            roomGrid.querySelectorAll('.room-tile').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            state.roomId = btn.dataset.room;
-            updateNextState();
-          };
-        });
-        updateNextState();
-      }
-
-      roomSearch.oninput = renderRooms;
-    }
-
-    /* ===== step 4: summary ===== */
-    function loadSummary() {
-      const slot = base.slots.find(s => s.slot_id === state.slotId);
-      const room = base.rooms.find(r => r.room_id === state.roomId);
-      const sec = state.sectionId ? sectionsMap.get(state.sectionId) : null;
-      sumSection.textContent = sec?.info?.name || state.sectionId || '—';
-      sumCourse.textContent = state.courseCode
-        ? `${state.courseCode}${state.courseName ? ' · ' + state.courseName : ''}`
-        : state.courseName || '—';
-      sumDate.textContent = humanDate(state.date);
-      sumSlot.textContent = slot ? `${slot.label || slot.slot_id} · ${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)}` : '—';
-      sumRoom.textContent = room?.display_name || '—';
-    }
-
-    /* ===== navigation ===== */
-    backBtn.onclick = () => {
-      if (state.step > 1) goToStep(state.step - 1);
-    };
-
-    nextBtn.onclick = async () => {
-      if (state.step === 1) {
-        await loadSlots();
-        goToStep(2);
-      } else if (state.step === 2) {
-        await loadRooms();
-        goToStep(3);
-      } else if (state.step === 3) {
-        loadSummary();
-        goToStep(4);
-      } else if (state.step === 4) {
-        // Submit
-        state.reason = reasonInput.value.trim();
-        nextBtn.disabled = true;
-        nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
-
-        const { error } = await supabase.from('bookings').insert({
-          room_id: state.roomId,
-          book_date: state.date,
-          slot_id: state.slotId,
-          type: 'makeup',
-          status: 'pending',
-          faculty_id: myId,
-          created_by: myId,
-          section_id: state.sectionId,
-          course_code: state.courseCode || null,
-          reason: state.reason || null,
-        });
-
-        if (error) {
-          toast(error.message, 'error');
-          nextBtn.disabled = false;
-          nextBtn.innerHTML = '<i class="fas fa-check"></i> Send request';
-          return;
-        }
-
-        const body = dialog.querySelector('#mkBody');
-        const room = base.rooms.find(r => r.room_id === state.roomId);
-        const slot = base.slots.find(s => s.slot_id === state.slotId);
-        body.innerHTML = `
-          <div class="makeup-success">
-            <div class="success-icon"><i class="fas fa-check"></i></div>
-            <div class="success-title">Request sent successfully</div>
-            <div class="success-sub">
-              Your makeup class for <strong>${escapeHtml(state.courseCode || 'class')}</strong>
-              (<strong>${escapeHtml(state.sectionId)}</strong>) on ${humanDate(state.date)} at
-              <strong>${escapeHtml(slot?.label || state.slotId)}</strong> in
-              <strong>${escapeHtml(room?.display_name || state.roomId)}</strong>
-              is now pending approval.
-            </div>
-            <button class="btn btn-primary" id="mkDone">
-              <i class="fas fa-check"></i> Done
-            </button>
-          </div>`;
-        stepper.style.display = 'none';
-        footer.style.display = 'none';
-        dialog.querySelector('#mkDone').onclick = () => {
-          dialog.close();
-          loadAll();
-        };
-      }
-    };
-
-    /* ===== close ===== */
     const close = () => { dialog.close(); dialog.remove(); };
-    dialog.querySelector('[data-close]').onclick = close;
+    dialog.querySelectorAll('[data-close]').forEach(b => b.onclick = close);
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
-    dialog.onclick = (e) => { if (e.target === dialog) close(); };
+    dialog.onclick = e => { if (e.target === dialog) close(); };
 
-    /* ===== boot ===== */
-    goToStep(1);
-    if (prefill.section_id) {
-      setTimeout(() => renderCourses(), 0);
-    }
+    dialog.querySelector('#bkSubmit').onclick = async () => {
+      const type = dialog.querySelector('#bkType').value;
+      const date = dialog.querySelector('#bkDate').value;
+      const slot = dialog.querySelector('#bkSlot').value;
+      const room = dialog.querySelector('#bkRoom').value;
+      const code = dialog.querySelector('#bkCode').value.trim();
+      const reason = dialog.querySelector('#bkReason').value.trim();
+      if (!date || !slot || !room) return toast('Fill date, period, and room', 'error');
+      const btn = dialog.querySelector('#bkSubmit');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Booking…';
+      const { error } = await supabase.from('bookings').insert({
+        room_id: room,
+        book_date: date,
+        slot_id: slot,
+        type,
+        status: 'pending',
+        faculty_id: myId,
+        created_by: myId,
+        course_code: code || null,
+        reason: reason || null,
+        section_id: null,
+      });
+      if (error) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check"></i> Book';
+        return toast(error.message, 'error');
+      }
+      toast(autoApprove ? 'Booked & approved' : 'Request sent — pending approval', 'success');
+      close();
+      await loadAll();
+    };
   }
 
-  /* ============ BOOT ============ */
   await loadAll();
-  setInterval(() => {
-    if (!document.hidden) loadAll();
-  }, 60_000);
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) loadAll();
-  });
+  setInterval(() => { if (!document.hidden) loadAll(); }, 60_000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) loadAll(); });
 })();
 </script>
 </body>

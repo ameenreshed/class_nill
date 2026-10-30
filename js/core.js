@@ -23,8 +23,8 @@ export async function waitForSession(maxMs = 2500) {
 let serverOffsetMs = 0;
 export async function syncServerTime() {
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/time_slots?select=slot_id&limit=1`, {
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }, cache: 'no-store',
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+      headers: { apikey: SUPABASE_ANON_KEY }, cache: 'no-store',
     });
     const d = res.headers.get('date');
     if (d) serverOffsetMs = new Date(d).getTime() - Date.now();
@@ -37,9 +37,13 @@ export function todayISO(d = nowDate()) {
 export function formatTime(d) {
   return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
 }
-export function parseTimeOnDate(dateStr, timeStr) { return new Date(`${dateStr}T${String(timeStr).slice(0,8)}`); }
+const normT = s => String(s ?? '').slice(0, 8);
+export function parseTimeOnDate(dateStr, timeStr) {
+  return new Date(`${dateStr}T${normT(timeStr)}`);
+}
 export function dayOfWeekNum(dateStr) { return new Date(`${dateStr}T12:00:00`).getDay(); }
 export function dayName(dateStr) { return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayOfWeekNum(dateStr)]; }
+export function dayNameLong(dateStr) { return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dayOfWeekNum(dateStr)]; }
 export function isSunday(dateStr) { return dayOfWeekNum(dateStr) === 0; }
 export function addDays(dateStr, n) {
   const d = new Date(`${dateStr}T12:00:00`); d.setDate(d.getDate() + n); return todayISO(d);
@@ -52,8 +56,8 @@ export function slotStateOnDate(slot, dateStr) {
   if (dateStr < today) return 'past-day';
   if (dateStr > today) return 'upcoming';
   const nowStr = formatTime(nowDate());
-  if (nowStr >= slot.end_time) return 'ended';
-  if (nowStr >= slot.start_time) return 'current';
+  if (nowStr >= normT(slot.end_time))   return 'ended';
+  if (nowStr >= normT(slot.start_time)) return 'current';
   return 'upcoming';
 }
 export function minutesUntilStart(slot, dateStr) {
@@ -67,25 +71,50 @@ export function minutesUntilEnd(slot, dateStr) {
 export function currentSlot(slots, dateStr = todayISO()) {
   if (dateStr !== todayISO()) return null;
   const nowStr = formatTime(nowDate());
-  return slots.find(s => nowStr >= s.start_time && nowStr < s.end_time) || null;
+  return slots.find(s => nowStr >= normT(s.start_time) && nowStr < normT(s.end_time)) || null;
 }
-export function classifyCell({ roomId, slotId, dateStr, timetable, bookings, calendarEntry }) {
+
+export function classifyCell({
+  roomId, slotId, dateStr, timetable, bookings, calendarEntry, weekendOpen,
+  unavailability = [],
+}) {
   if (calendarEntry && calendarEntry.kind === 'holiday') {
     return { state: 'holiday', label: 'Holiday', reason: calendarEntry.label || 'Holiday' };
   }
-  if (isSunday(dateStr) && !(calendarEntry && calendarEntry.kind === 'working_saturday')) {
+  const sundayClosed =
+    isSunday(dateStr) &&
+    !(calendarEntry && calendarEntry.kind === 'working_saturday') &&
+    !weekendOpen;
+  if (sundayClosed) {
     return { state: 'closed', label: 'Closed', reason: 'Sunday' };
   }
   const dow = dayOfWeekNum(dateStr);
-  const tt = timetable.find(t => t.room_id === roomId && t.slot_id === slotId && t.day_of_week === dow && t.is_active !== false);
-  if (tt) return { state: 'class', label: 'Class', reason: `${tt.course_code || 'Class'}${tt.section_id ? ' · ' + tt.section_id : ''}`, detail: tt };
-  const bk = bookings.find(b => b.room_id === roomId && b.slot_id === slotId && (b.status === 'pending' || b.status === 'approved'));
+  const tt = timetable.find(t =>
+    t.room_id === roomId && t.slot_id === slotId &&
+    t.day_of_week === dow && t.is_active !== false
+  );
+  if (tt) {
+    const onLeave = unavailability.some(u =>
+      u.faculty_id === tt.faculty_id &&
+      u.date === dateStr &&
+      (u.slot_id === null || u.slot_id === slotId)
+    );
+    if (onLeave) return { state: 'free', label: 'Free', reason: 'Faculty on leave', detail: tt };
+    const who = tt.course_code || 'Class';
+    return { state: 'class', label: 'Class', reason: who, detail: tt };
+  }
+  const bk = bookings.find(b =>
+    b.room_id === roomId && b.slot_id === slotId &&
+    (b.status === 'pending' || b.status === 'approved')
+  );
   if (bk) {
     const labelMap = { makeup: 'Makeup', exam: 'Exam', event: 'Event', maintenance: 'Maint', regular: 'Class' };
-    return { state: bk.type === 'makeup' ? 'makeup' : bk.type === 'exam' ? 'exam' : bk.type === 'event' ? 'exam' : bk.type === 'maintenance' ? 'maint' : 'class', label: labelMap[bk.type] || 'Booked', reason: bk.reason || labelMap[bk.type] || 'Booked', detail: bk };
+    const stateMap = { makeup: 'makeup', exam: 'exam', event: 'exam', maintenance: 'maint', regular: 'class' };
+    return { state: stateMap[bk.type] || 'class', label: labelMap[bk.type] || 'Booked', reason: bk.reason || labelMap[bk.type] || 'Booked', detail: bk };
   }
   return { state: 'free', label: 'Free', reason: 'No class, no booking' };
 }
+
 export async function loadBaseData() {
   const [{ data: rooms }, { data: slots }, { data: types }, { data: buildings }, { data: sections }] = await Promise.all([
     supabase.from('rooms').select('*').eq('bookable', true).order('building').order('floor'),
@@ -96,17 +125,47 @@ export async function loadBaseData() {
   ]);
   return { rooms: rooms ?? [], slots: slots ?? [], types: types ?? [], buildings: buildings ?? [], sections: sections ?? [] };
 }
+
 export async function loadDataForDate(dateStr) {
   const dow = dayOfWeekNum(dateStr);
-  const [{ data: tt }, { data: bk }, { data: cal }] = await Promise.all([
+  const [{ data: tt }, { data: bk }, { data: cal }, { data: un }] = await Promise.all([
     supabase.from('timetable').select('*').eq('day_of_week', dow).eq('is_active', true),
     supabase.from('bookings').select('*').eq('book_date', dateStr).in('status', ['pending', 'approved']),
     supabase.from('academic_calendar').select('*').eq('date', dateStr).maybeSingle(),
+    supabase.from('faculty_unavailability').select('*').eq('date', dateStr),
   ]);
-  return { timetable: tt ?? [], bookings: bk ?? [], calendarEntry: cal ?? null };
+  return {
+    timetable: tt ?? [], bookings: bk ?? [],
+    calendarEntry: cal ?? null, unavailability: un ?? [],
+  };
 }
+
+// ---------- settings (defensive — won't throw if table missing) ----------
+let _settingsCache = null;
+let _settingsCacheAt = 0;
+export async function getSettings(force = false) {
+  const now = Date.now();
+  if (!force && _settingsCache && now - _settingsCacheAt < 30_000) return _settingsCache;
+  try {
+    const { data } = await supabase.from('system_settings').select('*');
+    const map = {};
+    (data ?? []).forEach(s => { map[s.key] = s.value; });
+    _settingsCache = map; _settingsCacheAt = now;
+    return map;
+  } catch {
+    _settingsCache = {}; _settingsCacheAt = now; return {};
+  }
+}
+export function invalidateSettings() { _settingsCache = null; }
+export async function getSetting(key, fallback = null) {
+  const s = await getSettings();
+  return s[key] ?? fallback;
+}
+
+// ---------- helpers ----------
 export function escapeHtml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 }
 export function toast(msg, kind = 'info') {
   let el = document.querySelector('.toast');
@@ -131,9 +190,19 @@ export function formatRelativeTime(iso) {
 export function formatDateTime(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
-  return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' · ' +
+         d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
-export function debounce(fn, ms = 200) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+export function debounce(fn, ms = 200) {
+  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+export function bookingTypeAllowed(settings, type) {
+  const map = { makeup: 'allow_makeup', exam: 'allow_exam', event: 'allow_event', maintenance: 'allow_maintenance' };
+  const key = map[type];
+  return !key || settings[key] !== false;
+}
+
+// ---------- theme ----------
 const THEME_KEY = 'theme';
 export function getCurrentTheme() { return document.documentElement.getAttribute('data-theme') || 'light'; }
 function updateThemeIcons() {
@@ -150,42 +219,66 @@ export function initTheme() {
   const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   applyTheme(stored || (systemDark ? 'dark' : 'light'));
 }
+
+// ---------- auth ----------
 export async function requireRole(allowed) {
   const session = await waitForSession(2500);
   if (!session) { location.replace(`${BASE}login.html`); return null; }
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
   if (!profile) { location.replace(`${BASE}login.html`); return null; }
-  if (profile.is_active === false) { try { await supabase.auth.signOut(); } catch {} location.replace(`${BASE}login.html?err=suspended`); return null; }
-  if (allowed && !allowed.includes(profile.role)) { location.replace(`${BASE}${profile.role}.html`); return null; }
+  if (profile.is_active === false) {
+    try { await supabase.auth.signOut(); } catch {}
+    location.replace(`${BASE}login.html?err=suspended`);
+    return null;
+  }
+  if (profile.role === 'student') {
+    const enabled = await getSetting('student_portal_enabled', true);
+    if (!enabled) {
+      try { await supabase.auth.signOut(); } catch {}
+      location.replace(`${BASE}login.html?err=portal-off`);
+      return null;
+    }
+  }
+  if (allowed && !allowed.includes(profile.role)) {
+    location.replace(`${BASE}${profile.role}.html`);
+    return null;
+  }
   syncServerTime();
   return { session, profile };
 }
-export async function signOut() { try { await supabase.auth.signOut(); } catch {} location.replace(`${BASE}login.html`); }
 
-export function renderNav(profile) {
+export async function signOut() {
+  try { await supabase.auth.signOut(); } catch {}
+  location.replace(`${BASE}login.html`);
+}
+
+// ---------- navigation ----------
+export async function renderNav(profile) {
   const el = document.getElementById('nav');
   if (!el || !profile) return;
   initTheme();
 
   const initial = ((profile.full_name || profile.email || '?').trim()[0] || '?').toUpperCase();
-  const roleIcon = profile.role === 'admin' ? 'shield-halved' : profile.role === 'faculty' ? 'chalkboard-user' : 'graduation-cap';
-  const home = profile.role === 'admin' ? 'admin.html' : profile.role === 'faculty' ? 'faculty.html' : 'student.html';
-  const currentPage = location.pathname.split('/').pop() || 'admin.html';
-  const isManagePage = currentPage.startsWith('admin-') && currentPage !== 'admin.html';
+  const roleIcon = profile.role === 'admin' ? 'shield-halved'
+                 : profile.role === 'faculty' ? 'chalkboard-user'
+                 : 'graduation-cap';
+  const home = profile.role === 'admin' ? 'admin.html'
+             : profile.role === 'faculty' ? 'faculty.html'
+             : 'student.html';
+  const currentPage = location.pathname.split('/').pop() || home;
 
   const items = profile.role === 'admin' ? [
-    { href: 'admin.html', label: 'Dashboard', icon: 'fa-gauge-high', active: currentPage === 'admin.html' },
-    { href: 'admin-faculty.html', label: 'Manage', icon: 'fa-sliders', active: isManagePage },
-    { href: 'student.html', label: 'Free rooms', icon: 'fa-building', active: currentPage === 'student.html' },
+    { href: 'admin.html',           label: 'Dashboard',   icon: 'fa-gauge-high',  active: currentPage === 'admin.html' },
+    { href: 'admin-timetable.html', label: 'Timetable',   icon: 'fa-table',       active: currentPage.startsWith('admin-') && currentPage !== 'admin.html' && currentPage !== 'admin-settings.html' },
+    { href: 'student.html',         label: 'Free rooms',  icon: 'fa-building',    active: currentPage === 'student.html' },
+    { href: 'admin-settings.html',  label: 'Settings',    icon: 'fa-gear',        active: currentPage === 'admin-settings.html' },
   ] : profile.role === 'faculty' ? [
-    { href: 'faculty.html', label: 'Dashboard', icon: 'fa-gauge-high', active: currentPage === 'faculty.html' },
-    { href: 'student.html', label: 'Free rooms', icon: 'fa-building', active: currentPage === 'student.html' },
-    { href: 'student-timetable.html', label: 'All timetable', icon: 'fa-table', active: currentPage === 'student-timetable.html' },
-    { href: 'profile.html', label: 'Profile', icon: 'fa-user', active: currentPage === 'profile.html' },
+    { href: 'faculty.html',   label: 'Dashboard',   icon: 'fa-gauge-high', active: currentPage === 'faculty.html' },
+    { href: 'student.html',   label: 'Free rooms',  icon: 'fa-building',   active: currentPage === 'student.html' },
+    { href: 'profile.html',   label: 'Profile',     icon: 'fa-user',       active: currentPage === 'profile.html' },
   ] : [
-    { href: 'student.html', label: 'Free rooms', icon: 'fa-building', active: currentPage === 'student.html' },
-    { href: 'student-timetable.html', label: 'My timetable', icon: 'fa-table', active: currentPage === 'student-timetable.html' },
-    { href: 'profile.html', label: 'Profile', icon: 'fa-user', active: currentPage === 'profile.html' },
+    { href: 'student.html',  label: 'Free rooms', icon: 'fa-building', active: currentPage === 'student.html' },
+    { href: 'profile.html',  label: 'Profile',    icon: 'fa-user',     active: currentPage === 'profile.html' },
   ];
 
   el.innerHTML = `

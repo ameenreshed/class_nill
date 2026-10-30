@@ -8,6 +8,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+<style>
+  .set-tile { display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:10px; }
+  .set-tile-left { flex:1;min-width:0; }
+  .set-tile-title { font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px; }
+  .set-tile-title i { color:var(--brand);font-size:13px; }
+  .set-tile-desc { font-size:12px;color:var(--text-secondary);margin-top:4px;line-height:1.5; }
+  .set-toggle { position:relative;width:44px;height:26px;background:var(--border-strong);border-radius:999px;cursor:pointer;transition:background 180ms;flex-shrink:0;border:none;padding:0; }
+  .set-toggle::after { content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform 180ms;box-shadow:0 1px 3px rgba(0,0,0,0.2); }
+  .set-toggle.on { background:var(--success); }
+  .set-toggle.on::after { transform:translateX(18px); }
+  .set-toggle:disabled { opacity:.5;cursor:not-allowed; }
+  .set-section-title { font-size:15px;font-weight:600;color:var(--text);margin:24px 0 12px;display:flex;align-items:center;gap:8px; }
+  .set-section-title i { color:var(--brand); }
+</style>
 </head>
 <body>
 <div id="nav"></div>
@@ -15,18 +30,64 @@
   <div class="page-header">
     <div>
       <h1 class="page-title"><i class="fas fa-gear"></i> Settings</h1>
-      <p class="page-subtitle">Buildings · Sections · Time slots · Academic calendar</p>
+      <p class="page-subtitle">Portal, bookings, data — everything in one place.</p>
     </div>
   </div>
 
-  <div class="grid-toolbar" id="tabs">
-    <button class="chip on" data-tab="buildings"><i class="fas fa-building"></i> Buildings</button>
-    <button class="chip" data-tab="sections"><i class="fas fa-users-rectangle"></i> Sections</button>
-    <button class="chip" data-tab="slots"><i class="fas fa-clock"></i> Time slots</button>
-    <button class="chip" data-tab="calendar"><i class="fas fa-calendar-days"></i> Calendar</button>
+  <div class="admin-tabs">
+    <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-chalkboard-user"></i> Faculty</a>
+    <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
+    <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
+    <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
+    <a href="admin-buildings.html" class="admin-tab"><i class="fas fa-building"></i> Buildings</a>
+    <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
+    <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
+    <a href="admin-users.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
+    <a href="admin-settings.html" class="admin-tab active"><i class="fas fa-gear"></i> Settings</a>
   </div>
 
-  <div id="panel" class="mt-4"><div class="card" style="padding:32px"><div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</div></div></div>
+  <h2 class="set-section-title"><i class="fas fa-toggle-on"></i> System toggles</h2>
+  <div id="toggleTiles"></div>
+
+  <h2 class="set-section-title"><i class="fas fa-bullhorn"></i> Site banner</h2>
+  <div class="card">
+    <label class="field"><span>Banner message (shown on student &amp; faculty pages)</span>
+      <input class="input" id="bannerInput" placeholder="e.g. Mid-term exams next week — room bookings paused on 20th">
+    </label>
+    <button class="btn btn-primary btn-sm" id="saveBannerBtn"><i class="fas fa-check"></i> Save banner</button>
+  </div>
+
+  <h2 class="set-section-title"><i class="fas fa-cloud-arrow-down"></i> Data import from LPU</h2>
+  <div class="card">
+    <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px">
+      If LPU provides an API for classrooms, timetables, or faculty logins, paste the endpoint URL here. Until that integration is built, faculty can upload their own timetables from their dashboard.
+    </p>
+    <label class="field"><span>API endpoint (optional)</span>
+      <input class="input" id="apiUrlInput" placeholder="https://api.lpu.in/v1/…">
+    </label>
+    <label class="field"><span>API key / token</span>
+      <input class="input" id="apiKeyInput" type="password" placeholder="Paste securely — stored in DB, visible only to admins">
+    </label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary btn-sm" id="saveApiBtn"><i class="fas fa-check"></i> Save credentials</button>
+      <button class="btn btn-sm" id="syncNowBtn"><i class="fas fa-rotate"></i> Sync now (stub)</button>
+    </div>
+    <div style="margin-top:16px;padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);line-height:1.55">
+      <i class="fas fa-info-circle" style="margin-right:6px"></i>
+      When LPU API is wired, sync will write rows into the <code>timetable</code> table. Faculty can always edit their own rows afterward.
+    </div>
+  </div>
+
+  <h2 class="set-section-title"><i class="fas fa-list-check"></i> Booking types allowed</h2>
+  <div id="typeTiles"></div>
+
+  <h2 class="set-section-title"><i class="fas fa-link"></i> Quick links</h2>
+  <div class="chips" style="gap:8px">
+    <a href="admin-buildings.html" class="btn btn-sm"><i class="fas fa-building"></i> Buildings</a>
+    <a href="admin-slots.html" class="btn btn-sm"><i class="fas fa-clock"></i> Time slots</a>
+    <a href="admin-calendar.html" class="btn btn-sm"><i class="fas fa-calendar-days"></i> Calendar</a>
+    <a href="admin-rooms.html" class="btn btn-sm"><i class="fas fa-door-open"></i> Rooms</a>
+  </div>
 </div>
 
 <script type="module">
@@ -36,333 +97,92 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   const auth = await requireRole(['admin']);
   if (!auth) return;
   renderNav(auth.profile);
-
   const $ = id => document.getElementById(id);
-  let currentTab = 'buildings';
 
-  /* ==== modal helper ==== */
-  function openModal({ title, fields, onSave }) {
-    const dialog = document.createElement('dialog');
-    dialog.className = 'modal-dialog';
-    dialog.innerHTML = `
-      <div class="modal-content">
-        <div class="modal-header">
-          <div class="modal-title">${escapeHtml(title)}</div>
-          <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+  let settings = {};
+
+  const SYSTEM_TOGGLES = [
+    { key: 'student_portal_enabled', title: 'Student portal', icon: 'fa-graduation-cap',
+      desc: 'Turn OFF to hide the free-rooms grid from students. Faculty and admins still have access.' },
+    { key: 'booking_auto_approve', title: 'Auto-approve bookings', icon: 'fa-bolt',
+      desc: 'When ON, faculty bookings are approved instantly (useful for late-night bookings). When OFF, admin must approve each one.' },
+  ];
+  const TYPE_TOGGLES = [
+    { key: 'allow_makeup',      title: 'Makeup class', icon: 'fa-clock-rotate-left',
+      desc: 'Allow faculty to book extra sessions for classes missed due to leave.' },
+    { key: 'allow_exam',        title: 'Exam', icon: 'fa-file-pen',
+      desc: 'Allow exam-type bookings.' },
+    { key: 'allow_event',       title: 'Event', icon: 'fa-users',
+      desc: 'Allow events (seminars, clubs, etc.).' },
+    { key: 'allow_maintenance', title: 'Maintenance', icon: 'fa-screwdriver-wrench',
+      desc: 'Allow blocking a room for maintenance.' },
+  ];
+
+  function tileHTML(t, val) {
+    return `
+      <div class="set-tile">
+        <div class="set-tile-left">
+          <div class="set-tile-title"><i class="fas ${t.icon}"></i> ${escapeHtml(t.title)}</div>
+          <div class="set-tile-desc">${escapeHtml(t.desc)}</div>
         </div>
-        <div class="modal-body">${fields}</div>
-        <div class="modal-footer">
-          <button class="btn" data-close>Cancel</button>
-          <button class="btn btn-primary" data-save>Save</button>
-        </div>
+        <button class="set-toggle ${val ? 'on' : ''}" data-key="${t.key}" aria-pressed="${val}"></button>
       </div>`;
-    document.body.appendChild(dialog);
-    dialog.showModal();
-    const get = f => dialog.querySelector(`[data-field="${f}"]`)?.value ?? '';
-    dialog.querySelector('[data-save]').onclick = async () => {
-      const ok = await onSave(get);
-      if (ok) { dialog.close(); dialog.remove(); render(); }
-    };
-    const close = () => { dialog.close(); dialog.remove(); };
-    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
-    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
-    dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  /* ==== BUILDINGS ==== */
-  async function renderBuildings() {
-    const [{ data: b }, { data: r }] = await Promise.all([
-      supabase.from('buildings').select('*').order('sort_order').order('id'),
-      supabase.from('rooms').select('building'),
-    ]);
-    const counts = new Map();
-    (r ?? []).forEach(x => counts.set(x.building, (counts.get(x.building) || 0) + 1));
+  async function load() {
+    const { data } = await supabase.from('system_settings').select('*');
+    settings = {};
+    (data ?? []).forEach(s => { settings[s.key] = s.value; });
 
-    $('panel').innerHTML = `
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <div><h2 style="font-size:16px;font-weight:600">Buildings</h2><p class="dim" style="font-size:12px">${(b ?? []).length} total</p></div>
-          <button class="btn btn-primary btn-sm" id="addB"><i class="fas fa-plus"></i> Add building</button>
-        </div>
-        <table style="width:100%">
-          <thead><tr><th>ID</th><th>Name</th><th>Address</th><th>Rooms</th><th>Active</th><th style="text-align:right">Actions</th></tr></thead>
-          <tbody>
-            ${(b ?? []).map(x => `
-              <tr>
-                <td class="mono">${escapeHtml(x.id)}</td>
-                <td>${escapeHtml(x.name)}</td>
-                <td class="dim">${escapeHtml(x.address || '—')}</td>
-                <td>${counts.get(x.id) || 0}</td>
-                <td>${x.is_active ? '<span class="badge badge-approved">yes</span>' : '<span class="badge badge-rejected">no</span>'}</td>
-                <td style="text-align:right;white-space:nowrap">
-                  <button class="btn btn-sm" data-edit="${escapeHtml(x.id)}"><i class="fas fa-pen"></i></button>
-                  <button class="btn btn-sm ${x.is_active ? 'btn-danger' : 'btn-success'}" data-toggle="${escapeHtml(x.id)}" data-active="${x.is_active}"><i class="fas fa-${x.is_active ? 'eye-slash' : 'eye'}"></i></button>
-                </td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
+    $('toggleTiles').innerHTML = SYSTEM_TOGGLES.map(t => tileHTML(t, !!settings[t.key])).join('');
+    $('typeTiles').innerHTML = TYPE_TOGGLES.map(t => tileHTML(t, settings[t.key] !== false)).join('');
 
-    $('addB').onclick = () => openModal({
-      title: 'Add building',
-      fields: `
-        <label class="field"><span>ID</span><input class="input" data-field="id" placeholder="34"></label>
-        <label class="field"><span>Name</span><input class="input" data-field="name" placeholder="Block 34"></label>
-        <label class="field"><span>Address</span><input class="input" data-field="address"></label>
-        <label class="field"><span>Sort order</span><input class="input" type="number" data-field="sort_order" value="0"></label>`,
-      onSave: async (get) => {
-        const id = get('id').trim(), name = get('name').trim();
-        if (!id || !name) { toast('ID and name required', 'error'); return false; }
-        const { error } = await supabase.from('buildings').insert({ id, name, address: get('address').trim() || null, sort_order: parseInt(get('sort_order')) || 0 });
-        if (error) { toast(error.message, 'error'); return false; }
-        toast('Added', 'success'); return true;
-      },
-    });
+    $('bannerInput').value = typeof settings['site_banner'] === 'string' ? settings['site_banner'] : '';
+    $('apiUrlInput').value = settings['lpu_api_url'] || '';
+    $('apiKeyInput').value = settings['lpu_api_key'] || '';
 
-    document.querySelectorAll('[data-edit]').forEach(bn => bn.onclick = () => {
-      const x = (b ?? []).find(v => v.id === bn.dataset.edit);
-      if (!x) return;
-      openModal({
-        title: `Edit ${x.id}`,
-        fields: `
-          <label class="field"><span>Name</span><input class="input" data-field="name" value="${escapeHtml(x.name)}"></label>
-          <label class="field"><span>Address</span><input class="input" data-field="address" value="${escapeHtml(x.address || '')}"></label>
-          <label class="field"><span>Sort</span><input class="input" type="number" data-field="sort_order" value="${x.sort_order || 0}"></label>`,
-        onSave: async (get) => {
-          const { error } = await supabase.from('buildings').update({ name: get('name').trim(), address: get('address').trim() || null, sort_order: parseInt(get('sort_order')) || 0 }).eq('id', x.id);
-          if (error) { toast(error.message, 'error'); return false; }
-          toast('Updated', 'success'); return true;
-        },
-      });
-    });
-
-    document.querySelectorAll('[data-toggle]').forEach(bn => bn.onclick = async () => {
-      const { error } = await supabase.from('buildings').update({ is_active: bn.dataset.active !== 'true' }).eq('id', bn.dataset.toggle);
-      if (error) return toast(error.message, 'error');
-      toast('Updated', 'success'); render();
-    });
-  }
-
-  /* ==== SECTIONS ==== */
-  async function renderSections() {
-    const [{ data: s }, { data: p }] = await Promise.all([
-      supabase.from('sections').select('*').order('section_id'),
-      supabase.from('profiles').select('section_id').eq('role', 'student'),
-    ]);
-    const counts = new Map();
-    (p ?? []).forEach(x => { if (x.section_id) counts.set(x.section_id, (counts.get(x.section_id) || 0) + 1); });
-
-    $('panel').innerHTML = `
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <div><h2 style="font-size:16px;font-weight:600">Sections / Batches</h2><p class="dim" style="font-size:12px">${(s ?? []).length} total</p></div>
-          <button class="btn btn-primary btn-sm" id="addS"><i class="fas fa-plus"></i> Add section</button>
-        </div>
-        <table style="width:100%">
-          <thead><tr><th>ID</th><th>Name</th><th>Strength</th><th>Dept</th><th>Students</th><th style="text-align:right">Actions</th></tr></thead>
-          <tbody>
-            ${(s ?? []).map(x => `
-              <tr>
-                <td class="mono">${escapeHtml(x.section_id)}</td>
-                <td>${escapeHtml(x.name)}</td>
-                <td>${x.strength || '—'}</td>
-                <td class="dim">${escapeHtml(x.department || '—')}</td>
-                <td>${counts.get(x.section_id) || 0}</td>
-                <td style="text-align:right;white-space:nowrap">
-                  <button class="btn btn-sm" data-edit="${escapeHtml(x.section_id)}"><i class="fas fa-pen"></i></button>
-                  <button class="btn btn-sm btn-danger" data-del="${escapeHtml(x.section_id)}"><i class="fas fa-trash"></i></button>
-                </td>
-              </tr>`).join('') || '<tr><td colspan="6" class="empty">No sections</td></tr>'}
-          </tbody>
-        </table>
-      </div>`;
-
-    $('addS').onclick = () => openModal({
-      title: 'Add section',
-      fields: `
-        <label class="field"><span>ID</span><input class="input" data-field="section_id" placeholder="CSE-4A"></label>
-        <label class="field"><span>Name</span><input class="input" data-field="name" placeholder="CSE 4th Year A"></label>
-        <label class="field"><span>Strength</span><input class="input" type="number" data-field="strength" value="60"></label>
-        <label class="field"><span>Department</span><input class="input" data-field="department" placeholder="CSE"></label>`,
-      onSave: async (get) => {
-        const id = get('section_id').trim(), name = get('name').trim();
-        if (!id || !name) { toast('ID and name required', 'error'); return false; }
-        const { error } = await supabase.from('sections').insert({ section_id: id, name, strength: parseInt(get('strength')) || 60, department: get('department').trim() || null });
-        if (error) { toast(error.message, 'error'); return false; }
-        toast('Added', 'success'); return true;
-      },
-    });
-
-    document.querySelectorAll('[data-edit]').forEach(bn => bn.onclick = () => {
-      const x = (s ?? []).find(v => v.section_id === bn.dataset.edit);
-      if (!x) return;
-      openModal({
-        title: `Edit ${x.section_id}`,
-        fields: `
-          <label class="field"><span>Name</span><input class="input" data-field="name" value="${escapeHtml(x.name)}"></label>
-          <label class="field"><span>Strength</span><input class="input" type="number" data-field="strength" value="${x.strength || 60}"></label>
-          <label class="field"><span>Department</span><input class="input" data-field="department" value="${escapeHtml(x.department || '')}"></label>`,
-        onSave: async (get) => {
-          const { error } = await supabase.from('sections').update({ name: get('name').trim(), strength: parseInt(get('strength')) || 60, department: get('department').trim() || null }).eq('section_id', x.section_id);
-          if (error) { toast(error.message, 'error'); return false; }
-          toast('Updated', 'success'); return true;
-        },
-      });
-    });
-
-    document.querySelectorAll('[data-del]').forEach(bn => bn.onclick = async () => {
-      if (!confirm('Delete section? This cannot be undone.')) return;
-      const { error } = await supabase.from('sections').delete().eq('section_id', bn.dataset.del);
-      if (error) return toast(error.message, 'error');
-      toast('Deleted', 'success'); render();
-    });
-  }
-
-  /* ==== SLOTS ==== */
-  async function renderSlots() {
-    const { data: slots } = await supabase.from('time_slots').select('*').order('sort_order').order('start_time');
-    $('panel').innerHTML = `
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <div><h2 style="font-size:16px;font-weight:600">Time slots</h2><p class="dim" style="font-size:12px">${(slots ?? []).length} total</p></div>
-          <button class="btn btn-primary btn-sm" id="addSl"><i class="fas fa-plus"></i> Add slot</button>
-        </div>
-        <table style="width:100%">
-          <thead><tr><th>ID</th><th>Label</th><th>Start</th><th>End</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
-          <tbody>
-            ${(slots ?? []).map(x => `
-              <tr>
-                <td class="mono">${escapeHtml(x.slot_id)}</td>
-                <td>${escapeHtml(x.label || '—')}</td>
-                <td class="mono">${x.start_time.slice(0,5)}</td>
-                <td class="mono">${x.end_time.slice(0,5)}</td>
-                <td>${x.is_active !== false ? '<span class="badge badge-approved">active</span>' : '<span class="badge badge-rejected">hidden</span>'}</td>
-                <td style="text-align:right;white-space:nowrap">
-                  <button class="btn btn-sm" data-edit="${escapeHtml(x.slot_id)}"><i class="fas fa-pen"></i></button>
-                  <button class="btn btn-sm btn-danger" data-del="${escapeHtml(x.slot_id)}"><i class="fas fa-trash"></i></button>
-                </td>
-              </tr>`).join('') || '<tr><td colspan="6" class="empty">No slots</td></tr>'}
-          </tbody>
-        </table>
-      </div>`;
-
-    $('addSl').onclick = () => openModal({
-      title: 'Add time slot',
-      fields: `
-        <label class="field"><span>Slot ID</span><input class="input" data-field="slot_id" placeholder="P8"></label>
-        <label class="field"><span>Label</span><input class="input" data-field="label" placeholder="8th period"></label>
-        <label class="field"><span>Start</span><input class="input" type="time" data-field="start_time" value="16:00"></label>
-        <label class="field"><span>End</span><input class="input" type="time" data-field="end_time" value="16:50"></label>
-        <label class="field"><span>Sort order</span><input class="input" type="number" data-field="sort_order" value="0"></label>`,
-      onSave: async (get) => {
-        const id = get('slot_id').trim();
-        if (!id) { toast('ID required', 'error'); return false; }
-        if (get('start_time') >= get('end_time')) { toast('End must be after start', 'error'); return false; }
-        const { error } = await supabase.from('time_slots').insert({
-          slot_id: id, label: get('label').trim() || null,
-          start_time: get('start_time') + ':00', end_time: get('end_time') + ':00',
-          sort_order: parseInt(get('sort_order')) || 0,
+    document.querySelectorAll('.set-toggle').forEach(btn => {
+      btn.onclick = async () => {
+        const key = btn.dataset.key;
+        const next = !btn.classList.contains('on');
+        btn.disabled = true;
+        const { error } = await supabase.rpc('admin_set_setting', {
+          p_key: key, p_value: JSON.stringify(next),
         });
-        if (error) { toast(error.message, 'error'); return false; }
-        toast('Added', 'success'); return true;
-      },
-    });
-
-    document.querySelectorAll('[data-edit]').forEach(bn => bn.onclick = () => {
-      const x = (slots ?? []).find(v => v.slot_id === bn.dataset.edit);
-      if (!x) return;
-      openModal({
-        title: `Edit ${x.slot_id}`,
-        fields: `
-          <label class="field"><span>Label</span><input class="input" data-field="label" value="${escapeHtml(x.label || '')}"></label>
-          <label class="field"><span>Start</span><input class="input" type="time" data-field="start_time" value="${x.start_time.slice(0,5)}"></label>
-          <label class="field"><span>End</span><input class="input" type="time" data-field="end_time" value="${x.end_time.slice(0,5)}"></label>`,
-        onSave: async (get) => {
-          const { error } = await supabase.from('time_slots').update({ label: get('label').trim() || null, start_time: get('start_time') + ':00', end_time: get('end_time') + ':00' }).eq('slot_id', x.slot_id);
-          if (error) { toast(error.message, 'error'); return false; }
-          toast('Updated', 'success'); return true;
-        },
-      });
-    });
-
-    document.querySelectorAll('[data-del]').forEach(bn => bn.onclick = async () => {
-      if (!confirm('Delete slot?')) return;
-      const { error } = await supabase.from('time_slots').delete().eq('slot_id', bn.dataset.del);
-      if (error) return toast('Cannot delete: bookings exist', 'error');
-      toast('Deleted', 'success'); render();
+        btn.disabled = false;
+        if (error) return toast(error.message, 'error');
+        btn.classList.toggle('on', next);
+        btn.setAttribute('aria-pressed', String(next));
+        toast(`${key.replace(/_/g, ' ')}: ${next ? 'ON' : 'OFF'}`, 'success');
+        settings[key] = next;
+      };
     });
   }
 
-  /* ==== CALENDAR ==== */
-  async function renderCalendar() {
-    const { data: entries } = await supabase.from('academic_calendar').select('*').order('date', { ascending: false }).limit(90);
-    $('panel').innerHTML = `
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <div><h2 style="font-size:16px;font-weight:600">Academic calendar</h2><p class="dim" style="font-size:12px">Holidays, working Saturdays, exam weeks</p></div>
-          <button class="btn btn-primary btn-sm" id="addC"><i class="fas fa-plus"></i> Add entry</button>
-        </div>
-        <table style="width:100%">
-          <thead><tr><th>Date</th><th>Kind</th><th>Label</th><th style="text-align:right">Actions</th></tr></thead>
-          <tbody>
-            ${(entries ?? []).map(x => `
-              <tr>
-                <td class="mono">${x.date}</td>
-                <td><span class="badge badge-${x.kind === 'holiday' ? 'rejected' : x.kind === 'working_saturday' ? 'approved' : 'admin'}">${x.kind}</span></td>
-                <td>${escapeHtml(x.label || '—')}</td>
-                <td style="text-align:right"><button class="btn btn-sm btn-danger" data-del="${x.date}"><i class="fas fa-trash"></i></button></td>
-              </tr>`).join('') || '<tr><td colspan="4" class="empty">No calendar entries</td></tr>'}
-          </tbody>
-        </table>
-      </div>`;
-
-    $('addC').onclick = () => openModal({
-      title: 'Add calendar entry',
-      fields: `
-        <label class="field"><span>Date</span><input class="input" type="date" data-field="date" value="${new Date().toISOString().slice(0,10)}"></label>
-        <label class="field"><span>Kind</span>
-          <select class="input" data-field="kind">
-            <option value="holiday">Holiday</option>
-            <option value="working_saturday">Working Saturday</option>
-            <option value="exam_week">Exam week</option>
-            <option value="event">Event</option>
-            <option value="special">Special</option>
-          </select>
-        </label>
-        <label class="field"><span>Label</span><input class="input" data-field="label" placeholder="e.g. Diwali / Mid-terms"></label>`,
-      onSave: async (get) => {
-        if (!get('date')) { toast('Date required', 'error'); return false; }
-        const { error } = await supabase.from('academic_calendar').upsert({ date: get('date'), kind: get('kind'), label: get('label').trim() || null });
-        if (error) { toast(error.message, 'error'); return false; }
-        toast('Saved', 'success'); return true;
-      },
+  $('saveBannerBtn').onclick = async () => {
+    const msg = $('bannerInput').value.trim();
+    const { error } = await supabase.rpc('admin_set_setting', {
+      p_key: 'site_banner', p_value: JSON.stringify(msg),
     });
+    if (error) return toast(error.message, 'error');
+    toast('Banner saved', 'success');
+  };
 
-    document.querySelectorAll('[data-del]').forEach(bn => bn.onclick = async () => {
-      if (!confirm('Delete entry?')) return;
-      const { error } = await supabase.from('academic_calendar').delete().eq('date', bn.dataset.del);
-      if (error) return toast(error.message, 'error');
-      toast('Deleted', 'success'); render();
-    });
-  }
+  $('saveApiBtn').onclick = async () => {
+    const url = $('apiUrlInput').value.trim();
+    const key = $('apiKeyInput').value;
+    let r1 = await supabase.rpc('admin_set_setting', { p_key: 'lpu_api_url', p_value: JSON.stringify(url) });
+    if (r1.error) return toast(r1.error.message, 'error');
+    let r2 = await supabase.rpc('admin_set_setting', { p_key: 'lpu_api_key', p_value: JSON.stringify(key) });
+    if (r2.error) return toast(r2.error.message, 'error');
+    toast('LPU API credentials saved', 'success');
+  };
 
-  /* ==== TABS ==== */
-  document.querySelectorAll('[data-tab]').forEach(btn => {
-    btn.onclick = () => {
-      currentTab = btn.dataset.tab;
-      document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b === btn));
-      render();
-    };
-  });
+  $('syncNowBtn').onclick = () => {
+    toast('Sync endpoint not wired — awaiting LPU API details', 'info');
+  };
 
-  function render() {
-    if (currentTab === 'buildings') return renderBuildings();
-    if (currentTab === 'sections') return renderSections();
-    if (currentTab === 'slots') return renderSlots();
-    if (currentTab === 'calendar') return renderCalendar();
-  }
-
-  await render();
+  await load();
 })();
 </script>
 </body>
