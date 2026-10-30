@@ -1,6 +1,6 @@
 -- ============================================================
--- LPU Scheduler — Complete schema
--- Run once in Supabase SQL Editor
+-- LPU Scheduler — complete schema (admin + faculty only)
+-- Run this ONCE in Supabase SQL Editor
 -- ============================================================
 
 create extension if not exists pgcrypto;
@@ -10,29 +10,24 @@ create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text unique not null,
   full_name text,
-  role text not null default 'student' check (role in ('admin','faculty','student')),
+  role text not null default 'faculty' check (role in ('admin','faculty')),
   department text,
   phone text,
   is_active boolean default true,
-  password_changed_at timestamptz,
   suspended_at timestamptz,
   suspended_reason text,
   last_active_at timestamptz default now(),
   created_at timestamptz default now()
 );
-
-create index if not exists profiles_active on profiles (is_active);
 create index if not exists profiles_role on profiles (role);
 
 create or replace function handle_new_user()
 returns trigger language plpgsql security definer as $$
 begin
   insert into public.profiles (id, email, full_name, role, is_active)
-  values (
-    new.id, new.email,
+  values (new.id, new.email,
     coalesce(new.raw_user_meta_data->>'full_name', new.email),
-    'student', true
-  )
+    'faculty', true)
   on conflict (id) do nothing;
   return new;
 end; $$;
@@ -78,11 +73,9 @@ insert into room_types (id, label, icon, bookable, sort_order) values
   ('seminar',  'Seminar',   'fa-users-rectangle', true,  3),
   ('library',  'Library',   'fa-book',            true,  4),
   ('staffroom','Staffroom', 'fa-user-tie',        false, 5),
-  ('hod',      'HOD Cabin', 'fa-crown',           false, 6),
-  ('office',   'Office',    'fa-briefcase',       false, 7),
-  ('store',    'Store',     'fa-box',             false, 8),
-  ('washroom', 'Washroom',  'fa-restroom',        false, 9),
-  ('other',    'Other',     'fa-ellipsis',        false, 10)
+  ('office',   'Office',    'fa-briefcase',       false, 6),
+  ('store',    'Store',     'fa-box',             false, 7),
+  ('other',    'Other',     'fa-ellipsis',        false, 8)
 on conflict (id) do nothing;
 
 -- ---------- rooms ----------
@@ -102,7 +95,6 @@ create table if not exists rooms (
   notes text,
   created_at timestamptz default now()
 );
-
 create index if not exists rooms_lookup on rooms (building, floor, bookable);
 
 -- ---------- time slots ----------
@@ -125,13 +117,21 @@ insert into time_slots (slot_id, start_time, end_time, label, sort_order) values
   ('P7','15:10','16:00','7th period',7)
 on conflict (slot_id) do nothing;
 
--- ---------- sections ----------
-create table if not exists sections (
-  section_id text primary key,
-  name text not null,
-  strength int default 60,
-  department text
+-- ---------- timetable ----------
+create table if not exists timetable (
+  id uuid primary key default gen_random_uuid(),
+  day_of_week int not null check (day_of_week between 0 and 6),
+  slot_id text not null references time_slots(slot_id) on delete cascade,
+  room_id text not null references rooms(room_id) on delete cascade,
+  faculty_id uuid references profiles(id) on delete set null,
+  course_code text,
+  course_name text,
+  is_active boolean default true,
+  created_at timestamptz default now(),
+  unique(faculty_id, day_of_week, slot_id)
 );
+create index if not exists tt_room_slot on timetable (room_id, day_of_week, slot_id);
+create index if not exists tt_faculty on timetable (faculty_id, day_of_week);
 
 -- ---------- bookings ----------
 create table if not exists bookings (
@@ -140,7 +140,6 @@ create table if not exists bookings (
   book_date date not null,
   slot_id text not null references time_slots(slot_id),
   type text not null check (type in ('regular','makeup','exam','event','maintenance')),
-  section_id text references sections(section_id),
   faculty_id uuid references profiles(id) on delete set null,
   course_code text,
   status text not null default 'pending' check (status in ('pending','approved','rejected','cancelled')),
@@ -149,13 +148,47 @@ create table if not exists bookings (
   approved_by uuid references profiles(id) on delete set null,
   created_at timestamptz default now()
 );
-
 create unique index if not exists bookings_no_overlap
   on bookings (room_id, book_date, slot_id)
   where status in ('pending','approved');
-
-create index if not exists bookings_date_slot on bookings (book_date, slot_id, status);
+create index if not exists bookings_date on bookings (book_date, slot_id, status);
 create index if not exists bookings_faculty on bookings (faculty_id, book_date);
+
+-- ---------- faculty leave ----------
+create table if not exists faculty_unavailability (
+  id uuid primary key default gen_random_uuid(),
+  faculty_id uuid not null references profiles(id) on delete cascade,
+  date date not null,
+  slot_id text references time_slots(slot_id) on delete cascade,
+  reason text,
+  created_at timestamptz default now(),
+  unique(faculty_id, date, slot_id)
+);
+create index if not exists fu_lookup on faculty_unavailability (date, faculty_id);
+
+-- ---------- academic calendar ----------
+create table if not exists academic_calendar (
+  date date primary key,
+  kind text not null check (kind in ('holiday','event','exam_week','working_saturday','special')),
+  label text,
+  created_at timestamptz default now()
+);
+
+-- ---------- settings ----------
+create table if not exists system_settings (
+  key text primary key,
+  value jsonb not null default 'null'::jsonb,
+  updated_at timestamptz default now()
+);
+insert into system_settings (key, value) values
+  ('booking_auto_approve',   'false'::jsonb),
+  ('allow_faculty_makeup',   'true'::jsonb),
+  ('allow_faculty_exam',     'true'::jsonb),
+  ('allow_faculty_event',    'true'::jsonb),
+  ('site_banner',            '""'::jsonb),
+  ('lpu_api_url',            '""'::jsonb),
+  ('lpu_api_key',            '""'::jsonb)
+on conflict (key) do nothing;
 
 -- ---------- activity log ----------
 create table if not exists activity_log (
@@ -168,23 +201,27 @@ create table if not exists activity_log (
   details jsonb,
   created_at timestamptz default now()
 );
+create index if not exists al_created on activity_log (created_at desc);
 
-create index if not exists activity_log_created on activity_log (created_at desc);
-
--- ---------- RLS ----------
+-- ============================================================
+-- RLS
+-- ============================================================
 alter table profiles enable row level security;
 alter table buildings enable row level security;
 alter table building_floors enable row level security;
 alter table room_types enable row level security;
 alter table rooms enable row level security;
-alter table sections enable row level security;
+alter table timetable enable row level security;
 alter table bookings enable row level security;
 alter table time_slots enable row level security;
+alter table faculty_unavailability enable row level security;
+alter table academic_calendar enable row level security;
+alter table system_settings enable row level security;
 alter table activity_log enable row level security;
 
 create or replace function my_role() returns text
 language sql stable security definer as $$
-  select coalesce((select role from profiles where id = auth.uid()), 'student');
+  select coalesce((select role from profiles where id = auth.uid()), 'faculty');
 $$;
 
 -- profiles
@@ -194,6 +231,9 @@ create policy "profiles read" on profiles for select
 drop policy if exists "profiles admin write" on profiles;
 create policy "profiles admin write" on profiles for all
   using (my_role() = 'admin') with check (my_role() = 'admin');
+drop policy if exists "profiles self update" on profiles;
+create policy "profiles self update" on profiles for update
+  using (id = auth.uid()) with check (id = auth.uid() and role = (select role from profiles where id = auth.uid()));
 
 -- buildings / floors / types
 drop policy if exists "buildings read" on buildings;
@@ -214,157 +254,202 @@ create policy "types write" on room_types for all using (my_role() = 'admin') wi
 -- rooms
 drop policy if exists "rooms read" on rooms;
 create policy "rooms read" on rooms for select using (auth.role() = 'authenticated');
-drop policy if exists "rooms admin write" on rooms;
-create policy "rooms admin write" on rooms for all using (my_role() = 'admin') with check (my_role() = 'admin');
+drop policy if exists "rooms write" on rooms;
+create policy "rooms write" on rooms for all using (my_role() = 'admin') with check (my_role() = 'admin');
 
--- sections
-drop policy if exists "sections read" on sections;
-create policy "sections read" on sections for select using (auth.role() = 'authenticated');
-drop policy if exists "sections admin write" on sections;
-create policy "sections admin write" on sections for all using (my_role() = 'admin') with check (my_role() = 'admin');
+-- timetable
+drop policy if exists "tt read" on timetable;
+create policy "tt read" on timetable for select using (auth.role() = 'authenticated');
+drop policy if exists "tt admin write" on timetable;
+create policy "tt admin write" on timetable for all using (my_role() = 'admin') with check (my_role() = 'admin');
 
 -- time slots
 drop policy if exists "slots read" on time_slots;
 create policy "slots read" on time_slots for select using (true);
-drop policy if exists "slots admin write" on time_slots;
-create policy "slots admin write" on time_slots for all using (my_role() = 'admin') with check (my_role() = 'admin');
+drop policy if exists "slots write" on time_slots;
+create policy "slots write" on time_slots for all using (my_role() = 'admin') with check (my_role() = 'admin');
 
 -- bookings
-drop policy if exists "bookings read" on bookings;
-create policy "bookings read" on bookings for select using (
-  status = 'approved' or my_role() = 'admin'
-  or faculty_id = auth.uid() or created_by = auth.uid()
-);
-drop policy if exists "bookings insert" on bookings;
-create policy "bookings insert" on bookings for insert with check (
+drop policy if exists "bk read" on bookings;
+create policy "bk read" on bookings for select using (auth.role() = 'authenticated');
+drop policy if exists "bk insert" on bookings;
+create policy "bk insert" on bookings for insert with check (
   my_role() in ('faculty','admin') and created_by = auth.uid()
 );
-drop policy if exists "bookings update" on bookings;
-create policy "bookings update" on bookings for update using (
-  my_role() = 'admin' or (faculty_id = auth.uid() and status = 'pending')
+drop policy if exists "bk update" on bookings;
+create policy "bk update" on bookings for update using (
+  my_role() = 'admin' or (faculty_id = auth.uid() and status in ('pending','approved'))
 );
-drop policy if exists "bookings delete" on bookings;
-create policy "bookings delete" on bookings for delete using (
-  my_role() = 'admin' or (created_by = auth.uid() and status = 'pending')
-);
+drop policy if exists "bk delete" on bookings;
+create policy "bk delete" on bookings for delete using (my_role() = 'admin');
+
+-- faculty unavailability
+drop policy if exists "fu read" on faculty_unavailability;
+create policy "fu read" on faculty_unavailability for select using (auth.role() = 'authenticated');
+drop policy if exists "fu write" on faculty_unavailability;
+create policy "fu write" on faculty_unavailability for all
+  using (faculty_id = auth.uid() or my_role() = 'admin')
+  with check (faculty_id = auth.uid() or my_role() = 'admin');
+
+-- calendar
+drop policy if exists "cal read" on academic_calendar;
+create policy "cal read" on academic_calendar for select using (auth.role() = 'authenticated');
+drop policy if exists "cal write" on academic_calendar;
+create policy "cal write" on academic_calendar for all using (my_role() = 'admin') with check (my_role() = 'admin');
+
+-- settings
+drop policy if exists "settings read" on system_settings;
+create policy "settings read" on system_settings for select using (auth.role() = 'authenticated');
+drop policy if exists "settings write" on system_settings;
+create policy "settings write" on system_settings for all using (my_role() = 'admin') with check (my_role() = 'admin');
 
 -- activity log
-drop policy if exists "activity admin read" on activity_log;
-create policy "activity admin read" on activity_log for select using (my_role() = 'admin');
-drop policy if exists "activity self read" on activity_log;
-create policy "activity self read" on activity_log for select using (user_id = auth.uid());
+drop policy if exists "al admin read" on activity_log;
+create policy "al admin read" on activity_log for select using (my_role() = 'admin');
+drop policy if exists "al self read" on activity_log;
+create policy "al self read" on activity_log for select using (user_id = auth.uid());
+drop policy if exists "al insert" on activity_log;
+create policy "al insert" on activity_log for insert with check (auth.role() = 'authenticated');
 
--- ---------- RPCs ----------
-create or replace function update_my_profile(p_full_name text, p_phone text)
-returns void language plpgsql security definer set search_path = public as $$
+-- ============================================================
+-- RPCs
+-- ============================================================
+create or replace function admin_create_user(
+  p_email text, p_password text, p_full_name text, p_role text,
+  p_department text default null, p_phone text default null
+)
+returns jsonb language plpgsql security definer
+set search_path = public, auth, extensions as $$
+declare v_uid uuid; v_existing uuid;
 begin
-  update profiles
-  set full_name = coalesce(nullif(trim(p_full_name), ''), full_name),
-      phone = nullif(trim(p_phone), ''),
-      last_active_at = now()
-  where id = auth.uid();
+  if my_role() <> 'admin' then return jsonb_build_object('error', 'Admin only'); end if;
+  if p_role not in ('admin','faculty') then
+    return jsonb_build_object('error', 'Role must be admin or faculty');
+  end if;
+  if p_email is null or length(trim(p_email)) < 3 then
+    return jsonb_build_object('error', 'Email required');
+  end if;
+  if p_password is null or length(p_password) < 6 then
+    return jsonb_build_object('error', 'Password must be 6+ characters');
+  end if;
+  p_email := lower(trim(p_email));
+  select id into v_existing from auth.users where email = p_email;
+  if v_existing is not null then
+    return jsonb_build_object('error', 'Email already exists');
+  end if;
+  v_uid := gen_random_uuid();
+  insert into auth.users (
+    instance_id, id, aud, role, email, encrypted_password,
+    email_confirmed_at, created_at, updated_at,
+    confirmation_token, email_change, email_change_token_new, recovery_token,
+    raw_app_meta_data, raw_user_meta_data
+  ) values (
+    '00000000-0000-0000-0000-000000000000', v_uid,
+    'authenticated', 'authenticated', p_email,
+    crypt(p_password, gen_salt('bf')), now(), now(), now(),
+    '', '', '', '',
+    jsonb_build_object('provider','email','providers',jsonb_build_array('email')),
+    jsonb_build_object('full_name', coalesce(p_full_name, p_email))
+  );
+  insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
+  values (gen_random_uuid(), v_uid, v_uid::text, 'email',
+    jsonb_build_object('sub', v_uid::text, 'email', p_email), now(), now(), now());
+  insert into public.profiles (id, email, full_name, role, department, phone, is_active)
+  values (v_uid, p_email, p_full_name, p_role, p_department, p_phone, true)
+  on conflict (id) do update set
+    full_name=excluded.full_name, role=excluded.role,
+    department=excluded.department, phone=excluded.phone, is_active=true;
+  return jsonb_build_object('success', true, 'user_id', v_uid);
 end; $$;
-grant execute on function update_my_profile(text, text) to authenticated;
+grant execute on function admin_create_user(text,text,text,text,text,text) to authenticated;
 
-create or replace function mark_password_changed()
-returns void language plpgsql security definer set search_path = public as $$
+create or replace function admin_reset_password(p_user_id uuid, p_new_password text)
+returns jsonb language plpgsql security definer
+set search_path = public, auth, extensions as $$
 begin
-  update profiles set password_changed_at = now() where id = auth.uid();
+  if my_role() <> 'admin' then return jsonb_build_object('error', 'Admin only'); end if;
+  if p_new_password is null or length(p_new_password) < 6 then
+    return jsonb_build_object('error', 'Password must be 6+ characters');
+  end if;
+  update auth.users
+    set encrypted_password = crypt(p_new_password, gen_salt('bf')), updated_at = now()
+    where id = p_user_id;
+  if not found then return jsonb_build_object('error', 'User not found'); end if;
+  return jsonb_build_object('success', true);
 end; $$;
-grant execute on function mark_password_changed() to authenticated;
+grant execute on function admin_reset_password(uuid, text) to authenticated;
 
-create or replace function heartbeat()
-returns void language plpgsql security definer set search_path = public as $$
+create or replace function admin_delete_user(p_user_id uuid)
+returns jsonb language plpgsql security definer
+set search_path = public, auth as $$
 begin
-  update profiles set last_active_at = now() where id = auth.uid();
+  if my_role() <> 'admin' then return jsonb_build_object('error', 'Admin only'); end if;
+  if p_user_id = auth.uid() then return jsonb_build_object('error', 'Cannot delete yourself'); end if;
+  delete from auth.users where id = p_user_id;
+  if not found then return jsonb_build_object('error', 'User not found'); end if;
+  return jsonb_build_object('success', true);
 end; $$;
-grant execute on function heartbeat() to authenticated;
+grant execute on function admin_delete_user(uuid) to authenticated;
 
-create or replace function log_login(p_user_agent text default null)
-returns void language plpgsql security definer set search_path = public as $$
+create or replace function admin_set_setting(p_key text, p_value jsonb)
+returns jsonb language plpgsql security definer as $$
 begin
-  insert into activity_log (user_id, user_email, action, entity, details)
-  select auth.uid(), email, 'auth.login', 'session',
-         jsonb_build_object('user_agent', coalesce(p_user_agent, 'unknown'))
-  from profiles where id = auth.uid();
+  if my_role() <> 'admin' then return jsonb_build_object('error', 'Admin only'); end if;
+  insert into system_settings (key, value, updated_at) values (p_key, p_value, now())
+    on conflict (key) do update set value = excluded.value, updated_at = now();
+  return jsonb_build_object('success', true);
 end; $$;
-grant execute on function log_login(text) to authenticated;
+grant execute on function admin_set_setting(text, jsonb) to authenticated;
 
--- ---------- logging triggers ----------
-create or replace function log_room_change()
-returns trigger language plpgsql security definer as $$
-declare v_email text;
+-- Auto-approve trigger
+create or replace function apply_auto_approve()
+returns trigger language plpgsql as $$
+declare v_on boolean := false;
 begin
-  select email into v_email from profiles where id = auth.uid();
-  insert into activity_log (user_id, user_email, action, entity, entity_id, details)
-  values (auth.uid(), v_email,
-    case TG_OP when 'INSERT' then 'room.create' when 'UPDATE' then 'room.update' when 'DELETE' then 'room.delete' end,
-    'room', coalesce(NEW.room_id, OLD.room_id),
-    case when TG_OP = 'DELETE' then to_jsonb(OLD) else to_jsonb(NEW) end);
-  return coalesce(NEW, OLD);
+  select coalesce((value)::text::boolean, false) into v_on
+    from system_settings where key = 'booking_auto_approve';
+  if v_on and new.status = 'pending' then new.status := 'approved'; end if;
+  return new;
 end; $$;
-drop trigger if exists trg_log_room on rooms;
-create trigger trg_log_room after insert or update or delete on rooms
-  for each row execute function log_room_change();
 
+drop trigger if exists trg_auto_approve on bookings;
+create trigger trg_auto_approve before insert on bookings
+  for each row execute function apply_auto_approve();
+
+-- Activity logging triggers
 create or replace function log_booking_change()
 returns trigger language plpgsql security definer as $$
 declare v_email text;
 begin
   select email into v_email from profiles where id = auth.uid();
   insert into activity_log (user_id, user_email, action, entity, entity_id, details)
-  values (auth.uid(), v_email, 'booking.' || lower(TG_OP),
-    'booking', coalesce(NEW.id, OLD.id)::text,
-    case when TG_OP = 'DELETE' then to_jsonb(OLD) else to_jsonb(NEW) end);
-  return coalesce(NEW, OLD);
+  values (auth.uid(), v_email, 'booking.'||lower(TG_OP), 'booking',
+    coalesce(new.id, old.id)::text,
+    case when TG_OP='DELETE' then to_jsonb(old) else to_jsonb(new) end);
+  return coalesce(new, old);
 end; $$;
 drop trigger if exists trg_log_booking on bookings;
 create trigger trg_log_booking after insert or update or delete on bookings
   for each row execute function log_booking_change();
 
-create or replace function log_profile_change()
-returns trigger language plpgsql security definer as $$
-declare v_email text;
-begin
-  if TG_OP = 'UPDATE' then
-    if NEW.last_active_at is distinct from OLD.last_active_at
-       and NEW.full_name is not distinct from OLD.full_name
-       and NEW.phone is not distinct from OLD.phone
-       and NEW.role is not distinct from OLD.role
-       and NEW.is_active is not distinct from OLD.is_active
-       and NEW.department is not distinct from OLD.department then
-      return NEW;
-    end if;
-  end if;
-  select email into v_email from profiles where id = auth.uid();
-  insert into activity_log (user_id, user_email, action, entity, entity_id, details)
-  values (auth.uid(), v_email, 'user.' || lower(TG_OP),
-    'profile', coalesce(NEW.id, OLD.id)::text,
-    case when TG_OP = 'DELETE' then to_jsonb(OLD) else to_jsonb(NEW) end);
-  return coalesce(NEW, OLD);
-end; $$;
-drop trigger if exists trg_log_profile on profiles;
-create trigger trg_log_profile after insert or update or delete on profiles
-  for each row execute function log_profile_change();
-
--- ---------- Seed rooms ----------
+-- Seed buildings
 insert into buildings (id, name) values
-  ('25', 'Block 25'), ('26', 'Block 26'), ('27', 'Block 27'), ('28', 'Block 28')
+  ('25','Block 25'),('26','Block 26'),('27','Block 27'),('28','Block 28')
 on conflict (id) do nothing;
 
 insert into building_floors (building_id, floor) values
-  ('25', 1),('25', 2),('25', 3),('25', 4),
-  ('26', 1),('26', 2),('26', 3),('26', 4),
-  ('27', 1),('27', 2),('27', 3),('27', 4),
-  ('28', 1),('28', 2),('28', 3),('28', 4)
+  ('25',1),('25',2),('25',3),('25',4),
+  ('26',1),('26',2),('26',3),('26',4),
+  ('27',1),('27',2),('27',3),('27',4),
+  ('28',1),('28',2),('28',3),('28',4)
 on conflict (building_id, floor) do nothing;
 
 insert into rooms (room_id, display_name, building, floor, floor_digit, room_number, suffix, type, capacity, bookable, weekend_open, facilities) values
-  ('27-107', '27-107',   '27',1,'1','07','', 'lecture',60,true, false,'{projector,fan}'),
-  ('27-107A','27-107 A', '27',1,'1','07','A','lecture',60,true, false,'{projector,fan}'),
-  ('27-108', '27-108',   '27',1,'1','08','', 'lab',    30,true, true, '{computers,ac}'),
-  ('27-207A','27-207 A', '27',2,'2','07','A','lecture',60,true, false,'{projector,fan}'),
-  ('27-208', '27-208',   '27',2,'2','08','', 'lab',    30,true, false,'{computers,ac}')
+  ('27-107',  '27-107',   '27',1,'1','07','',  'lecture',60,true,false,'{projector,fan}'),
+  ('27-107A', '27-107 A', '27',1,'1','07','A', 'lecture',60,true,false,'{projector,fan}'),
+  ('27-108',  '27-108',   '27',1,'1','08','',  'lab',    30,true,true, '{computers,ac}'),
+  ('27-207A', '27-207 A', '27',2,'2','07','A', 'lecture',60,true,false,'{projector,fan}'),
+  ('27-208',  '27-208',   '27',2,'2','08','',  'lab',    30,true,false,'{computers,ac}')
 on conflict (room_id) do nothing;
 
-select 'Schema setup complete' as status;
+select 'Schema installed' as status;

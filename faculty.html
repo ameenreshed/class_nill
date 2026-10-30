@@ -38,7 +38,6 @@
 .req-icon.approved{background:var(--success-soft);color:var(--success)}
 .req-icon.rejected{background:var(--danger-soft);color:var(--danger)}
 .req-icon.cancelled{background:var(--surface-active);color:var(--text-secondary)}
-.req-icon.resolved{background:var(--success-soft);color:var(--success)}
 .req-body{flex:1;min-width:200px}
 .req-title{font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
 .req-title .req-badge{padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em}
@@ -46,9 +45,6 @@
 .req-badge.approved{background:var(--success-soft);color:var(--success-text)}
 .req-badge.rejected{background:var(--danger-soft);color:var(--danger-text)}
 .req-badge.cancelled{background:var(--surface-active);color:var(--text-secondary)}
-.req-badge.resolved{background:var(--success-soft);color:var(--success-text)}
-.req-badge.open{background:var(--warning-soft);color:var(--warning-text)}
-.req-badge.in_progress{background:var(--info-soft);color:var(--info-text)}
 .req-meta{font-size:12px;color:var(--text-secondary);display:flex;gap:14px;flex-wrap:wrap;margin-top:4px}
 .req-meta span{display:inline-flex;align-items:center;gap:5px}
 .req-reason{font-size:12px;color:var(--text-secondary);margin-top:8px;padding:8px 10px;background:var(--surface-hover);border-radius:6px;border-left:3px solid var(--border-strong);line-height:1.5}
@@ -64,10 +60,7 @@
       <h1 class="page-title"><i class="fas fa-gauge-high"></i> Faculty dashboard</h1>
       <p class="page-subtitle">Welcome back, <strong id="welcomeName" style="color:var(--text)">…</strong> · <span id="liveTime" class="mono">--:--</span></p>
     </div>
-    <div class="row">
-      <button class="btn" id="reportIssueBtn"><i class="fas fa-tools"></i> Report issue</button>
-      <button class="btn btn-primary" id="bookBtn"><i class="fas fa-plus"></i> New booking</button>
-    </div>
+    <button class="btn btn-primary" id="bookBtn"><i class="fas fa-plus"></i> New booking</button>
   </div>
 
   <div class="stats" id="stats"></div>
@@ -77,7 +70,6 @@
     <button class="fac-tab" data-tab="timetable"><i class="fas fa-table"></i> My timetable</button>
     <button class="fac-tab" data-tab="leave"><i class="fas fa-plane-departure"></i> Mark leave</button>
     <button class="fac-tab" data-tab="bookings"><i class="fas fa-paper-plane"></i> My bookings <span class="tab-count" id="reqCount" style="display:none">0</span></button>
-    <button class="fac-tab" data-tab="calls"><i class="fas fa-tools"></i> My calls <span class="tab-count" id="callCount" style="display:none">0</span></button>
   </div>
 
   <div class="fac-panel active" data-panel="today"><div id="todayView"></div></div>
@@ -93,7 +85,6 @@
     </div>
     <div id="requestsList"></div>
   </div>
-  <div class="fac-panel" data-panel="calls"><div id="callsList"></div></div>
 </div>
 
 <script type="module">
@@ -112,21 +103,19 @@ import {
   $('welcomeName').textContent = auth.profile.full_name || auth.profile.email || 'Faculty';
 
   let base = { rooms: [], slots: [] };
-  let myTeaching = [], myRequests = [], myLeave = [], myCalls = [];
+  let myTeaching = [], myRequests = [], myLeave = [];
   let settings = {}, reqFilter = 'all';
 
   async function loadAll() {
     base = await loadBaseData();
     settings = await getSettings();
-    const [{ data: teaching }, { data: reqs }, { data: leave }, { data: calls }] = await Promise.all([
+    const [{ data: teaching }, { data: reqs }, { data: leave }] = await Promise.all([
       supabase.from('timetable').select('*').eq('faculty_id', myId).eq('is_active', true).order('day_of_week').order('slot_id'),
       supabase.from('bookings').select('*').eq('faculty_id', myId).order('book_date', { ascending: false }).limit(100),
       supabase.from('faculty_unavailability').select('*').eq('faculty_id', myId).gte('date', todayISO()).order('date'),
-      supabase.from('worker_calls').select('*').eq('called_by', myId).order('created_at', { ascending: false }).limit(50),
     ]);
-    myTeaching = teaching ?? []; myRequests = reqs ?? []; myLeave = leave ?? []; myCalls = calls ?? [];
-    renderStats(); renderToday(); renderTimetable(); renderLeave(); renderRequests(); renderCalls();
-    updateCounts();
+    myTeaching = teaching ?? []; myRequests = reqs ?? []; myLeave = leave ?? [];
+    renderStats(); renderToday(); renderTimetable(); renderLeave(); renderRequests(); updateReqCount();
   }
 
   function renderStats() {
@@ -136,12 +125,17 @@ import {
     const teachingNow = todayClasses.filter(c => c.slot_id === nowSlot?.slot_id).length;
     const pending = myRequests.filter(r => r.status === 'pending').length;
     const autoApprove = !!settings['booking_auto_approve'];
-    const openCalls = myCalls.filter(c => ['open','assigned','in_progress'].includes(c.status)).length;
+    const monthApproved = myRequests.filter(r => {
+      if (r.status !== 'approved') return false;
+      const d = new Date(`${r.book_date}T12:00:00`);
+      const now = nowDate();
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).length;
     $('stats').innerHTML = `
       <div class="stat"><i class="fas fa-chalkboard-user stat-icon"></i><div class="stat-value">${todayClasses.length}</div><div class="stat-label">Classes today</div></div>
       <div class="stat"><i class="fas fa-circle-check stat-icon" style="color:${teachingNow ? 'var(--success)' : 'var(--text-muted)'}"></i><div class="stat-value" style="color:${teachingNow ? 'var(--success)' : 'var(--text-muted)'}">${teachingNow ? 'In class' : 'Free'}</div><div class="stat-label">Status now</div></div>
       <div class="stat"><i class="fas fa-hourglass-half stat-icon" style="color:${autoApprove ? 'var(--success)' : 'var(--warning)'}"></i><div class="stat-value" style="color:${autoApprove ? 'var(--success)' : 'var(--warning)'}">${pending}</div><div class="stat-label">${autoApprove ? 'Auto-approved' : 'Pending'}</div></div>
-      <div class="stat"><i class="fas fa-tools stat-icon" style="color:var(--info)"></i><div class="stat-value" style="color:var(--info)">${openCalls}</div><div class="stat-label">Open calls</div></div>`;
+      <div class="stat"><i class="fas fa-calendar-check stat-icon" style="color:var(--success)"></i><div class="stat-value" style="color:var(--success)">${monthApproved}</div><div class="stat-label">Approved this month</div></div>`;
   }
 
   function renderToday() {
@@ -154,7 +148,7 @@ import {
       $('todayView').innerHTML = `<div class="card"><div class="empty-action">
         <div class="empty-action-icon"><i class="fas fa-mug-hot"></i></div>
         <div class="empty-action-title">No classes today</div>
-        <div class="empty-action-sub">Use "New booking" to reserve a room, or ask your admin to add your schedule.</div>
+        <div class="empty-action-sub">Use "New booking" to reserve a room.</div>
       </div></div>`;
       return;
     }
@@ -272,11 +266,9 @@ import {
     });
   }
 
-  function updateCounts() {
+  function updateReqCount() {
     const pending = myRequests.filter(r => r.status === 'pending').length;
-    const open = myCalls.filter(c => ['open','assigned','in_progress'].includes(c.status)).length;
     const rc = $('reqCount'); rc.textContent = pending || ''; rc.style.display = pending ? 'inline-flex' : 'none';
-    const cc = $('callCount'); cc.textContent = open || ''; cc.style.display = open ? 'inline-flex' : 'none';
   }
 
   function renderRequests() {
@@ -332,49 +324,6 @@ import {
     });
   }
 
-  function renderCalls() {
-    const roomById = new Map(base.rooms.map(r => [r.room_id, r]));
-    if (!myCalls.length) {
-      $('callsList').innerHTML = `<div class="card"><div class="empty-action">
-        <div class="empty-action-icon"><i class="fas fa-tools"></i></div>
-        <div class="empty-action-title">No calls yet</div>
-        <div class="empty-action-sub">Use "Report issue" to flag a broken projector, AC, lights, etc.</div>
-      </div></div>`;
-      return;
-    }
-    const iconMap = { open:'fa-inbox', assigned:'fa-user-check', in_progress:'fa-spinner', resolved:'fa-circle-check', cancelled:'fa-ban' };
-    $('callsList').innerHTML = myCalls.map(c => {
-      const room = roomById.get(c.room_id);
-      const prioClass = c.priority === 'urgent' ? 'rejected' : c.priority === 'high' ? 'pending' : 'gray';
-      return `<div class="req-card">
-        <div class="req-icon ${c.status}"><i class="fas ${iconMap[c.status] || 'fa-circle'}"></i></div>
-        <div class="req-body">
-          <div class="req-title">${escapeHtml(room?.display_name || c.room_id || '—')}
-            <span class="badge badge-${prioClass}">${escapeHtml(c.priority)}</span>
-            <span class="req-badge ${c.status}">${c.status.replace('_', ' ')}</span>
-          </div>
-          <div class="req-meta">
-            <span><i class="fas fa-clock"></i>${formatRelativeTime(c.created_at)}</span>
-            ${c.resolved_at ? `<span><i class="fas fa-check"></i>resolved ${formatRelativeTime(c.resolved_at)}</span>` : ''}
-          </div>
-          <div class="req-reason">${escapeHtml(c.issue)}</div>
-          ${c.resolution ? `<div class="req-reason" style="border-left-color:var(--success)"><strong>Resolution:</strong> ${escapeHtml(c.resolution)}</div>` : ''}
-        </div>
-        <div class="req-actions">
-          ${['open','assigned','in_progress'].includes(c.status) ? `<button class="btn btn-sm" data-cancel-call="${c.id}">Cancel</button>` : ''}
-        </div>
-      </div>`;
-    }).join('');
-    document.querySelectorAll('[data-cancel-call]').forEach(btn => {
-      btn.onclick = async () => {
-        if (!confirm('Cancel this call?')) return;
-        const { error } = await supabase.from('worker_calls').update({ status: 'cancelled' }).eq('id', btn.dataset.cancelCall);
-        if (error) return toast(error.message, 'error');
-        toast('Cancelled', 'success'); await loadAll();
-      };
-    });
-  }
-
   document.querySelectorAll('[data-tab]').forEach(btn => {
     btn.onclick = () => {
       document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b === btn));
@@ -392,61 +341,6 @@ import {
   function tick() { $('liveTime').textContent = formatTime(nowDate()).slice(0,5); }
   setInterval(tick, 1000); tick();
 
-  /* ============ REPORT ISSUE ============ */
-  $('reportIssueBtn').onclick = () => openReportIssue();
-  function openReportIssue() {
-    if (!base.rooms.length) return toast('No rooms configured yet', 'error');
-    const roomOpts = base.rooms.map(r => `<option value="${escapeHtml(r.room_id)}">${escapeHtml(r.display_name)}</option>`).join('');
-    const dialog = document.createElement('dialog');
-    dialog.className = 'modal-dialog';
-    dialog.innerHTML = `<div class="modal-content">
-      <div class="modal-header">
-        <div><div class="modal-title">Report an issue</div><div class="modal-sub">Sends a call to maintenance workers.</div></div>
-        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
-      </div>
-      <div class="modal-body">
-        <label class="field"><span>Room *</span><select class="input" id="riRoom">${roomOpts}</select></label>
-        <label class="field"><span>Priority</span>
-          <select class="input" id="riPriority">
-            <option value="normal">Normal</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
-            <option value="low">Low</option>
-          </select>
-        </label>
-        <label class="field"><span>What's the issue? *</span>
-          <textarea class="input" id="riIssue" rows="3" placeholder="e.g. Projector not turning on, AC not cooling, broken chair…"></textarea>
-        </label>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" data-close>Cancel</button>
-        <button class="btn btn-primary" id="riSubmit"><i class="fas fa-paper-plane"></i> Send to workers</button>
-      </div>
-    </div>`;
-    document.body.appendChild(dialog); dialog.showModal();
-    const close = () => { dialog.close(); dialog.remove(); };
-    dialog.querySelectorAll('[data-close]').forEach(b => b.onclick = close);
-    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
-    dialog.onclick = e => { if (e.target === dialog) close(); };
-    dialog.querySelector('#riSubmit').onclick = async () => {
-      const issue = dialog.querySelector('#riIssue').value.trim();
-      if (!issue) return toast('Describe the issue', 'error');
-      const btn = dialog.querySelector('#riSubmit'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-      const { error } = await supabase.from('worker_calls').insert({
-        room_id: dialog.querySelector('#riRoom').value,
-        called_by: myId,
-        issue,
-        priority: dialog.querySelector('#riPriority').value,
-        status: 'open',
-      });
-      btn.disabled = false;
-      if (error) { toast(error.message, 'error'); btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send to workers'; return; }
-      toast('Sent to workers', 'success');
-      close(); await loadAll();
-    };
-  }
-
-  /* ============ NEW BOOKING WIZARD ============ */
   $('bookBtn').onclick = () => openBooking();
 
   function openBooking() {
@@ -534,7 +428,6 @@ import {
       const btn = dialog.querySelector('#bkSubmit');
       btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Booking…';
 
-      // 1. If makeup: create faculty_unavailability to free the original slot
       if (type === 'makeup' && origSlotId && origDate) {
         const { error: unavailErr } = await supabase.from('faculty_unavailability').insert({
           faculty_id: myId, date: origDate, slot_id: origSlotId,
@@ -546,8 +439,6 @@ import {
         }
       }
 
-      // 2. Create the booking
-            // 2. Create the booking
       const { error } = await supabase.from('bookings').insert({
         room_id: room,
         book_date: date,
@@ -558,7 +449,6 @@ import {
         created_by: myId,
         course_code: code || null,
         reason: reason || null,
-        section_id: null,
       });
 
       if (error) {

@@ -9,20 +9,6 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/admin.css">
-<style>
-.modal-section{margin-bottom:24px}.modal-section:last-child{margin-bottom:0}
-.modal-section-title{font-size:14px;font-weight:600;color:var(--text);margin:0 0 14px;display:flex;align-items:center;gap:8px}
-.modal-section-title i{color:var(--brand);font-size:13px}
-.modal-metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;padding:16px 0;border-bottom:1px solid var(--border);margin-bottom:20px}
-.modal-metric-label{font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:4px}
-.modal-metric-value{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-0.02em}
-.schedule-day{margin-bottom:16px}
-.schedule-day-title{font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px}
-.schedule-item{padding:10px 12px;background:var(--surface-hover);border-radius:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px}
-.schedule-item-code{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--brand);font-size:12px}
-.schedule-item-meta{color:var(--text-secondary);font-size:11px;margin-top:2px}
-.schedule-item-slot{color:var(--text-secondary);font-family:'JetBrains Mono',monospace;font-size:11px;flex-shrink:0}
-</style>
 </head>
 <body>
 <div id="nav"></div>
@@ -39,7 +25,6 @@
     <a href="admin-faculty.html" class="admin-tab active"><i class="fas fa-chalkboard-user"></i> Faculty</a>
     <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
     <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
-    <a href="worker.html" class="admin-tab"><i class="fas fa-screwdriver-wrench"></i> Maintenance</a>
     <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
     <a href="admin-buildings.html" class="admin-tab"><i class="fas fa-building"></i> Buildings</a>
     <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
@@ -64,12 +49,7 @@
 
   <div class="table-wrap"><table>
     <thead><tr>
-      <th>Faculty</th>
-      <th>Department</th>
-      <th>Weekly classes</th>
-      <th>Courses</th>
-      <th>Status</th>
-      <th style="text-align:right">Actions</th>
+      <th>Faculty</th><th>Department</th><th>Weekly classes</th><th>Courses</th><th>Status</th><th style="text-align:right">Actions</th>
     </tr></thead>
     <tbody id="body"></tbody>
   </table></div>
@@ -140,7 +120,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         <td style="font-size:13px"><strong style="color:var(--text)">${classes.length}</strong> <span style="color:var(--text-secondary)">class${classes.length === 1 ? '' : 'es'}</span></td>
         <td style="font-size:13px"><strong style="color:var(--text)">${courses.size}</strong> <span style="color:var(--text-secondary)">course${courses.size === 1 ? '' : 's'}</span></td>
         <td>${susp ? '<span class="badge badge-rejected">suspended</span>' : '<span class="badge badge-approved">active</span>'}</td>
-        <td class="row-actions">
+        <td style="text-align:right;white-space:nowrap">
           <button class="btn btn-sm" data-view="${f.id}" title="View schedule"><i class="fas fa-eye"></i></button>
           <button class="btn btn-sm" data-edit="${f.id}" title="Edit"><i class="fas fa-pen"></i></button>
           <button class="btn btn-sm ${susp ? 'btn-success' : 'btn-danger'}" data-toggle="${f.id}" data-active="${!susp}" title="${susp ? 'Activate' : 'Suspend'}"><i class="fas fa-${susp ? 'play' : 'ban'}"></i></button>
@@ -161,14 +141,14 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     classes.forEach(c => { if (!byDay.has(c.day_of_week)) byDay.set(c.day_of_week, []); byDay.get(c.day_of_week).push(c); });
     const schedHtml = [1,2,3,4,5,6,0].filter(d => byDay.has(d)).map(d => {
       const items = byDay.get(d).sort((a, b) => a.slot_id.localeCompare(b.slot_id));
-      return `<div class="schedule-day">
-        <div class="schedule-day-title">${DOW[d]}</div>
-        ${items.map(c => `<div class="schedule-item">
+      return `<div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">${DOW[d]}</div>
+        ${items.map(c => `<div style="padding:10px 12px;background:var(--surface-hover);border-radius:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px">
           <div>
-            <div class="schedule-item-code">${escapeHtml(c.course_code || '—')}</div>
-            <div class="schedule-item-meta">${escapeHtml(c.course_name || '')} · ${escapeHtml(c.room_id)}</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--brand);font-size:12px">${escapeHtml(c.course_code || '—')}</div>
+            <div style="color:var(--text-secondary);font-size:11px;margin-top:2px">${escapeHtml(c.course_name || '')} · ${escapeHtml(c.room_id)}</div>
           </div>
-          <div class="schedule-item-slot">${escapeHtml(c.slot_id)}</div>
+          <div style="color:var(--text-secondary);font-family:'JetBrains Mono',monospace;font-size:11px">${escapeHtml(c.slot_id)}</div>
         </div>`).join('')}
       </div>`;
     }).join('') || '<div class="empty" style="padding:20px"><i class="fas fa-inbox"></i><br>No classes assigned</div>';
@@ -184,15 +164,13 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
-        <div class="modal-metrics-grid">
-          <div><div class="modal-metric-label">Total classes</div><div class="modal-metric-value">${classes.length}</div></div>
-          <div><div class="modal-metric-label">Courses</div><div class="modal-metric-value">${new Set(classes.map(c => c.course_code).filter(Boolean)).size}</div></div>
-          <div><div class="modal-metric-label">Teaching days</div><div class="modal-metric-value">${byDay.size}</div></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;padding:16px 0;border-bottom:1px solid var(--border);margin-bottom:20px">
+          <div><div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:4px">Total classes</div><div style="font-size:20px;font-weight:700">${classes.length}</div></div>
+          <div><div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:4px">Courses</div><div style="font-size:20px;font-weight:700">${new Set(classes.map(c => c.course_code).filter(Boolean)).size}</div></div>
+          <div><div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:4px">Teaching days</div><div style="font-size:20px;font-weight:700">${byDay.size}</div></div>
         </div>
-        <div class="modal-section">
-          <h3 class="modal-section-title"><i class="fas fa-calendar-week"></i>Weekly schedule</h3>
-          ${schedHtml}
-        </div>
+        <h3 style="font-size:14px;font-weight:600;margin:0 0 14px;display:flex;align-items:center;gap:8px"><i class="fas fa-calendar-week" style="color:var(--brand);font-size:13px"></i>Weekly schedule</h3>
+        ${schedHtml}
       </div>
       <div class="modal-footer">
         <button class="btn" data-close>Close</button>
@@ -243,7 +221,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         p_full_name: get('full_name'),
         p_role: 'faculty',
         p_department: get('department') || null,
-        p_section_id: null,
         p_phone: get('phone') || null,
       });
       if (error) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus"></i> Create faculty'; return toast(error.message, 'error'); }

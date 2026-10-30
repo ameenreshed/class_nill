@@ -34,7 +34,6 @@
         <label class="field"><span>Full name</span><input class="input" id="fullNameInput"></label>
         <label class="field"><span>Email</span><input class="input" id="emailDisplay" disabled><div class="dim" style="font-size:11px;margin-top:4px">Contact admin to change</div></label>
         <label class="field"><span>Department</span><input class="input" id="departmentDisplay" disabled></label>
-        <label class="field"><span>Section</span><input class="input" id="sectionDisplay" disabled></label>
         <label class="field"><span>Phone</span><input class="input" id="phoneInput" type="tel"></label>
         <button class="btn btn-primary" type="submit" id="saveBtn"><i class="fas fa-check"></i> Save changes</button>
       </form>
@@ -68,22 +67,6 @@
     <div class="grid-auto">
       <div><div class="label-small">Member since</div><div id="createdAt" style="font-weight:500;font-size:14px">—</div></div>
       <div><div class="label-small">Last active</div><div id="lastActive" style="font-weight:500;font-size:14px">—</div></div>
-      <div><div class="label-small">Password changed</div><div id="pwdChanged" style="font-weight:500;font-size:14px">Never</div></div>
-    </div>
-  </div>
-
-  <div class="card mt-4">
-    <div class="card-title"><i class="fas fa-history"></i> Recent activity</div>
-    <div id="activityList"><div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</div></div>
-  </div>
-
-  <div class="card mt-4" id="adminLinks" style="display:none">
-    <div class="card-title"><i class="fas fa-shield-halved"></i> Admin shortcuts</div>
-    <div class="chips">
-      <a href="admin.html" class="btn"><i class="fas fa-gauge-high"></i> Dashboard</a>
-      <a href="admin-bookings.html" class="btn"><i class="fas fa-calendar-check"></i> Bookings</a>
-      <a href="admin-timetable.html" class="btn"><i class="fas fa-table"></i> Timetable</a>
-      <a href="admin-users.html" class="btn"><i class="fas fa-users"></i> Users</a>
     </div>
   </div>
 </div>
@@ -92,7 +75,7 @@
 import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime, formatRelativeTime } from './js/core.js';
 
 (async () => {
-  const auth = await requireRole(['student', 'faculty', 'admin']);
+  const auth = await requireRole(['admin', 'faculty']);
   if (!auth) return;
   renderNav(auth.profile);
 
@@ -106,20 +89,16 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime, fo
   $('fullNameInput').value = p.full_name || '';
   $('emailDisplay').value = p.email;
   $('departmentDisplay').value = p.department || '—';
-  $('sectionDisplay').value = p.section_id || '—';
   $('phoneInput').value = p.phone || '';
 
-  const roleIcon = p.role === 'admin' ? 'shield-halved' : p.role === 'faculty' ? 'chalkboard-user' : 'graduation-cap';
+  const roleIcon = p.role === 'admin' ? 'shield-halved' : 'chalkboard-user';
   $('profileBadges').innerHTML = `
     <span class="badge badge-${p.role}"><i class="fas fa-${roleIcon}"></i>${p.role}</span>
     <span class="badge badge-approved"><i class="fas fa-check"></i>active</span>
-    ${p.section_id ? `<span class="badge badge-gray"><i class="fas fa-users-rectangle"></i>${escapeHtml(p.section_id)}</span>` : ''}
   `;
 
   $('createdAt').textContent = formatDateTime(p.created_at);
   $('lastActive').textContent = formatRelativeTime(p.last_active_at) || formatDateTime(p.last_active_at);
-  $('pwdChanged').textContent = p.password_changed_at ? formatDateTime(p.password_changed_at) : 'Never';
-  if (p.role === 'admin') $('adminLinks').style.display = 'block';
 
   document.querySelectorAll('.pwd-toggle[data-for]').forEach(btn => {
     btn.onclick = () => {
@@ -159,30 +138,8 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime, fo
     btn.disabled = false; btn.innerHTML = '<i class="fas fa-key"></i> Change password';
     if (error) return toast(error.message, 'error');
     $('currentPwd').value = ''; $('newPwd').value = ''; $('confirmPwd').value = '';
-    $('pwdChanged').textContent = formatDateTime(new Date().toISOString());
     toast('Password updated', 'success');
   };
-
-  try {
-    const { data: logs } = await supabase.from('activity_log').select('*').eq('user_id', p.id).order('created_at', { ascending: false }).limit(15);
-    if (!logs?.length) {
-      $('activityList').innerHTML = '<div class="empty"><i class="fas fa-inbox"></i>No recent activity</div>';
-    } else {
-      $('activityList').innerHTML = `
-        <div class="timeline">
-          ${logs.map(l => `
-            <div class="timeline-item">
-              <div class="timeline-marker"><i class="fas ${l.action === 'auth.login' ? 'fa-right-to-bracket' : l.action?.startsWith('user.') ? 'fa-user-pen' : l.action?.startsWith('room.') ? 'fa-door-open' : l.action?.startsWith('booking.') ? 'fa-calendar-check' : 'fa-circle'}"></i></div>
-              <div class="timeline-content">
-                <div class="timeline-title"><span class="mono" style="font-weight:500">${escapeHtml(l.action)}</span>${l.entity_id ? ` <span class="dim">${escapeHtml(l.entity_id)}</span>` : ''}</div>
-                <div class="timeline-meta">${formatRelativeTime(l.created_at)}</div>
-              </div>
-            </div>`).join('')}
-        </div>`;
-    }
-  } catch {
-    $('activityList').innerHTML = '<div class="empty"><i class="fas fa-exclamation-triangle"></i>Could not load activity</div>';
-  }
 })();
 </script>
 </body>

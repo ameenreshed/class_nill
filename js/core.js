@@ -42,9 +42,6 @@ export function parseTimeOnDate(dateStr, timeStr) { return new Date(`${dateStr}T
 export function dayOfWeekNum(dateStr) { return new Date(`${dateStr}T12:00:00`).getDay(); }
 export function dayName(dateStr) { return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayOfWeekNum(dateStr)]; }
 export function isSunday(dateStr) { return dayOfWeekNum(dateStr) === 0; }
-export function addDays(dateStr, n) {
-  const d = new Date(`${dateStr}T12:00:00`); d.setDate(d.getDate()+n); return todayISO(d);
-}
 export function humanDate(dateStr) {
   return new Date(`${dateStr}T12:00:00`).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' });
 }
@@ -141,9 +138,6 @@ export async function getSettings(force = false) {
     _settingsCache = {}; _settingsCacheAt = now; return {};
   }
 }
-export async function getSetting(key, fallback = null) {
-  const s = await getSettings(); return s[key] ?? fallback;
-}
 export function invalidateSettings() { _settingsCache = null; }
 
 export function escapeHtml(s) {
@@ -234,12 +228,8 @@ export async function renderNav(profile) {
   initTheme();
 
   const initial = ((profile.full_name || profile.email || '?').trim()[0] || '?').toUpperCase();
-  const roleIcon = profile.role === 'admin' ? 'shield-halved'
-                 : profile.role === 'faculty' ? 'chalkboard-user'
-                 : 'screwdriver-wrench';
-  const home = profile.role === 'admin' ? 'admin.html'
-             : profile.role === 'faculty' ? 'faculty.html'
-             : 'worker.html';
+  const roleIcon = profile.role === 'admin' ? 'shield-halved' : 'chalkboard-user';
+  const home = profile.role === 'admin' ? 'admin.html' : 'faculty.html';
   const currentPage = location.pathname.split('/').pop() || home;
 
   const items = profile.role === 'admin' ? [
@@ -247,14 +237,10 @@ export async function renderNav(profile) {
     { href:'admin-timetable.html',label:'Timetable',  icon:'fa-table',      active: currentPage.startsWith('admin-') && currentPage !== 'admin.html' && currentPage !== 'admin-settings.html' },
     { href:'free-rooms.html',     label:'Free rooms', icon:'fa-building',   active: currentPage === 'free-rooms.html' },
     { href:'admin-settings.html', label:'Settings',   icon:'fa-gear',       active: currentPage === 'admin-settings.html' },
-  ] : profile.role === 'faculty' ? [
+  ] : [
     { href:'faculty.html',   label:'Dashboard',  icon:'fa-gauge-high', active: currentPage === 'faculty.html' },
     { href:'free-rooms.html',label:'Free rooms', icon:'fa-building',   active: currentPage === 'free-rooms.html' },
     { href:'profile.html',   label:'Profile',    icon:'fa-user',       active: currentPage === 'profile.html' },
-  ] : [
-    { href:'worker.html',    label:'My queue',   icon:'fa-screwdriver-wrench', active: currentPage === 'worker.html' },
-    { href:'free-rooms.html',label:'Free rooms', icon:'fa-building',            active: currentPage === 'free-rooms.html' },
-    { href:'profile.html',   label:'Profile',    icon:'fa-user',                active: currentPage === 'profile.html' },
   ];
 
   el.innerHTML = `

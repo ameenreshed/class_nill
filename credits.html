@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Credits · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <meta name="theme-color" content="#EA580C">
@@ -13,10 +12,9 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 <style>
-  /* ===== Credits page custom styles ===== */
   body { background: var(--bg); overflow-x: hidden; }
 
-  /* floating back button */
+  /* Back button */
   .back-fab {
     position: fixed; top: 20px; left: 20px; z-index: 20;
     display: inline-flex; align-items: center; gap: 8px;
@@ -31,10 +29,11 @@
   .back-fab:hover {
     color: var(--brand); border-color: var(--brand);
     transform: translateY(-2px); box-shadow: var(--shadow-lg);
+    text-decoration: none;
   }
   .back-fab i { font-size: 12px; }
 
-  /* hero */
+  /* Hero */
   .hero {
     position: relative;
     padding: 100px 24px 60px;
@@ -116,7 +115,7 @@
     line-height: 1.65; max-width: 540px; margin: 0 auto;
   }
 
-  /* sections */
+  /* Sections */
   .section { max-width: 1080px; margin: 0 auto; padding: 32px 24px; }
   .section-header { margin-bottom: 32px; }
   .section-eyebrow {
@@ -135,7 +134,7 @@
   }
   .section-desc { font-size: 14px; color: var(--text-muted); max-width: 540px; }
 
-  /* team grid */
+  /* Team grid */
   .team-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -176,21 +175,6 @@
     box-shadow: 0 12px 24px -8px rgba(234, 88, 12, 0.45);
     position: relative;
   }
-  .team-avatar img {
-    width: 100%; height: 100%; object-fit: cover; border-radius: 20px;
-  }
-  .team-avatar::after {
-    content: ''; position: absolute; inset: -6px;
-    border-radius: 26px;
-    border: 2px solid transparent;
-    background: linear-gradient(135deg, rgba(234, 88, 12, 0.4), transparent) border-box;
-    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0; transition: opacity 260ms ease;
-  }
-  .team-card:hover .team-avatar::after { opacity: 1; }
-
   .team-name {
     font-size: 18px; font-weight: 700;
     letter-spacing: -0.015em; color: var(--text);
@@ -218,9 +202,10 @@
   .team-link:hover {
     background: var(--brand); border-color: var(--brand);
     color: #fff; transform: translateY(-2px);
+    text-decoration: none;
   }
 
-  /* tech grid */
+  /* Tech grid */
   .tech-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -249,7 +234,7 @@
   .tech-name { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; }
   .tech-role { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
-  /* footer */
+  /* Footer */
   .credits-footer {
     max-width: 1080px;
     margin: 48px auto 0;
@@ -269,7 +254,6 @@
     20%, 60%           { transform: scale(1.15); }
   }
 
-  /* mobile */
   @media (max-width: 640px) {
     .hero { padding: 80px 20px 40px; }
     .hero-icon-wrap { width: 72px; height: 72px; font-size: 28px; }
@@ -278,16 +262,11 @@
     .back-fab { top: 12px; left: 12px; padding: 8px 12px; font-size: 12px; }
   }
 
-  /* scroll reveal */
   .reveal { opacity: 0; transform: translateY(16px); }
   .reveal.in { animation: revealIn 600ms cubic-bezier(.4,0,.2,1) forwards; }
-  @keyframes revealIn {
-    to { opacity: 1; transform: translateY(0); }
-  }
+  @keyframes revealIn { to { opacity: 1; transform: translateY(0); } }
 </style>
-<noscript>
-  <style>.reveal { opacity: 1 !important; transform: none !important; }</style>
-</noscript>
+<noscript><style>.reveal{opacity:1 !important;transform:none !important}</style></noscript>
 </head>
 <body>
 
@@ -295,42 +274,35 @@
   <i class="fas fa-arrow-left"></i> Back
 </a>
 
-<!-- ============ HERO ============ -->
+<!-- Hero -->
 <section class="hero">
   <div class="hero-inner">
-    <div class="hero-eyebrow">
-      <i class="fas fa-star"></i> The Team
-    </div>
-    <div class="hero-icon-wrap">
-      <i class="fas fa-heart"></i>
-    </div>
+    <div class="hero-eyebrow"><i class="fas fa-star"></i> The Team</div>
+    <div class="hero-icon-wrap"><i class="fas fa-heart"></i></div>
     <h1 class="hero-title">Built by students,<br>for LPU.</h1>
     <p class="hero-subtitle">
-      LPU Scheduler is a real-time room availability platform crafted with care
-      to solve a problem every LPU student and faculty knows too well.
+      LPU Scheduler is a centralized classroom platform crafted with care to solve
+      a problem every faculty member knows too well.
     </p>
   </div>
 </section>
 
-<!-- ============ TEAM ============ -->
+<!-- Team -->
 <section class="section">
   <div class="section-header">
     <div class="section-eyebrow">Meet the makers</div>
     <h2 class="section-title">The people behind it</h2>
-    <p class="section-desc">.</p>
+    <p class="section-desc">Two students, one shared frustration, one clean solution.</p>
   </div>
 
   <div class="team-grid">
-
-    <!-- ===== TEAM MEMBER 1 — YOUR DETAILS ===== -->
     <div class="team-card reveal">
-      <div class="team-avatar">
-        <span>AR</span>
-      </div>
+      <div class="team-avatar"><span>AR</span></div>
       <div class="team-name">Ameen Reshed</div>
-      <div class="team-role">Student</div>
+      <div class="team-role">Student · Developer</div>
       <div class="team-bio">
-       bio
+        Designed and built the full platform — database schema, auth flow, admin
+        panel, faculty dashboard, and the live free-rooms engine.
       </div>
       <div class="team-links">
         <a href="https://github.com/ameenreshed" class="team-link" title="GitHub" aria-label="GitHub"><i class="fab fa-github"></i></a>
@@ -339,15 +311,13 @@
       </div>
     </div>
 
-    <!-- ===== TEAM MEMBER 2 — YOUR TEAMMATE ===== -->
     <div class="team-card reveal">
-      <div class="team-avatar">
-        <span>AN</span>
-      </div>
+      <div class="team-avatar"><span>AN</span></div>
       <div class="team-name">Anav Nipun</div>
-      <div class="team-role">Student</div>
+      <div class="team-role">Student · Developer</div>
       <div class="team-bio">
-        bio
+        Co-designed the product vision and workflow — makeup-from-leave logic,
+        maintenance blocking, and the admin control surface.
       </div>
       <div class="team-links">
         <a href="https://github.com/anavnipun" class="team-link" title="GitHub" aria-label="GitHub"><i class="fab fa-github"></i></a>
@@ -355,23 +325,10 @@
         <a href="mailto:anavnipun@gmail.com" class="team-link" title="Email" aria-label="Email"><i class="fas fa-envelope"></i></a>
       </div>
     </div>
-
-    <!-- ===== OPTIONAL: add more team members by copying this block =====
-    <div class="team-card reveal">
-      <div class="team-avatar"><span>X</span></div>
-      <div class="team-name">Third Name</div>
-      <div class="team-role">Designer</div>
-      <div class="team-bio">UI, UX, and brand design.</div>
-      <div class="team-links">
-        <a href="#" class="team-link"><i class="fab fa-figma"></i></a>
-      </div>
-    </div>
-    -->
-
   </div>
 </section>
 
-<!-- ============ TECH STACK ============ -->
+<!-- Tech -->
 <section class="section">
   <div class="section-header">
     <div class="section-eyebrow">Under the hood</div>
@@ -425,20 +382,20 @@
   </div>
 </section>
 
-<!-- ============ FOOTER ============ -->
+<!-- Footer -->
 <footer class="credits-footer">
-  
+  <p>
+    Made with <span class="heart">♥</span> by students, for LPU.
+  </p>
   <p style="margin-top:8px">
     Found a bug or have a suggestion?
     <a href="https://ums.lpu.in/lpuums/" target="_blank" rel="noopener noreferrer">
       Reach out via UMS
     </a>
   </p>
-  
 </footer>
 
 <script>
-  // Staggered reveal on scroll
   (function () {
     const els = document.querySelectorAll('.reveal');
     if (!('IntersectionObserver' in window)) {
@@ -460,7 +417,6 @@
         }
       });
     }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
-
     els.forEach(el => io.observe(el));
   })();
 </script>

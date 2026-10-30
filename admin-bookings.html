@@ -14,14 +14,16 @@
 <div id="nav"></div>
 <div class="container">
   <div class="page-header">
-    <div><h1 class="page-title"><i class="fas fa-calendar-check"></i> Bookings</h1><p class="page-subtitle">Approve or reject bookings from faculty and maintenance.</p></div>
-    <button class="btn" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
+    <div><h1 class="page-title"><i class="fas fa-calendar-check"></i> Bookings</h1><p class="page-subtitle">Approve or reject bookings from faculty.</p></div>
+    <div class="row">
+      <button class="btn" id="blockBtn"><i class="fas fa-lock"></i> Block room</button>
+      <button class="btn" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
+    </div>
   </div>
   <div class="admin-tabs">
     <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-chalkboard-user"></i> Faculty</a>
     <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
     <a href="admin-bookings.html" class="admin-tab active"><i class="fas fa-calendar-check"></i> Bookings</a>
-    <a href="worker.html" class="admin-tab"><i class="fas fa-screwdriver-wrench"></i> Maintenance</a>
     <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
     <a href="admin-buildings.html" class="admin-tab"><i class="fas fa-building"></i> Buildings</a>
     <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
@@ -51,14 +53,16 @@
   </tr></thead><tbody id="body"></tbody></table></div>
 </div>
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, toast, humanDate } from './js/core.js';
+import { requireRole, renderNav, supabase, escapeHtml, toast, humanDate, todayISO, loadBaseData } from './js/core.js';
 (async () => {
   const auth = await requireRole(['admin']); if (!auth) return;
   renderNav(auth.profile);
   const $ = id => document.getElementById(id);
   let bookings = [], rooms = [], slots = [], users = [], statusFilter = 'pending', typeFilter = '', search = '';
+  let base = { rooms: [], slots: [] };
 
   async function load() {
+    base = await loadBaseData();
     const [{ data: b }, { data: r }, { data: s }, { data: u }] = await Promise.all([
       supabase.from('bookings').select('*').order('book_date', { ascending: false }).limit(300),
       supabase.from('rooms').select('room_id,display_name'),
@@ -92,7 +96,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, humanDate } from '
       return;
     }
 
-    const typeBadge = { makeup:'pending', exam:'rejected', event:'admin', maintenance:'gray', regular:'student' };
+    const typeBadge = { makeup:'pending', exam:'rejected', event:'admin', maintenance:'gray', regular:'faculty' };
     const statusBadge = { approved:'approved', rejected:'rejected', cancelled:'gray', pending:'pending' };
     const statusIcon = { approved:'check', rejected:'xmark', cancelled:'ban', pending:'clock' };
 
@@ -112,7 +116,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, humanDate } from '
             <button class="btn btn-sm btn-success" data-a="${b.id}" title="Approve"><i class="fas fa-check"></i></button>
             <button class="btn btn-sm btn-danger" data-r="${b.id}" title="Reject"><i class="fas fa-xmark"></i></button>
           ` : ''}
-          ${b.status === 'approved' && b.reason ? `<button class="btn btn-sm" data-v="${b.id}" title="View reason"><i class="fas fa-eye"></i></button>` : ''}
+          ${b.reason ? `<button class="btn btn-sm" data-v="${b.id}" title="View reason"><i class="fas fa-eye"></i></button>` : ''}
         </td>
       </tr>`;
     }).join('');
@@ -130,6 +134,55 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, humanDate } from '
     if (error) return toast(error.message, 'error');
     toast(`Booking ${status}`, 'success'); await load();
   }
+
+  $('blockBtn').onclick = () => {
+    if (!base.rooms.length || !base.slots.length) return toast('Rooms and slots not configured', 'error');
+    const slotOpts = base.slots.map(s => `<option value="${escapeHtml(s.slot_id)}">${escapeHtml(s.label || s.slot_id)} (${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)})</option>`).join('');
+    const roomOpts = base.rooms.map(r => `<option value="${escapeHtml(r.room_id)}">${escapeHtml(r.display_name)}</option>`).join('');
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">Block room for maintenance</div>
+          <div class="modal-sub">Room will show as Maint on the grid — nobody can book it.</div>
+        </div>
+        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <label class="field"><span>Room *</span><select class="input" id="blRoom">${roomOpts}</select></label>
+        <label class="field"><span>Date *</span><input class="input" type="date" id="blDate" value="${todayISO()}" min="${todayISO()}"></label>
+        <label class="field"><span>Period *</span><select class="input" id="blSlot">${slotOpts}</select></label>
+        <label class="field"><span>Reason</span><input class="input" id="blReason" placeholder="e.g. AC replacement, deep clean"></label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-primary" id="blSubmit"><i class="fas fa-check"></i> Block</button>
+      </div>
+    </div>`;
+    document.body.appendChild(dialog); dialog.showModal();
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(b => b.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+    dialog.querySelector('#blSubmit').onclick = async () => {
+      const room = dialog.querySelector('#blRoom').value;
+      const date = dialog.querySelector('#blDate').value;
+      const slot = dialog.querySelector('#blSlot').value;
+      const reason = dialog.querySelector('#blReason').value.trim();
+      if (!room || !date || !slot) return toast('Fill all fields', 'error');
+      const btn = dialog.querySelector('#blSubmit');
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      const { error } = await supabase.from('bookings').insert({
+        room_id: room, book_date: date, slot_id: slot,
+        type: 'maintenance', status: 'approved',
+        created_by: auth.session.user.id, reason: reason || 'Maintenance block',
+      });
+      btn.disabled = false;
+      if (error) { toast(error.message, 'error'); btn.innerHTML = '<i class="fas fa-check"></i> Block'; return; }
+      toast('Room blocked', 'success'); close(); await load();
+    };
+  };
 
   document.querySelectorAll('[data-f]').forEach(b => b.onclick = () => {
     statusFilter = b.dataset.f;

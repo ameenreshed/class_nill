@@ -9,9 +9,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/admin.css">
-<style>
-  .pw-hint { font-size: 11px;color: var(--text-secondary);margin-top: 4px;line-height: 1.4; }
-</style>
+<style>.pw-hint{font-size:11px;color:var(--text-secondary);margin-top:4px;line-height:1.4}</style>
 </head>
 <body>
 <div id="nav"></div>
@@ -19,7 +17,7 @@
   <div class="page-header">
     <div>
       <h1 class="page-title"><i class="fas fa-users"></i> Users</h1>
-      <p class="page-subtitle">Faculty, workers, admins — create, edit, suspend, reset passwords.</p>
+      <p class="page-subtitle">Faculty and admins — create, edit, suspend, reset passwords.</p>
     </div>
     <button class="btn btn-primary" id="addBtn"><i class="fas fa-user-plus"></i> Add user</button>
   </div>
@@ -28,7 +26,6 @@
     <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-chalkboard-user"></i> Faculty</a>
     <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
     <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
-    <a href="worker.html" class="admin-tab"><i class="fas fa-screwdriver-wrench"></i> Maintenance</a>
     <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
     <a href="admin-buildings.html" class="admin-tab"><i class="fas fa-building"></i> Buildings</a>
     <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
@@ -44,7 +41,6 @@
       <button class="chip on" data-r="all">All roles</button>
       <button class="chip" data-r="admin">Admins</button>
       <button class="chip" data-r="faculty">Faculty</button>
-      <button class="chip" data-r="worker">Workers</button>
       <button class="chip" data-r="suspended">Suspended</button>
     </div>
     <div class="search-wrap">
@@ -55,11 +51,7 @@
 
   <div class="table-wrap"><table>
     <thead><tr>
-      <th>User</th>
-      <th>Role</th>
-      <th>Department</th>
-      <th>Status</th>
-      <th style="text-align:right">Actions</th>
+      <th>User</th><th>Role</th><th>Department</th><th>Status</th><th style="text-align:right">Actions</th>
     </tr></thead>
     <tbody id="body"></tbody>
   </table></div>
@@ -87,19 +79,17 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     const total = users.length;
     const admins = users.filter(u => u.role === 'admin').length;
     const fac = users.filter(u => u.role === 'faculty').length;
-    const wrk = users.filter(u => u.role === 'worker').length;
     const susp = users.filter(u => u.is_active === false).length;
     $('stats').innerHTML = `
       <div class="stat"><i class="fas fa-users stat-icon"></i><div class="stat-value">${total}</div><div class="stat-label">Total</div></div>
       <div class="stat"><i class="fas fa-shield-halved stat-icon"></i><div class="stat-value">${admins}</div><div class="stat-label">Admins</div></div>
       <div class="stat"><i class="fas fa-chalkboard-user stat-icon"></i><div class="stat-value">${fac}</div><div class="stat-label">Faculty</div></div>
-      <div class="stat"><i class="fas fa-screwdriver-wrench stat-icon"></i><div class="stat-value">${wrk}</div><div class="stat-label">Workers</div></div>
       <div class="stat"><i class="fas fa-ban stat-icon"></i><div class="stat-value">${susp}</div><div class="stat-label">Suspended</div></div>`;
   }
 
   function filtered() {
     let list = users;
-    if (roleFilter === 'admin' || roleFilter === 'faculty' || roleFilter === 'worker') list = list.filter(u => u.role === roleFilter);
+    if (roleFilter === 'admin' || roleFilter === 'faculty') list = list.filter(u => u.role === roleFilter);
     else if (roleFilter === 'suspended') list = list.filter(u => u.is_active === false);
     if (search) {
       const q = search.toLowerCase();
@@ -116,9 +106,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     }
     $('body').innerHTML = list.map(u => {
       const init = ((u.full_name || u.email || '?').trim()[0] || '?').toUpperCase();
-      const roleIcon = u.role === 'admin' ? 'shield-halved'
-                     : u.role === 'faculty' ? 'chalkboard-user'
-                     : 'screwdriver-wrench';
+      const roleIcon = u.role === 'admin' ? 'shield-halved' : 'chalkboard-user';
       const susp = u.is_active === false;
       const isMe = u.id === auth.profile.id;
       return `<tr>
@@ -136,7 +124,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         <td><span class="badge badge-${u.role}"><i class="fas fa-${roleIcon}"></i>${u.role}</span></td>
         <td class="dim" style="font-size:12px">${escapeHtml(u.department || '—')}</td>
         <td>${susp ? '<span class="badge badge-rejected"><i class="fas fa-ban"></i>suspended</span>' : '<span class="badge badge-approved"><i class="fas fa-check"></i>active</span>'}</td>
-        <td class="row-actions">
+        <td style="text-align:right;white-space:nowrap">
           <button class="btn btn-sm" data-edit="${u.id}" title="Edit"><i class="fas fa-pen"></i></button>
           <button class="btn btn-sm" data-reset="${u.id}" title="Reset password"><i class="fas fa-key"></i></button>
           ${!isMe ? `<button class="btn btn-sm ${susp ? 'btn-success' : 'btn-danger'}" data-toggle="${u.id}" data-active="${!susp}" title="${susp ? 'Activate' : 'Suspend'}"><i class="fas fa-${susp ? 'play' : 'ban'}"></i></button>` : ''}
@@ -158,7 +146,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       <div class="modal-header">
         <div>
           <div class="modal-title">Add new user</div>
-          <div class="modal-sub">Create a login account for faculty, worker, or admin.</div>
+          <div class="modal-sub">Create a login account for faculty or admin.</div>
         </div>
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
@@ -171,7 +159,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
           <label class="field" style="margin-bottom:0"><span>Role *</span>
             <select class="input" data-field="role">
               <option value="faculty">faculty</option>
-              <option value="worker">worker</option>
               <option value="admin">admin</option>
             </select>
           </label>
@@ -202,7 +189,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         p_full_name: get('full_name'),
         p_role: get('role'),
         p_department: get('department') || null,
-        p_section_id: null,
         p_phone: get('phone') || null,
       });
 
@@ -242,12 +228,11 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
           <label class="field" style="margin-bottom:0"><span>Role</span>
             <select class="input" data-field="role">
               <option value="faculty" ${u.role === 'faculty' ? 'selected' : ''}>faculty</option>
-              <option value="worker" ${u.role === 'worker' ? 'selected' : ''}>worker</option>
               <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>admin</option>
             </select>
           </label>
         </div>
-                <div style="padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);margin-top:14px;line-height:1.55">
+        <div style="padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);margin-top:14px;line-height:1.55">
           <i class="fas fa-info-circle" style="margin-right:6px"></i>To change the password, use the <strong>key icon</strong> on the user's row.
         </div>
       </div>
@@ -263,14 +248,12 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
       if (u.id === auth.profile.id && get('role') !== 'admin') return toast('You cannot demote yourself', 'error');
 
-      const payload = {
+      const { error } = await supabase.from('profiles').update({
         full_name: get('full_name') || null,
         phone: get('phone') || null,
         department: get('department') || null,
         role: get('role'),
-      };
-
-      const { error } = await supabase.from('profiles').update(payload).eq('id', id);
+      }).eq('id', id);
       if (error) return toast(error.message, 'error');
       toast('User updated', 'success');
       dialog.close(); dialog.remove();
@@ -320,10 +303,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting…';
 
-      const { data, error } = await supabase.rpc('admin_reset_password', {
-        p_user_id: id,
-        p_new_password: pwd,
-      });
+      const { data, error } = await supabase.rpc('admin_reset_password', { p_user_id: id, p_new_password: pwd });
 
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-key"></i> Reset password';

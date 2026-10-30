@@ -11,19 +11,60 @@
 <link rel="stylesheet" href="css/style.css">
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
-  .auth-help{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);font-size:13px;color:var(--text-secondary);line-height:1.6;text-align:center}
-  .auth-help a{color:var(--brand);font-weight:500;text-decoration:none}
-  .banner-warn{background:var(--warning-soft);border:1px solid var(--warning-soft-border);color:var(--warning-text);padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none;line-height:1.5}
-  .banner-warn.show{display:flex;gap:8px;align-items:flex-start}
+  .auth-help {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    text-align: center;
+  }
+  .auth-help a { color: var(--brand); font-weight: 500; text-decoration: none; }
+  .auth-help a:hover { text-decoration: underline; }
+
+  .credits-link {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .credits-link a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 160ms ease;
+  }
+  .credits-link a:hover { color: var(--brand); text-decoration: underline; }
+  .credits-link i { font-size: 10px; color: var(--brand); }
+
+  .banner-warn {
+    background: var(--warning-soft);
+    border: 1px solid var(--warning-soft-border);
+    color: var(--warning-text);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    margin-bottom: 12px;
+    display: none;
+    line-height: 1.5;
+  }
+  .banner-warn.show { display: flex; gap: 8px; align-items: flex-start; }
+  .banner-warn i { flex-shrink: 0; margin-top: 1px; }
 </style>
 </head>
 <body>
+
 <div class="auth-shell">
   <aside class="auth-brand-panel">
     <div class="auth-brand-content">
       <div class="auth-brand-mark"><i class="fas fa-calendar-check"></i></div>
       <h1 class="auth-brand-title">LPU<span>.</span>Scheduler</h1>
-      <p class="auth-brand-tagline">Centralized room scheduling for faculty, admins and maintenance.</p>
+      <p class="auth-brand-tagline">Centralized classroom scheduling for faculty and administration.</p>
       <ul class="auth-features">
         <li><i class="fas fa-check"></i> Live room availability — every booking visible</li>
         <li><i class="fas fa-check"></i> Faculty: makeup, events, leave in one place</li>
@@ -32,49 +73,73 @@
     </div>
     <div class="auth-brand-footer">Lovely Professional University · Scheduler</div>
   </aside>
+
   <main class="auth-form-panel">
     <div class="auth-form-wrap">
       <div class="auth-mobile-brand">
         <div class="auth-mobile-brand-icon"><i class="fas fa-calendar-check"></i></div>
         <div>LPU<span style="color:var(--brand)">.</span>Scheduler</div>
       </div>
+
       <div class="auth-form-header">
         <h2 class="auth-form-title">Sign in</h2>
         <p class="auth-form-sub">Enter your registration number and password to continue.</p>
       </div>
+
       <div class="banner-warn" id="verifyWarn">
         <i class="fas fa-triangle-exclamation"></i>
-        <div>Verification is taking too long. You can still sign in — verification will be skipped this time.</div>
+        <div id="verifyWarnText">Verification failed to load. Please check your connection and refresh.</div>
       </div>
+
       <form id="loginForm" novalidate>
         <label class="field">
           <span>Registration number</span>
           <input class="input" type="text" id="regno" inputmode="numeric" pattern="[0-9]*"
-                 placeholder="Enter registration number" autocomplete="username" required maxlength="20" autofocus>
+                 placeholder="Enter registration number" autocomplete="username"
+                 required maxlength="20" autofocus>
         </label>
+
         <label class="field" style="margin-bottom:8px">
           <span>Password</span>
           <div class="pwd-wrap">
             <input class="input" type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
-            <button type="button" class="pwd-toggle" id="pwdToggle" aria-label="Show password"><i class="fas fa-eye"></i></button>
+            <button type="button" class="pwd-toggle" id="pwdToggle" aria-label="Show password">
+              <i class="fas fa-eye"></i>
+            </button>
           </div>
         </label>
-        <div style="text-align:right;margin-bottom:16px;font-size:13px">
-          <a href="https://ums.lpu.in/lpuums/forgetpassword.aspx" style="color:var(--brand);font-weight:500">Forgot password?</a>
+
+        <div style="text-align:right; margin-bottom:16px; font-size:13px">
+          <a href="https://ums.lpu.in/lpuums/forgetpassword.aspx"
+             style="color:var(--brand);font-weight:500;text-decoration:none">
+            Forgot password?
+          </a>
         </div>
-        <div id="turnstile-container" style="margin-bottom:16px;min-height:65px;"></div>
-        <button type="submit" class="btn btn-primary btn-block" id="loginBtn" style="min-height:44px">
-          <i class="fas fa-right-to-bracket"></i> Sign in
+
+        <div id="turnstile-container" style="margin-bottom:16px; min-height:65px;"></div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="loginBtn" style="min-height:44px" disabled>
+          <i class="fas fa-shield-halved"></i> Loading verification…
         </button>
       </form>
+
       <div id="errorMsg" class="login-error"></div>
+
       <div class="auth-help">
-        <div style="font-weight:600;color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Need help signing in?</div>
+        <div style="font-weight:600;color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">
+          Need help signing in?
+        </div>
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:4px">
           <i class="fas fa-circle-info" style="font-size:11px;opacity:0.7"></i>
           <span>Contact your administrator or visit</span>
-          <a href="https://ums.lpu.in/lpuums/" target="_blank" rel="noopener noreferrer">UMS Portal</a>
+          <a href="https://ums.lpu.in/lpuums/" target="_blank" rel="noopener noreferrer">
+            UMS Portal
+          </a>
         </div>
+      </div>
+
+      <div class="credits-link">
+        <a href="credits.html"><i class="fas fa-heart"></i> Credits</a>
       </div>
     </div>
   </main>
@@ -82,12 +147,38 @@
 
 <script type="module">
 import { supabase, initTheme, waitForSession } from './js/core.js';
+
 const EMAIL_DOMAIN = 'lpu.in';
 const TURNSTILE_SITE_KEY = '0x4AAAAAAFk78nRRRuS58LzL';
+
 initTheme();
 const $ = id => document.getElementById(id);
-let turnstileToken = null, turnstileWidgetId = null, turnstileReady = false, turnstileFailed = false;
 
+/* ---------- State ---------- */
+let turnstileToken = null;
+let turnstileWidgetId = null;
+let turnstileReady = false;
+let turnstileFailed = false;
+
+/* ---------- Button State Manager (OLD PROTECTION) ---------- */
+function setLoginButton(state) {
+  const btn = $('loginBtn');
+  if (state === 'ready') {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
+  } else if (state === 'waiting') {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-shield-halved"></i> Verify to continue';
+  } else if (state === 'loading') {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading verification…';
+  } else if (state === 'signingin') {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
+  }
+}
+
+/* ---------- Helpers ---------- */
 function showError(html) {
   const el = $('errorMsg');
   el.innerHTML = `<i class="fas fa-circle-exclamation"></i><div>${html}</div>`;
@@ -95,113 +186,217 @@ function showError(html) {
 }
 function clearError() { $('errorMsg').classList.remove('show'); }
 
+/* ---------- URL error banners ---------- */
 const params = new URLSearchParams(location.search);
 if (params.get('err') === 'suspended') {
   showError('Your account has been suspended. Contact an administrator.');
   history.replaceState({}, '', 'login.html');
 }
 
+/* ---------- Redirect already-signed-in users ---------- */
 (async () => {
   const session = await waitForSession(1000);
   if (!session) return;
-  const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', session.user.id).single();
-  if (profile?.is_active === false) { await supabase.auth.signOut(); return; }
-  if (profile?.role) {
-    if (profile.role === 'admin')   location.replace('./admin.html');
-    else if (profile.role === 'faculty') location.replace('./faculty.html');
-    else if (profile.role === 'worker')  location.replace('./worker.html');
+  const { data: profile } = await supabase
+    .from('profiles').select('role, is_active').eq('id', session.user.id).single();
+
+  if (!profile || profile.is_active === false) {
+    await supabase.auth.signOut();
+    return;
   }
+  if (profile.role === 'admin')   return location.replace('./admin.html');
+  if (profile.role === 'faculty') return location.replace('./faculty.html');
+  await supabase.auth.signOut();
 })();
 
+/* ---------- Turnstile explicit rendering with polling ---------- */
+setLoginButton('loading');
+
 let pollAttempts = 0;
-const MAX_POLL_ATTEMPTS = 25;
+const MAX_POLL_ATTEMPTS = 50; // ~10 seconds (OLD PROTECTION: longer patience)
+
 function initTurnstile() {
   pollAttempts++;
+
   if (!window.turnstile) {
-    if (pollAttempts >= MAX_POLL_ATTEMPTS) { turnstileFailed = true; $('verifyWarn').classList.add('show'); return; }
-    setTimeout(initTurnstile, 200); return;
+    if (pollAttempts >= MAX_POLL_ATTEMPTS) {
+      // OLD PROTECTION: detailed diagnostic message, button stays DISABLED
+      turnstileFailed = true;
+      $('verifyWarnText').innerHTML =
+        'Verification failed to load. Please check: ' +
+        '(1) your internet connection, ' +
+        '(2) your browser is not blocking <code>challenges.cloudflare.com</code>, ' +
+        '(3) no ad-blocker is interfering. Then refresh the page.';
+      $('verifyWarn').classList.add('show');
+      setLoginButton('waiting');
+      return;
+    }
+    setTimeout(initTurnstile, 200);
+    return;
   }
+
   const container = document.getElementById('turnstile-container');
   if (!container || turnstileReady) return;
   turnstileReady = true;
+
   try {
     turnstileWidgetId = window.turnstile.render(container, {
       sitekey: TURNSTILE_SITE_KEY,
       theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
-      callback: (token) => { turnstileToken = token; clearError(); },
-      'expired-callback': () => { turnstileToken = null; },
-      'error-callback': () => { turnstileFailed = true; $('verifyWarn').classList.add('show'); },
+      size: 'normal',
+      callback: (token) => {
+        turnstileToken = token;
+        setLoginButton('ready');   // OLD PROTECTION: only now is button enabled
+        clearError();
+      },
+      'expired-callback': () => {
+        turnstileToken = null;
+        setLoginButton('waiting'); // OLD PROTECTION: re-disable on expiry
+      },
+      'error-callback': (code) => {
+        console.error('Turnstile error:', code);
+        turnstileToken = null;
+        turnstileFailed = true;
+        setLoginButton('waiting');
+        $('verifyWarnText').innerHTML =
+          `Verification error (code ${code}). Please refresh the page and try again.`;
+        $('verifyWarn').classList.add('show');
+      },
     });
-  } catch { turnstileFailed = true; $('verifyWarn').classList.add('show'); }
+    setLoginButton('waiting'); // Widget rendered but user hasn't verified yet
+  } catch (err) {
+    console.error('Turnstile render failed:', err);
+    turnstileFailed = true;
+    $('verifyWarnText').innerHTML =
+      'Verification could not start. Please refresh the page.';
+    $('verifyWarn').classList.add('show');
+    setLoginButton('waiting');
+  }
 }
-if (document.readyState === 'complete' || document.readyState === 'interactive') initTurnstile();
-else window.addEventListener('DOMContentLoaded', initTurnstile);
 
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  initTurnstile();
+} else {
+  window.addEventListener('DOMContentLoaded', initTurnstile);
+}
+
+/* ---------- Password visibility toggle ---------- */
 $('pwdToggle').onclick = () => {
   const pwd = $('password');
   const isPwd = pwd.type === 'password';
   pwd.type = isPwd ? 'text' : 'password';
-  $('pwdToggle').innerHTML = isPwd ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+  $('pwdToggle').innerHTML = isPwd
+    ? '<i class="fas fa-eye-slash"></i>'
+    : '<i class="fas fa-eye"></i>';
 };
 
+/* ---------- Digits-only registration number ---------- */
 const regnoEl = $('regno');
-regnoEl.addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 20); });
+regnoEl.addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 20);
+});
+regnoEl.addEventListener('keypress', e => {
+  if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+});
 regnoEl.addEventListener('paste', e => {
   e.preventDefault();
   const text = (e.clipboardData || window.clipboardData).getData('text') || '';
   regnoEl.value = text.replace(/\D/g, '').slice(0, 20);
 });
 
+/* ---------- Submit ---------- */
 $('loginForm').onsubmit = async (e) => {
   e.preventDefault();
   clearError();
+
+  /* OLD PROTECTION: token must exist before submit */
+  if (!turnstileToken) {
+    showError('Please complete the verification checkbox first.');
+    return;
+  }
+
   const regno = regnoEl.value.trim();
   const password = $('password').value;
-  if (!/^\d{3,20}$/.test(regno)) { showError('Enter a valid registration number (3–20 digits).'); regnoEl.focus(); return; }
-  if (!password) { showError('Enter your password.'); $('password').focus(); return; }
-  const btn = $('loginBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
-  const email = `${regno}@${EMAIL_DOMAIN}`;
-  const options = {};
-  if (turnstileToken && !turnstileFailed) options.captchaToken = turnstileToken;
-  let result;
-  try { result = await supabase.auth.signInWithPassword({ email, password, options }); }
-  catch (err) {
-    btn.disabled = false; btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
-    showError('Network error: ' + (err.message || err)); return;
+
+  if (!/^\d{3,20}$/.test(regno)) {
+    showError('Enter a valid registration number (3–20 digits).');
+    regnoEl.focus();
+    return;
   }
+  if (!password) {
+    showError('Enter your password.');
+    $('password').focus();
+    return;
+  }
+
+  setLoginButton('signingin');
+
+  const email = `${regno}@${EMAIL_DOMAIN}`;
+
+  let result;
+  try {
+    result = await supabase.auth.signInWithPassword({
+      email,
+      password,
+      options: { captchaToken: turnstileToken }, // OLD PROTECTION: always send token
+    });
+  } catch (err) {
+    setLoginButton('waiting');
+    showError('Network error: ' + (err.message || err));
+    return;
+  }
+
   if (result.error) {
     const m = (result.error.message || '').toLowerCase();
     let friendly = result.error.message;
-    if (m.includes('invalid login credentials')) friendly = 'Incorrect registration number or password.';
-    else if (m.includes('email not confirmed')) friendly = 'This account has not been confirmed. Contact your administrator.';
-    else if (m.includes('captcha')) {
-      friendly = 'Verification failed. Please tick the checkbox again.';
-      if (window.turnstile && turnstileWidgetId !== null) try { window.turnstile.reset(turnstileWidgetId); } catch {}
+
+    if (m.includes('invalid login credentials')) {
+      friendly = 'Incorrect registration number or password.';
+    } else if (m.includes('email not confirmed')) {
+      friendly = 'This account has not been confirmed. Contact your administrator.';
+    } else if (m.includes('captcha')) {
+      friendly = 'Verification failed or token expired. Please tick the checkbox again.';
+      // OLD PROTECTION: reset Turnstile widget on captcha error
+      if (window.turnstile && turnstileWidgetId !== null) {
+        try { window.turnstile.reset(turnstileWidgetId); } catch {}
+      }
       turnstileToken = null;
     }
+
     showError(friendly);
-    btn.disabled = false; btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
+    setLoginButton(turnstileToken ? 'ready' : 'waiting');
     return;
   }
+
+  if (!result.data?.session) {
+    showError('Sign-in failed. Please try again.');
+    setLoginButton(turnstileToken ? 'ready' : 'waiting');
+    return;
+  }
+
   const { data: profile, error: profErr } = await supabase
     .from('profiles').select('role, is_active').eq('id', result.data.session.user.id).single();
+
   if (profErr || !profile) {
     await supabase.auth.signOut();
-    btn.disabled = false; btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
-    showError('Your profile is missing. Contact your administrator.'); return;
+    showError('Your profile is missing. Contact your administrator.');
+    setLoginButton(turnstileToken ? 'ready' : 'waiting');
+    return;
   }
+
   if (profile.is_active === false) {
     await supabase.auth.signOut();
-    btn.disabled = false; btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
-    showError('Your account has been suspended. Contact an administrator.'); return;
+    showError('Your account has been suspended. Contact an administrator.');
+    setLoginButton(turnstileToken ? 'ready' : 'waiting');
+    return;
   }
+
   if (profile.role === 'admin')   return location.replace('./admin.html');
   if (profile.role === 'faculty') return location.replace('./faculty.html');
-  if (profile.role === 'worker')  return location.replace('./worker.html');
+
   await supabase.auth.signOut();
   showError('Your account role is not supported. Contact your administrator.');
+  setLoginButton(turnstileToken ? 'ready' : 'waiting');
 };
 </script>
 </body>

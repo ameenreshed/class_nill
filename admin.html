@@ -74,37 +74,30 @@
       <a href="admin-bookings.html" class="btn btn-block" style="margin-top:12px"><i class="fas fa-arrow-right"></i> Review bookings</a>
     </div>
     <div class="card">
-      <div class="card-title"><i class="fas fa-screwdriver-wrench" style="color:var(--info)"></i> Open worker calls <span class="badge badge-pending" id="wcCount" style="margin-left:auto">0</span></div>
-      <div id="wcPreview"></div>
-      <a href="worker.html" class="btn btn-block" style="margin-top:12px"><i class="fas fa-arrow-right"></i> Open maintenance queue</a>
+      <div class="card-title"><i class="fas fa-plane-departure" style="color:var(--info)"></i> Faculty on leave today <span class="badge badge-gray" id="leaveCount" style="margin-left:auto">0</span></div>
+      <div id="leavePreview"></div>
+      <a href="admin-timetable.html" class="btn btn-block" style="margin-top:12px"><i class="fas fa-arrow-right"></i> View timetable</a>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title"><i class="fas fa-clock-rotate-left"></i> Recent activity</div>
-    <div id="activity"></div>
   </div>
 
   <div style="margin-top:24px">
     <div class="card-title" style="margin-bottom:12px"><i class="fas fa-bolt"></i> Manage everything</div>
     <div class="quick-grid">
-      <a href="admin-faculty.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-chalkboard-user"></i></div><div><div class="quick-link-title">Faculty</div><div class="quick-link-sub">Accounts, workload, schedules</div></div></a>
-      <a href="admin-timetable.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-table"></i></div><div><div class="quick-link-title">Timetable</div><div class="quick-link-sub">Assign classes, detect conflicts</div></div></a>
-      <a href="admin-bookings.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-calendar-check"></i></div><div><div class="quick-link-title">Bookings</div><div class="quick-link-sub">Approve or reject requests</div></div></a>
-      <a href="worker.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-screwdriver-wrench"></i></div><div><div class="quick-link-title">Maintenance</div><div class="quick-link-sub">Worker queue &amp; repairs</div></div></a>
-      <a href="admin-rooms.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-door-open"></i></div><div><div class="quick-link-title">Rooms</div><div class="quick-link-sub">Capacity, type, availability</div></div></a>
-      <a href="admin-buildings.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-building"></i></div><div><div class="quick-link-title">Buildings</div><div class="quick-link-sub">Blocks, floors, room counts</div></div></a>
+      <a href="admin-faculty.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-chalkboard-user"></i></div><div><div class="quick-link-title">Faculty</div><div class="quick-link-sub">Accounts &amp; workload</div></div></a>
+      <a href="admin-timetable.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-table"></i></div><div><div class="quick-link-title">Timetable</div><div class="quick-link-sub">Assign classes</div></div></a>
+      <a href="admin-bookings.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-calendar-check"></i></div><div><div class="quick-link-title">Bookings</div><div class="quick-link-sub">Approve &amp; block</div></div></a>
+      <a href="admin-rooms.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-door-open"></i></div><div><div class="quick-link-title">Rooms</div><div class="quick-link-sub">Capacity &amp; type</div></div></a>
+      <a href="admin-buildings.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-building"></i></div><div><div class="quick-link-title">Buildings</div><div class="quick-link-sub">Floors &amp; counts</div></div></a>
       <a href="admin-slots.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-clock"></i></div><div><div class="quick-link-title">Time slots</div><div class="quick-link-sub">Period definitions</div></div></a>
-      <a href="admin-calendar.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-calendar-days"></i></div><div><div class="quick-link-title">Calendar</div><div class="quick-link-sub">Holidays, exam weeks</div></div></a>
-      <a href="admin-users.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-users"></i></div><div><div class="quick-link-title">Users</div><div class="quick-link-sub">Faculty, workers, admins</div></div></a>
-      <a href="free-rooms.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-building"></i></div><div><div class="quick-link-title">Free rooms</div><div class="quick-link-sub">Live availability grid</div></div></a>
-      <a href="admin-settings.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-gear"></i></div><div><div class="quick-link-title">Settings</div><div class="quick-link-sub">Bookings, LPU API</div></div></a>
+      <a href="admin-calendar.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-calendar-days"></i></div><div><div class="quick-link-title">Calendar</div><div class="quick-link-sub">Holidays</div></div></a>
+      <a href="admin-users.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-users"></i></div><div><div class="quick-link-title">Users</div><div class="quick-link-sub">Faculty &amp; admins</div></div></a>
+      <a href="free-rooms.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-building"></i></div><div><div class="quick-link-title">Free rooms</div><div class="quick-link-sub">Live grid</div></div></a>
     </div>
   </div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, formatTime, formatRelativeTime, dayOfWeekNum, humanDate, loadBaseData } from './js/core.js';
+import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, formatTime, dayOfWeekNum, humanDate, loadBaseData } from './js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
@@ -123,25 +116,29 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, format
     const cur = base.slots.find(s => nowStr >= s.start_time.slice(0,8) && nowStr < s.end_time.slice(0,8));
 
     const [
-      { data: fac }, { data: wrk }, { data: tt }, { data: bk },
-      { data: pending }, { data: calls }, { data: todayBk }
+      { data: fac }, { data: tt }, { data: bk },
+      { data: pending }, { data: todayBk }, { data: leave }
     ] = await Promise.all([
       supabase.from('profiles').select('id').eq('role', 'faculty'),
-      supabase.from('profiles').select('id').eq('role', 'worker'),
       supabase.from('timetable').select('room_id,slot_id').eq('day_of_week', dow).eq('is_active', true),
       supabase.from('bookings').select('room_id,slot_id').eq('book_date', today).in('status', ['pending','approved']),
       supabase.from('bookings').select('*').eq('status', 'pending').order('created_at', { ascending: false }).limit(5),
-      supabase.from('worker_calls').select('*').in('status', ['open','assigned','in_progress']).order('created_at', { ascending: false }).limit(5),
       supabase.from('bookings').select('id').eq('book_date', today),
+      supabase.from('faculty_unavailability').select('*').eq('date', today).limit(20),
     ]);
+
+    let leaveNames = new Map();
+    if (leave?.length) {
+      const ids = [...new Set(leave.map(l => l.faculty_id))];
+      const { data: profs } = await supabase.from('profiles').select('id, full_name, email').in('id', ids);
+      (profs ?? []).forEach(p => leaveNames.set(p.id, p));
+    }
 
     $('stats').innerHTML = `
       <a href="admin-faculty.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-chalkboard-user"></i></div><div class="dash-stat-val">${fac?.length ?? 0}</div><div class="dash-stat-lbl">Faculty</div></a>
-      <a href="admin-users.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-screwdriver-wrench"></i></div><div class="dash-stat-val">${wrk?.length ?? 0}</div><div class="dash-stat-lbl">Workers</div></a>
       <a href="admin-rooms.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-door-open"></i></div><div class="dash-stat-val">${base.rooms.length}</div><div class="dash-stat-lbl">Rooms</div></a>
       <a href="admin-timetable.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-table"></i></div><div class="dash-stat-val">${tt?.length ?? 0}</div><div class="dash-stat-lbl">Classes today</div></a>
       <a href="admin-bookings.html" class="dash-stat"><div class="dash-stat-icon" style="background:var(--warning-soft);color:var(--warning)"><i class="fas fa-hourglass-half"></i></div><div class="dash-stat-val" style="color:var(--warning)">${pending?.length ?? 0}</div><div class="dash-stat-lbl">Pending</div></a>
-      <a href="worker.html" class="dash-stat"><div class="dash-stat-icon" style="background:var(--info-soft);color:var(--info)"><i class="fas fa-screwdriver-wrench"></i></div><div class="dash-stat-val" style="color:var(--info)">${calls?.length ?? 0}</div><div class="dash-stat-lbl">Open calls</div></a>
       <a href="admin-bookings.html" class="dash-stat"><div class="dash-stat-icon" style="background:var(--success-soft);color:var(--success)"><i class="fas fa-calendar-day"></i></div><div class="dash-stat-val" style="color:var(--success)">${todayBk?.length ?? 0}</div><div class="dash-stat-lbl">Today's bookings</div></a>`;
 
     if (!cur) {
@@ -171,35 +168,15 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, format
       }).join('');
     }
 
-    $('wcCount').textContent = calls?.length ?? 0;
-    if (!calls?.length) {
-      $('wcPreview').innerHTML = '<div class="empty" style="padding:24px 16px"><i class="fas fa-check-circle" style="color:var(--success)"></i><div style="margin-top:8px">No open calls</div></div>';
+    $('leaveCount').textContent = leave?.length ?? 0;
+    if (!leave?.length) {
+      $('leavePreview').innerHTML = '<div class="empty" style="padding:24px 16px"><i class="fas fa-check-circle" style="color:var(--success)"></i><div style="margin-top:8px">No faculty on leave today</div></div>';
     } else {
-      const roomMap = new Map(base.rooms.map(r => [r.room_id, r.display_name]));
-      $('wcPreview').innerHTML = calls.map(c => `
-        <a href="worker.html" class="preview-row">
-          <div class="preview-info">
-            <div class="preview-title"><span class="mono">${escapeHtml(roomMap.get(c.room_id) || c.room_id || '—')}</span> <span class="badge badge-${c.priority === 'urgent' ? 'rejected' : c.priority === 'high' ? 'pending' : 'gray'}" style="margin-left:4px">${escapeHtml(c.priority)}</span></div>
-            <div class="preview-meta">${escapeHtml(c.issue.slice(0, 60))}${c.issue.length > 60 ? '…' : ''}</div>
-          </div>
-          <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:11px"></i>
-        </a>`).join('');
-    }
-
-    const { data: logs } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(10);
-    if (!logs?.length) {
-      $('activity').innerHTML = '<div class="empty" style="padding:24px"><i class="fas fa-inbox"></i>No activity yet</div>';
-    } else {
-      $('activity').innerHTML = logs.map(l => {
-        const icon = l.action === 'auth.login' ? 'fa-right-to-bracket'
-                   : l.action?.startsWith('user.') ? 'fa-user-pen'
-                   : l.action?.startsWith('room.') ? 'fa-door-open'
-                   : l.action?.startsWith('booking.') ? 'fa-calendar-check'
-                   : 'fa-circle';
-        return `<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-          <div style="width:26px;height:26px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0"><i class="fas ${icon}"></i></div>
-          <div style="flex:1;min-width:0"><div style="font-weight:500;color:var(--text)">${escapeHtml(l.action)}</div><div style="font-size:11px;color:var(--text-secondary);margin-top:2px">${escapeHtml(l.user_email || 'system')} · ${formatRelativeTime(l.created_at)}</div></div>
-        </div>`;
+      const slotMap = new Map(base.slots.map(s => [s.slot_id, s]));
+      $('leavePreview').innerHTML = leave.map(l => {
+        const p = leaveNames.get(l.faculty_id);
+        const slot = l.slot_id ? slotMap.get(l.slot_id) : null;
+        return `<div class="preview-row" style="cursor:default"><div class="preview-info"><div class="preview-title">${escapeHtml(p?.full_name || p?.email || '—')}</div><div class="preview-meta">${slot ? escapeHtml(slot.label || slot.slot_id) + ' · ' + slot.start_time.slice(0,5) + '–' + slot.end_time.slice(0,5) : 'Whole day'}${l.reason ? ' · ' + escapeHtml(l.reason) : ''}</div></div></div>`;
       }).join('');
     }
   }
