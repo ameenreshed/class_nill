@@ -3,45 +3,54 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Faculty · LPU Scheduler</title>
+<title>Users · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/admin.css">
+<style>
+  .pw-hint { font-size: 11px;color: var(--text-secondary);margin-top: 4px;line-height: 1.4; }
+  .schedule-day { margin-bottom: 16px; }
+  .schedule-day-title { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .schedule-item { padding: 10px 12px; background: var(--surface-hover); border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; }
+  .schedule-item-code { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--brand); font-size: 12px; }
+  .schedule-item-meta { color: var(--text-secondary); font-size: 11px; margin-top: 2px; }
+  .schedule-item-slot { color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; font-size: 11px; flex-shrink: 0; }
+</style>
 </head>
 <body>
 <div id="nav"></div>
 <div class="container">
   <div class="page-header">
     <div>
-      <h1 class="page-title"><i class="fas fa-chalkboard-user"></i> Faculty</h1>
-      <p class="page-subtitle">Manage faculty accounts and view workload.</p>
+      <h1 class="page-title"><i class="fas fa-users"></i> Users & Faculty</h1>
+      <p class="page-subtitle">Manage every account — faculty, admins, workload, and access.</p>
     </div>
-    <button class="btn btn-primary" id="addBtn"><i class="fas fa-user-plus"></i> Add faculty</button>
+    <button class="btn btn-primary" id="addBtn"><i class="fas fa-user-plus"></i> Add user</button>
   </div>
 
   <div class="admin-tabs">
-    <a href="admin-faculty.html" class="admin-tab active"><i class="fas fa-chalkboard-user"></i> Faculty</a>
+    <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
     <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
     <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
-    <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
-    <a href="admin-buildings.html" class="admin-tab"><i class="fas fa-building"></i> Buildings</a>
+    <a href="admin-faculty.html" class="admin-tab active"><i class="fas fa-users"></i> Users</a>
     <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
     <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
-    <a href="admin-users.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
     <a href="admin-settings.html" class="admin-tab"><i class="fas fa-gear"></i> Settings</a>
   </div>
 
   <div class="stats" id="stats"></div>
 
-  <div class="row">
-    <div class="chips" id="filters">
-      <button class="chip on" data-f="all">All</button>
-      <button class="chip" data-f="active">Active</button>
-      <button class="chip" data-f="suspended">Suspended</button>
+  <div class="row" style="margin-bottom:16px">
+    <div class="chips" id="roleFilter">
+      <button class="chip on" data-r="all">All</button>
+      <button class="chip" data-r="admin">Admins</button>
+      <button class="chip" data-r="faculty">Faculty</button>
+      <button class="chip" data-r="active">Active</button>
+      <button class="chip" data-r="suspended">Suspended</button>
     </div>
-    <div class="search-wrap">
+    <div class="search-wrap" style="margin-left:auto;max-width:360px">
       <i class="fas fa-search search-icon"></i>
       <input class="input" id="search" placeholder="Search name, email, department…">
     </div>
@@ -49,7 +58,12 @@
 
   <div class="table-wrap"><table>
     <thead><tr>
-      <th>Faculty</th><th>Department</th><th>Weekly classes</th><th>Courses</th><th>Status</th><th style="text-align:right">Actions</th>
+      <th>User</th>
+      <th>Role</th>
+      <th>Department</th>
+      <th>Weekly classes</th>
+      <th>Status</th>
+      <th style="text-align:right">Actions</th>
     </tr></thead>
     <tbody id="body"></tbody>
   </table></div>
@@ -65,230 +79,408 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
 
   const $ = id => document.getElementById(id);
   const DOW = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  let faculty = [], tt = [], filter = 'all', search = '';
+  let users = [], tt = [], roleFilter = 'all', search = '';
 
+  /* ============ LOAD ============ */
   async function load() {
-    const [{ data: f }, { data: t }] = await Promise.all([
-      supabase.from('profiles').select('*').eq('role', 'faculty').order('full_name'),
+    const [uRes, tRes] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
       supabase.from('timetable').select('*').eq('is_active', true),
     ]);
-    faculty = f ?? []; tt = t ?? [];
-    renderStats(); render();
+    users = uRes.data ?? [];
+    tt = tRes.data ?? [];
+    renderStats();
+    render();
   }
 
+  /* ============ STATS ============ */
   function renderStats() {
-    const active = faculty.filter(f => f.is_active !== false).length;
-    const susp = faculty.filter(f => f.is_active === false).length;
+    const admins = users.filter(u => u.role === 'admin').length;
+    const faculty = users.filter(u => u.role === 'faculty').length;
+    const active = users.filter(u => u.is_active !== false).length;
+    const suspended = users.filter(u => u.is_active === false).length;
     $('stats').innerHTML = `
-      <div class="stat"><i class="fas fa-chalkboard-user stat-icon"></i><div class="stat-value">${faculty.length}</div><div class="stat-label">Total faculty</div></div>
-      <div class="stat"><i class="fas fa-circle-check stat-icon" style="color:var(--success)"></i><div class="stat-value" style="color:var(--success)">${active}</div><div class="stat-label">Active</div></div>
-      <div class="stat"><i class="fas fa-ban stat-icon" style="color:var(--danger)"></i><div class="stat-value" style="color:var(--danger)">${susp}</div><div class="stat-label">Suspended</div></div>
-      <div class="stat"><i class="fas fa-table stat-icon"></i><div class="stat-value">${tt.length}</div><div class="stat-label">Classes scheduled</div></div>`;
+      <div class="stat"><i class="fas fa-users stat-icon"></i><div class="stat-value">${users.length}</div><div class="stat-label">Total users</div></div>
+      <div class="stat"><i class="fas fa-shield-halved stat-icon" style="color:var(--brand)"></i><div class="stat-value" style="color:var(--brand)">${admins}</div><div class="stat-label">Admins</div></div>
+      <div class="stat"><i class="fas fa-chalkboard-user stat-icon" style="color:var(--success)"></i><div class="stat-value" style="color:var(--success)">${faculty}</div><div class="stat-label">Faculty</div></div>
+      <div class="stat"><i class="fas fa-ban stat-icon" style="color:var(--danger)"></i><div class="stat-value" style="color:var(--danger)">${suspended}</div><div class="stat-label">Suspended</div></div>`;
+  }
+
+  /* ============ FILTER + RENDER ============ */
+  function filtered() {
+    let list = users;
+    if (roleFilter === 'admin' || roleFilter === 'faculty') list = list.filter(u => u.role === roleFilter);
+    else if (roleFilter === 'active') list = list.filter(u => u.is_active !== false);
+    else if (roleFilter === 'suspended') list = list.filter(u => u.is_active === false);
+
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(u =>
+        (u.full_name || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q) ||
+        (u.department || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
   }
 
   function render() {
-    let list = faculty;
-    if (filter === 'active') list = list.filter(f => f.is_active !== false);
-    else if (filter === 'suspended') list = list.filter(f => f.is_active === false);
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter(f =>
-        (f.full_name || '').toLowerCase().includes(q) ||
-        (f.email || '').toLowerCase().includes(q) ||
-        (f.department || '').toLowerCase().includes(q));
-    }
+    const list = filtered();
     if (!list.length) {
-      $('body').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-user-slash"></i>No faculty match your filters</td></tr>';
+      $('body').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-user-slash"></i>No users match your filters</td></tr>';
       return;
     }
-    $('body').innerHTML = list.map(f => {
-      const init = ((f.full_name || f.email || '?').trim()[0] || '?').toUpperCase();
-      const classes = tt.filter(t => t.faculty_id === f.id);
-      const courses = new Set(classes.map(c => c.course_code).filter(Boolean));
-      const susp = f.is_active === false;
+    $('body').innerHTML = list.map(u => {
+      const init = ((u.full_name || u.email || '?').trim()[0] || '?').toUpperCase();
+      const roleIcon = u.role === 'admin' ? 'shield-halved' : 'chalkboard-user';
+      const susp = u.is_active === false;
+      const isMe = u.id === auth.profile.id;
+
+      const classes = u.role === 'faculty' ? tt.filter(t => t.faculty_id === u.id) : [];
+      const classCell = u.role === 'faculty'
+        ? `<strong style="color:var(--text)">${classes.length}</strong> <span style="color:var(--text-secondary)">class${classes.length === 1 ? '' : 'es'}</span>`
+        : '<span class="dim">—</span>';
+
       return `<tr>
         <td>
           <div style="display:flex;align-items:center;gap:10px">
             <span class="avatar-sm">${escapeHtml(init)}</span>
-            <div>
-              <div style="color:var(--text);font-weight:500;font-size:13px">${escapeHtml(f.full_name || f.email)}</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin-top:1px">${escapeHtml(f.email)}</div>
+            <div style="min-width:0">
+              <div style="color:var(--text);font-weight:500;font-size:13px">
+                ${escapeHtml(u.full_name || u.email)}${isMe ? ' <span class="badge badge-admin" style="font-size:9px;padding:1px 6px;margin-left:4px">you</span>' : ''}
+              </div>
+              <div style="font-size:11px;color:var(--text-secondary);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(u.email)}</div>
             </div>
           </div>
         </td>
-        <td class="dim" style="font-size:12px">${escapeHtml(f.department || '—')}</td>
-        <td style="font-size:13px"><strong style="color:var(--text)">${classes.length}</strong> <span style="color:var(--text-secondary)">class${classes.length === 1 ? '' : 'es'}</span></td>
-        <td style="font-size:13px"><strong style="color:var(--text)">${courses.size}</strong> <span style="color:var(--text-secondary)">course${courses.size === 1 ? '' : 's'}</span></td>
-        <td>${susp ? '<span class="badge badge-rejected">suspended</span>' : '<span class="badge badge-approved">active</span>'}</td>
+        <td><span class="badge badge-${u.role}"><i class="fas fa-${roleIcon}"></i>${u.role}</span></td>
+        <td class="dim" style="font-size:12px">${escapeHtml(u.department || '—')}</td>
+        <td style="font-size:13px">${classCell}</td>
+        <td>${susp ? '<span class="badge badge-rejected"><i class="fas fa-ban"></i>suspended</span>' : '<span class="badge badge-approved"><i class="fas fa-check"></i>active</span>'}</td>
         <td style="text-align:right;white-space:nowrap">
-          <button class="btn btn-sm" data-view="${f.id}" title="View schedule"><i class="fas fa-eye"></i></button>
-          <button class="btn btn-sm" data-edit="${f.id}" title="Edit"><i class="fas fa-pen"></i></button>
-          <button class="btn btn-sm ${susp ? 'btn-success' : 'btn-danger'}" data-toggle="${f.id}" data-active="${!susp}" title="${susp ? 'Activate' : 'Suspend'}"><i class="fas fa-${susp ? 'play' : 'ban'}"></i></button>
+          ${u.role === 'faculty' ? `<button class="btn btn-sm" data-view="${u.id}" title="View schedule"><i class="fas fa-eye"></i></button>` : ''}
+          <button class="btn btn-sm" data-edit="${u.id}" title="Edit"><i class="fas fa-pen"></i></button>
+          <button class="btn btn-sm" data-reset="${u.id}" title="Reset password"><i class="fas fa-key"></i></button>
+          ${!isMe ? `<button class="btn btn-sm ${susp ? 'btn-success' : 'btn-danger'}" data-toggle="${u.id}" data-active="${!susp}" title="${susp ? 'Activate' : 'Suspend'}"><i class="fas fa-${susp ? 'play' : 'ban'}"></i></button>` : ''}
+          ${!isMe ? `<button class="btn btn-sm btn-danger" data-del="${u.id}" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
         </td>
       </tr>`;
     }).join('');
 
-    document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => view(b.dataset.view));
-    document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => edit(b.dataset.edit));
-    document.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => toggle(b.dataset.toggle, b.dataset.active === 'true'));
+    document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => viewSchedule(b.dataset.view));
+    document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => editUser(b.dataset.edit));
+    document.querySelectorAll('[data-reset]').forEach(b => b.onclick = () => resetPassword(b.dataset.reset));
+    document.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => toggleUser(b.dataset.toggle, b.dataset.active === 'true'));
+    document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => deleteUser(b.dataset.del));
   }
 
-  function view(id) {
-    const f = faculty.find(x => x.id === id);
-    if (!f) return;
-    const classes = tt.filter(t => t.faculty_id === id);
-    const byDay = new Map();
-    classes.forEach(c => { if (!byDay.has(c.day_of_week)) byDay.set(c.day_of_week, []); byDay.get(c.day_of_week).push(c); });
-    const schedHtml = [1,2,3,4,5,6,0].filter(d => byDay.has(d)).map(d => {
-      const items = byDay.get(d).sort((a, b) => a.slot_id.localeCompare(b.slot_id));
-      return `<div style="margin-bottom:16px">
-        <div style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">${DOW[d]}</div>
-        ${items.map(c => `<div style="padding:10px 12px;background:var(--surface-hover);border-radius:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px">
-          <div>
-            <div style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--brand);font-size:12px">${escapeHtml(c.course_code || '—')}</div>
-            <div style="color:var(--text-secondary);font-size:11px;margin-top:2px">${escapeHtml(c.course_name || '')} · ${escapeHtml(c.room_id)}</div>
-          </div>
-          <div style="color:var(--text-secondary);font-family:'JetBrains Mono',monospace;font-size:11px">${escapeHtml(c.slot_id)}</div>
-        </div>`).join('')}
-      </div>`;
-    }).join('') || '<div class="empty" style="padding:20px"><i class="fas fa-inbox"></i><br>No classes assigned</div>';
-
-    const dialog = document.createElement('dialog');
-    dialog.className = 'modal-dialog';
-    dialog.innerHTML = `<div class="modal-content modal-wide">
-      <div class="modal-header">
-        <div>
-          <div class="modal-title">${escapeHtml(f.full_name || f.email)}</div>
-          <div class="modal-sub">${escapeHtml(f.email)} · ${escapeHtml(f.department || 'No department')}</div>
-        </div>
-        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
-      </div>
-      <div class="modal-body">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;padding:16px 0;border-bottom:1px solid var(--border);margin-bottom:20px">
-          <div><div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:4px">Total classes</div><div style="font-size:20px;font-weight:700">${classes.length}</div></div>
-          <div><div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:4px">Courses</div><div style="font-size:20px;font-weight:700">${new Set(classes.map(c => c.course_code).filter(Boolean)).size}</div></div>
-          <div><div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:4px">Teaching days</div><div style="font-size:20px;font-weight:700">${byDay.size}</div></div>
-        </div>
-        <h3 style="font-size:14px;font-weight:600;margin:0 0 14px;display:flex;align-items:center;gap:8px"><i class="fas fa-calendar-week" style="color:var(--brand);font-size:13px"></i>Weekly schedule</h3>
-        ${schedHtml}
-      </div>
-      <div class="modal-footer">
-        <button class="btn" data-close>Close</button>
-        <button class="btn btn-primary" id="editFromView"><i class="fas fa-pen"></i> Edit account</button>
-      </div>
-    </div>`;
-    document.body.appendChild(dialog);
-    dialog.showModal();
-    dialog.querySelector('#editFromView').onclick = () => { dialog.close(); dialog.remove(); edit(id); };
-    const close = () => { dialog.close(); dialog.remove(); };
-    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
-    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
-    dialog.onclick = e => { if (e.target === dialog) close(); };
-  }
-
+  /* ============ ADD USER ============ */
   $('addBtn').onclick = () => {
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
-    dialog.innerHTML = `<div class="modal-content">
-      <div class="modal-header">
-        <div><div class="modal-title">Add new faculty</div><div class="modal-sub">Creates a login account with faculty role.</div></div>
-        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
-      </div>
-      <div class="modal-body">
-        <label class="field"><span>Full name *</span><input class="input" data-field="full_name" placeholder="Dr. Jane Smith" autofocus></label>
-        <label class="field"><span>Email *</span><input class="input" type="email" data-field="email" placeholder="jane@lpu.in"></label>
-        <label class="field"><span>Password *</span><input class="input" type="text" data-field="password" value="${Math.random().toString(36).slice(-8)}"><div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Share this with the faculty member.</div></label>
-        <label class="field"><span>Department</span><input class="input" data-field="department" placeholder="CSE"></label>
-        <label class="field"><span>Phone</span><input class="input" data-field="phone" placeholder="+91 ..."></label>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" data-close>Cancel</button>
-        <button class="btn btn-primary" data-save><i class="fas fa-user-plus"></i> Create faculty</button>
-      </div>
-    </div>`;
+    dialog.innerHTML = `
+      <div class="modal-content modal-wide">
+        <div class="modal-header">
+          <div>
+            <div class="modal-title">Add new user</div>
+            <div class="modal-sub">Create a faculty or admin login account.</div>
+          </div>
+          <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+            <label class="field" style="margin-bottom:0"><span>Full name *</span>
+              <input class="input" data-field="full_name" placeholder="Jane Doe" autofocus>
+            </label>
+            <label class="field" style="margin-bottom:0"><span>Email *</span>
+              <input class="input" type="email" data-field="email" placeholder="jane@lpu.in">
+            </label>
+            <label class="field" style="margin-bottom:0"><span>Password *</span>
+              <input class="input" type="text" data-field="password" value="${Math.random().toString(36).slice(-8)}">
+              <div class="pw-hint">Visible so you can share it.</div>
+            </label>
+            <label class="field" style="margin-bottom:0"><span>Phone</span>
+              <input class="input" data-field="phone" placeholder="+91 ...">
+            </label>
+            <label class="field" style="margin-bottom:0"><span>Role *</span>
+              <select class="input" data-field="role">
+                <option value="faculty">faculty</option>
+                <option value="admin">admin</option>
+              </select>
+            </label>
+            <label class="field" style="margin-bottom:0"><span>Department</span>
+              <input class="input" data-field="department" placeholder="CSE">
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" data-close>Cancel</button>
+          <button class="btn btn-primary" data-save><i class="fas fa-user-plus"></i> Create user</button>
+        </div>
+      </div>`;
     document.body.appendChild(dialog);
     dialog.showModal();
+
     dialog.querySelector('[data-save]').onclick = async () => {
       const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
       if (!get('full_name')) return toast('Full name required', 'error');
       if (!get('email')) return toast('Email required', 'error');
       if (get('password').length < 6) return toast('Password must be 6+ characters', 'error');
+
       const btn = dialog.querySelector('[data-save]');
-      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
+
       const { data, error } = await supabase.rpc('admin_create_user', {
         p_email: get('email'),
         p_password: get('password'),
         p_full_name: get('full_name'),
-        p_role: 'faculty',
+        p_role: get('role'),
         p_department: get('department') || null,
         p_phone: get('phone') || null,
       });
-      if (error) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus"></i> Create faculty'; return toast(error.message, 'error'); }
-      if (data?.error) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus"></i> Create faculty'; return toast(data.error, 'error'); }
-      toast('Faculty created', 'success');
+
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-user-plus"></i> Create user';
+
+      if (error) return toast(error.message, 'error');
+      if (data?.error) return toast(data.error, 'error');
+      toast('User created', 'success');
       dialog.close(); dialog.remove();
       await load();
     };
+
     const close = () => { dialog.close(); dialog.remove(); };
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
     dialog.onclick = e => { if (e.target === dialog) close(); };
   };
 
-  function edit(id) {
-    const f = faculty.find(x => x.id === id);
-    if (!f) return;
+  /* ============ EDIT USER ============ */
+  function editUser(id) {
+    const u = users.find(x => x.id === id);
+    if (!u) return;
+    const isMe = u.id === auth.profile.id;
+
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
-    dialog.innerHTML = `<div class="modal-content">
-      <div class="modal-header">
-        <div class="modal-title">Edit ${escapeHtml(f.email)}</div>
-        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
-      </div>
-      <div class="modal-body">
-        <label class="field"><span>Full name</span><input class="input" data-field="full_name" value="${escapeHtml(f.full_name || '')}"></label>
-        <label class="field"><span>Department</span><input class="input" data-field="department" value="${escapeHtml(f.department || '')}"></label>
-        <label class="field"><span>Phone</span><input class="input" data-field="phone" value="${escapeHtml(f.phone || '')}"></label>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" data-close>Cancel</button>
-        <button class="btn btn-primary" data-save><i class="fas fa-check"></i> Save</button>
-      </div>
-    </div>`;
+    dialog.innerHTML = `
+      <div class="modal-content modal-wide">
+        <div class="modal-header">
+          <div>
+            <div class="modal-title">Edit ${escapeHtml(u.email)}</div>
+            <div class="modal-sub">Update profile details and role.</div>
+          </div>
+          <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+            <label class="field" style="margin-bottom:0"><span>Full name</span>
+              <input class="input" data-field="full_name" value="${escapeHtml(u.full_name || '')}">
+            </label>
+            <label class="field" style="margin-bottom:0"><span>Email</span>
+              <input class="input" value="${escapeHtml(u.email)}" disabled>
+            </label>
+            <label class="field" style="margin-bottom:0"><span>Phone</span>
+              <input class="input" data-field="phone" value="${escapeHtml(u.phone || '')}">
+            </label>
+            <label class="field" style="margin-bottom:0"><span>Department</span>
+              <input class="input" data-field="department" value="${escapeHtml(u.department || '')}">
+            </label>
+            <label class="field" style="margin-bottom:0"><span>Role</span>
+              <select class="input" data-field="role" ${isMe ? 'disabled' : ''}>
+                <option value="faculty" ${u.role === 'faculty' ? 'selected' : ''}>faculty</option>
+                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>admin</option>
+              </select>
+              ${isMe ? '<div class="pw-hint">You cannot change your own role.</div>' : ''}
+            </label>
+          </div>
+          <div style="padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);margin-top:14px;line-height:1.55">
+            <i class="fas fa-info-circle" style="margin-right:6px"></i>
+            To change the password, use the <strong>key icon</strong> on the user's row.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" data-close>Cancel</button>
+          <button class="btn btn-primary" data-save><i class="fas fa-check"></i> Save changes</button>
+        </div>
+      </div>`;
     document.body.appendChild(dialog);
     dialog.showModal();
+
     dialog.querySelector('[data-save]').onclick = async () => {
       const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
-      const { error } = await supabase.from('profiles').update({
+      const newRole = isMe ? u.role : get('role');
+
+      const payload = {
         full_name: get('full_name') || null,
-        department: get('department') || null,
         phone: get('phone') || null,
-      }).eq('id', id);
+        department: get('department') || null,
+        role: newRole,
+      };
+
+      const { error } = await supabase.from('profiles').update(payload).eq('id', id);
       if (error) return toast(error.message, 'error');
-      toast('Updated', 'success');
+      toast('User updated', 'success');
       dialog.close(); dialog.remove();
       await load();
     };
+
     const close = () => { dialog.close(); dialog.remove(); };
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
     dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  async function toggle(id, active) {
+  /* ============ VIEW SCHEDULE (faculty only) ============ */
+  function viewSchedule(id) {
+    const u = users.find(x => x.id === id);
+    if (!u) return;
+    const classes = tt.filter(t => t.faculty_id === id);
+    const byDay = new Map();
+    classes.forEach(c => { if (!byDay.has(c.day_of_week)) byDay.set(c.day_of_week, []); byDay.get(c.day_of_week).push(c); });
+
+    const schedHtml = [1,2,3,4,5,6,0].filter(d => byDay.has(d)).map(d => {
+      const items = byDay.get(d).sort((a, b) => a.slot_id.localeCompare(b.slot_id));
+      return `<div class="schedule-day">
+        <div class="schedule-day-title">${DOW[d]}</div>
+        ${items.map(c => `<div class="schedule-item">
+          <div>
+            <div class="schedule-item-code">${escapeHtml(c.course_code || '—')}</div>
+            <div class="schedule-item-meta">${escapeHtml(c.course_name || '')} · ${escapeHtml(c.room_id)}</div>
+          </div>
+          <div class="schedule-item-slot">${escapeHtml(c.slot_id)}</div>
+        </div>`).join('')}
+      </div>`;
+    }).join('') || '<div class="empty" style="padding:20px"><i class="fas fa-inbox"></i><br>No classes assigned yet</div>';
+
+    const courses = new Set(classes.map(c => c.course_code).filter(Boolean));
+
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
+    dialog.innerHTML = `
+      <div class="modal-content modal-wide">
+        <div class="modal-header">
+          <div>
+            <div class="modal-title">${escapeHtml(u.full_name || u.email)}</div>
+            <div class="modal-sub">${escapeHtml(u.email)} · ${escapeHtml(u.department || 'No department')}</div>
+          </div>
+          <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;padding:16px 0;border-bottom:1px solid var(--border);margin-bottom:20px">
+            <div><div class="label-small">Weekly classes</div><div style="font-size:20px;font-weight:700">${classes.length}</div></div>
+            <div><div class="label-small">Courses</div><div style="font-size:20px;font-weight:700">${courses.size}</div></div>
+            <div><div class="label-small">Teaching days</div><div style="font-size:20px;font-weight:700">${byDay.size}</div></div>
+          </div>
+          <div>${schedHtml}</div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" data-close>Close</button>
+          <button class="btn btn-primary" id="editFromSchedule"><i class="fas fa-pen"></i> Edit user</button>
+        </div>
+      </div>`;
+    document.body.appendChild(dialog);
+    dialog.showModal();
+
+    dialog.querySelector('#editFromSchedule').onclick = () => { dialog.close(); dialog.remove(); editUser(id); };
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+  }
+
+  /* ============ RESET PASSWORD ============ */
+  function resetPassword(id) {
+    const u = users.find(x => x.id === id);
+    if (!u) return;
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
+    dialog.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <div class="modal-title">Reset password</div>
+            <div class="modal-sub">${escapeHtml(u.email)}</div>
+          </div>
+          <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <label class="field"><span>New password *</span>
+            <input class="input" type="text" data-field="password" value="${Math.random().toString(36).slice(-10)}" placeholder="Min 6 characters">
+            <div class="pw-hint">Share with the user — they should change it after first login.</div>
+          </label>
+          <div style="padding:12px 14px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:8px;font-size:12px;color:var(--warning-text);line-height:1.55">
+            <i class="fas fa-triangle-exclamation" style="margin-right:6px"></i>
+            The user will be signed out of all devices.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" data-close>Cancel</button>
+          <button class="btn btn-primary" data-save><i class="fas fa-key"></i> Reset</button>
+        </div>
+      </div>`;
+    document.body.appendChild(dialog);
+    dialog.showModal();
+
+    dialog.querySelector('[data-save]').onclick = async () => {
+      const pwd = dialog.querySelector('[data-field="password"]').value;
+      if (pwd.length < 6) return toast('Password must be 6+ characters', 'error');
+      const btn = dialog.querySelector('[data-save]');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      const { data, error } = await supabase.rpc('admin_reset_password', { p_user_id: id, p_new_password: pwd });
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-key"></i> Reset';
+      if (error) return toast(error.message, 'error');
+      if (data?.error) return toast(data.error, 'error');
+      toast('Password reset', 'success');
+      dialog.close(); dialog.remove();
+    };
+
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+  }
+
+  /* ============ TOGGLE + DELETE ============ */
+  async function toggleUser(id, active) {
+    if (id === auth.profile.id) return toast('You cannot suspend yourself', 'error');
     const { error } = await supabase.from('profiles').update({
       is_active: !active,
       suspended_at: active ? new Date().toISOString() : null,
       suspended_reason: active ? 'Suspended by admin' : null,
     }).eq('id', id);
     if (error) return toast(error.message, 'error');
-    toast(active ? 'Suspended' : 'Reactivated', 'success');
+    toast(active ? 'User suspended' : 'User reactivated', 'success');
     await load();
   }
 
-  document.querySelectorAll('[data-f]').forEach(b => b.onclick = () => {
-    filter = b.dataset.f;
-    document.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === b));
+  async function deleteUser(id) {
+    const u = users.find(x => x.id === id);
+    if (!u) return;
+    if (id === auth.profile.id) return toast('You cannot delete yourself', 'error');
+    const confirmed = confirm(
+      `Delete ${u.email}?\n\n` +
+      `This will PERMANENTLY remove:\n` +
+      `• The auth account\n` +
+      `• The profile\n` +
+      `• All their bookings, timetable rows, and activity\n\n` +
+      `This cannot be undone.`
+    );
+    if (!confirmed) return;
+    const { data, error } = await supabase.rpc('admin_delete_user', { p_user_id: id });
+    if (error) return toast(error.message, 'error');
+    if (data?.error) return toast(data.error, 'error');
+    toast('User deleted', 'success');
+    await load();
+  }
+
+  /* ============ FILTERS ============ */
+  document.querySelectorAll('[data-r]').forEach(b => b.onclick = () => {
+    roleFilter = b.dataset.r;
+    document.querySelectorAll('[data-r]').forEach(x => x.classList.toggle('on', x === b));
     render();
   });
   $('search').oninput = e => { search = e.target.value.trim(); render(); };

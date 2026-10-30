@@ -9,37 +9,41 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 <style>
-.dash-stats{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:20px}
-.dash-stat{padding:18px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:all 160ms ease;text-decoration:none;color:inherit;display:block}
-.dash-stat:hover{border-color:var(--brand);transform:translateY(-2px);box-shadow:var(--shadow-md);text-decoration:none;color:inherit}
-.dash-stat-icon{width:36px;height:36px;border-radius:10px;background:var(--brand-soft);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:12px}
-.dash-stat-val{font-size:26px;font-weight:700;letter-spacing:-0.03em;color:var(--text);line-height:1}
-.dash-stat-lbl{font-size:11px;color:var(--text-secondary);margin-top:4px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600}
-.dash-grid-2{display:grid;gap:16px;grid-template-columns:1.3fr 1fr;margin-bottom:20px}
-@media(max-width:900px){.dash-grid-2{grid-template-columns:1fr}}
-.preview-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);gap:12px;text-decoration:none;color:inherit;cursor:pointer;transition:background 120ms ease}
-.preview-row:hover{background:var(--surface-hover);text-decoration:none;color:inherit;padding-left:16px;padding-right:16px;margin-left:-16px;margin-right:-16px;border-radius:6px}
-.preview-row:last-child{border-bottom:none}
-.preview-info{min-width:0;flex:1}
-.preview-title{font-weight:500;color:var(--text);font-size:13px}
-.preview-meta{font-size:11px;color:var(--text-secondary);margin-top:2px}
-.live-banner{display:flex;align-items:center;gap:16px;padding:18px 22px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;flex-wrap:wrap}
-.live-indicator{display:flex;align-items:center;gap:6px;color:var(--success);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.05em}
-.live-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulseDot 2s ease-in-out infinite}
-@keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
-.live-info-block{flex:1;min-width:200px}
-.live-slot-name{font-size:15px;font-weight:600;color:var(--text)}
-.live-slot-time{font-size:12px;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;margin-top:2px}
-.live-counts{display:flex;gap:28px}
-.live-count{text-align:right}
-.live-count-val{font-size:22px;font-weight:700;letter-spacing:-0.02em;line-height:1}
-.live-count-lbl{font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;font-weight:600}
-.quick-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
-.quick-link{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:inherit;transition:all 140ms ease}
-.quick-link:hover{border-color:var(--brand);text-decoration:none;color:inherit;transform:translateX(2px);box-shadow:var(--shadow-sm)}
-.quick-link-icon{width:36px;height:36px;border-radius:8px;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.quick-link-title{font-weight:600;font-size:13px;color:var(--text)}
-.quick-link-sub{font-size:11px;color:var(--text-secondary);margin-top:2px}
+  .dash-stats{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:24px}
+  .dash-stat{padding:18px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:all 160ms ease;text-decoration:none;color:inherit;display:block}
+  .dash-stat:hover{border-color:var(--brand);transform:translateY(-2px);box-shadow:var(--shadow-md);text-decoration:none;color:inherit}
+  .dash-stat-icon{width:36px;height:36px;border-radius:10px;background:var(--brand-soft);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:12px}
+  .dash-stat-val{font-size:26px;font-weight:700;letter-spacing:-0.03em;color:var(--text);line-height:1}
+  .dash-stat-lbl{font-size:11px;color:var(--text-secondary);margin-top:4px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600}
+
+  .dash-grid-2{display:grid;gap:16px;grid-template-columns:1fr 1fr;margin-bottom:24px}
+  @media(max-width:900px){.dash-grid-2{grid-template-columns:1fr}}
+
+  .preview-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);gap:12px;text-decoration:none;color:inherit;cursor:pointer;transition:background 120ms ease}
+  .preview-row:hover{background:var(--surface-hover);text-decoration:none;color:inherit;padding-left:16px;padding-right:16px;margin-left:-16px;margin-right:-16px;border-radius:6px}
+  .preview-row:last-child{border-bottom:none}
+  .preview-info{min-width:0;flex:1}
+  .preview-title{font-weight:500;color:var(--text);font-size:13px}
+  .preview-meta{font-size:11px;color:var(--text-secondary);margin-top:2px}
+
+  .live-banner{display:flex;align-items:center;gap:16px;padding:18px 22px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:24px;flex-wrap:wrap}
+  .live-indicator{display:flex;align-items:center;gap:6px;color:var(--success);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.05em}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulseDot 2s ease-in-out infinite}
+  @keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+  .live-info-block{flex:1;min-width:200px}
+  .live-slot-name{font-size:15px;font-weight:600;color:var(--text)}
+  .live-slot-time{font-size:12px;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;margin-top:2px}
+  .live-counts{display:flex;gap:28px}
+  .live-count{text-align:right}
+  .live-count-val{font-size:22px;font-weight:700;letter-spacing:-0.02em;line-height:1}
+  .live-count-lbl{font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;font-weight:600}
+
+  .quick-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+  .quick-link{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:inherit;transition:all 140ms ease}
+  .quick-link:hover{border-color:var(--brand);text-decoration:none;color:inherit;transform:translateX(2px);box-shadow:var(--shadow-sm)}
+  .quick-link-icon{width:36px;height:36px;border-radius:8px;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .quick-link-title{font-weight:600;font-size:13px;color:var(--text)}
+  .quick-link-sub{font-size:11px;color:var(--text-secondary);margin-top:2px}
 </style>
 </head>
 <body>
@@ -60,8 +64,14 @@
       <div class="live-slot-time" id="liveSlotTime">—</div>
     </div>
     <div class="live-counts">
-      <div class="live-count"><div class="live-count-val" id="liveFree" style="color:var(--success)">—</div><div class="live-count-lbl">Free now</div></div>
-      <div class="live-count"><div class="live-count-val" id="liveBusy" style="color:var(--warning)">—</div><div class="live-count-lbl">In use</div></div>
+      <div class="live-count">
+        <div class="live-count-val" id="liveFree" style="color:var(--success)">—</div>
+        <div class="live-count-lbl">Free now</div>
+      </div>
+      <div class="live-count">
+        <div class="live-count-val" id="liveBusy" style="color:var(--warning)">—</div>
+        <div class="live-count-lbl">In use</div>
+      </div>
     </div>
   </div>
 
@@ -69,30 +79,66 @@
 
   <div class="dash-grid-2">
     <div class="card">
-      <div class="card-title"><i class="fas fa-hourglass-half" style="color:var(--warning)"></i> Pending bookings <span class="badge badge-pending" id="pendingCount" style="margin-left:auto">0</span></div>
+      <div class="card-title">
+        <i class="fas fa-hourglass-half" style="color:var(--warning)"></i> Pending bookings
+        <span class="badge badge-pending" id="pendingCount" style="margin-left:auto">0</span>
+      </div>
       <div id="pendingPreview"></div>
-      <a href="admin-bookings.html" class="btn btn-block" style="margin-top:12px"><i class="fas fa-arrow-right"></i> Review bookings</a>
+      <a href="admin-bookings.html" class="btn btn-block" style="margin-top:12px">
+        <i class="fas fa-arrow-right"></i> Review bookings
+      </a>
     </div>
+
     <div class="card">
-      <div class="card-title"><i class="fas fa-plane-departure" style="color:var(--info)"></i> Faculty on leave today <span class="badge badge-gray" id="leaveCount" style="margin-left:auto">0</span></div>
+      <div class="card-title">
+        <i class="fas fa-plane-departure" style="color:var(--info)"></i> Faculty on leave today
+        <span class="badge badge-gray" id="leaveCount" style="margin-left:auto">0</span>
+      </div>
       <div id="leavePreview"></div>
-      <a href="admin-timetable.html" class="btn btn-block" style="margin-top:12px"><i class="fas fa-arrow-right"></i> View timetable</a>
+      <a href="admin-faculty.html" class="btn btn-block" style="margin-top:12px">
+        <i class="fas fa-arrow-right"></i> View faculty
+      </a>
     </div>
   </div>
 
-  <div style="margin-top:24px">
-    <div class="card-title" style="margin-bottom:12px"><i class="fas fa-bolt"></i> Manage everything</div>
-    <div class="quick-grid">
-      <a href="admin-faculty.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-chalkboard-user"></i></div><div><div class="quick-link-title">Faculty</div><div class="quick-link-sub">Accounts &amp; workload</div></div></a>
-      <a href="admin-timetable.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-table"></i></div><div><div class="quick-link-title">Timetable</div><div class="quick-link-sub">Assign classes</div></div></a>
-      <a href="admin-bookings.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-calendar-check"></i></div><div><div class="quick-link-title">Bookings</div><div class="quick-link-sub">Approve &amp; block</div></div></a>
-      <a href="admin-rooms.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-door-open"></i></div><div><div class="quick-link-title">Rooms</div><div class="quick-link-sub">Capacity &amp; type</div></div></a>
-      <a href="admin-buildings.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-building"></i></div><div><div class="quick-link-title">Buildings</div><div class="quick-link-sub">Floors &amp; counts</div></div></a>
-      <a href="admin-slots.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-clock"></i></div><div><div class="quick-link-title">Time slots</div><div class="quick-link-sub">Period definitions</div></div></a>
-      <a href="admin-calendar.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-calendar-days"></i></div><div><div class="quick-link-title">Calendar</div><div class="quick-link-sub">Holidays</div></div></a>
-      <a href="admin-users.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-users"></i></div><div><div class="quick-link-title">Users</div><div class="quick-link-sub">Faculty &amp; admins</div></div></a>
-      <a href="free-rooms.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-building"></i></div><div><div class="quick-link-title">Free rooms</div><div class="quick-link-sub">Live grid</div></div></a>
-    </div>
+  <div style="margin-bottom:12px">
+    <h2 style="font-size:15px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px">
+      <i class="fas fa-bolt" style="color:var(--brand);font-size:14px"></i> Manage everything
+    </h2>
+  </div>
+  <div class="quick-grid">
+    <a href="admin-rooms.html" class="quick-link">
+      <div class="quick-link-icon"><i class="fas fa-door-open"></i></div>
+      <div><div class="quick-link-title">Rooms & Buildings</div><div class="quick-link-sub">Blocks, floors, rooms</div></div>
+    </a>
+    <a href="admin-timetable.html" class="quick-link">
+      <div class="quick-link-icon"><i class="fas fa-table"></i></div>
+      <div><div class="quick-link-title">Timetable</div><div class="quick-link-sub">Assign classes to faculty</div></div>
+    </a>
+    <a href="admin-bookings.html" class="quick-link">
+      <div class="quick-link-icon"><i class="fas fa-calendar-check"></i></div>
+      <div><div class="quick-link-title">Bookings</div><div class="quick-link-sub">Approve, reject, block</div></div>
+    </a>
+    <a href="admin-faculty.html" class="quick-link">
+      <div class="quick-link-icon"><i class="fas fa-users"></i></div>
+      <div><div class="quick-link-title">Users & Faculty</div><div class="quick-link-sub">Accounts, workload, access</div></div>
+    </a>
+    <a href="admin-slots.html" class="quick-link">
+      <div class="quick-link-icon"><i class="fas fa-clock"></i></div>
+      <div><div class="quick-link-title">Time slots</div><div class="quick-link-sub">Period definitions</div></div>
+    </a>
+    <a href="admin-calendar.html" class="quick-link">
+      <div class="quick-link-icon"><i class="fas fa-calendar-days"></i></div>
+      <div><div class="quick-link-title">Calendar</div><div class="quick-link-sub">Holidays & exam weeks</div></div>
+    </a>
+    <a href="free-rooms.html" class="quick-link">
+      <div class="quick-link-icon"><i class="fas fa-building"></i></div>
+      <div><div class="quick-link-title">Free rooms</div><div class="quick-link-sub">Live availability grid</div></div>
+    </a>
+    <a href="admin-settings.html" class="quick-link">
+      <div class="quick-link-icon"><i class="fas fa-gear"></i></div>
+      <div><div class="quick-link-title">Settings</div><div class="quick-link-sub">Policy, permissions, LPU API</div></div>
+    </a>
   </div>
 </div>
 
@@ -121,7 +167,7 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, format
     ] = await Promise.all([
       supabase.from('profiles').select('id').eq('role', 'faculty'),
       supabase.from('timetable').select('room_id,slot_id').eq('day_of_week', dow).eq('is_active', true),
-      supabase.from('bookings').select('room_id,slot_id').eq('book_date', today).in('status', ['pending','approved']),
+      supabase.from('bookings').select('room_id,slot_id').eq('book_date', today).in('status', ['pending', 'approved']),
       supabase.from('bookings').select('*').eq('status', 'pending').order('created_at', { ascending: false }).limit(5),
       supabase.from('bookings').select('id').eq('book_date', today),
       supabase.from('faculty_unavailability').select('*').eq('date', today).limit(20),
@@ -144,12 +190,13 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, format
     if (!cur) {
       $('liveSlotName').textContent = 'No active period';
       $('liveSlotTime').textContent = 'Check back during class hours';
-      $('liveFree').textContent = '—'; $('liveBusy').textContent = '—';
+      $('liveFree').textContent = '—';
+      $('liveBusy').textContent = '—';
     } else {
       const busy = new Set();
       (tt ?? []).filter(t => t.slot_id === cur.slot_id).forEach(t => busy.add(t.room_id));
       (bk ?? []).filter(b => b.slot_id === cur.slot_id).forEach(b => busy.add(b.room_id));
-      const mins = Math.max(0, Math.ceil((new Date(`${today}T${cur.end_time.slice(0,5)}:00`) - nowDate())/60000));
+      const mins = Math.max(0, Math.ceil((new Date(`${today}T${cur.end_time.slice(0,5)}:00`) - nowDate()) / 60000));
       $('liveSlotName').textContent = cur.label || cur.slot_id;
       $('liveSlotTime').textContent = `${cur.start_time.slice(0,5)}–${cur.end_time.slice(0,5)} · ends in ${mins} min`;
       $('liveFree').textContent = base.rooms.length - busy.size;
@@ -164,7 +211,16 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, format
       const slotMap = new Map(base.slots.map(s => [s.slot_id, s]));
       $('pendingPreview').innerHTML = pending.map(b => {
         const slot = slotMap.get(b.slot_id);
-        return `<a href="admin-bookings.html" class="preview-row"><div class="preview-info"><div class="preview-title"><span class="mono">${escapeHtml(roomMap.get(b.room_id) || b.room_id)}</span> <span class="badge badge-gray" style="margin-left:4px">${escapeHtml(b.type)}</span></div><div class="preview-meta">${b.course_code ? escapeHtml(b.course_code) + ' · ' : ''}${humanDate(b.book_date)} · ${escapeHtml(slot?.label || b.slot_id)}</div></div><i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:11px"></i></a>`;
+        return `<a href="admin-bookings.html" class="preview-row">
+          <div class="preview-info">
+            <div class="preview-title">
+              <span class="mono">${escapeHtml(roomMap.get(b.room_id) || b.room_id)}</span>
+              <span class="badge badge-gray" style="margin-left:4px">${escapeHtml(b.type)}</span>
+            </div>
+            <div class="preview-meta">${b.course_code ? escapeHtml(b.course_code) + ' · ' : ''}${humanDate(b.book_date)} · ${escapeHtml(slot?.label || b.slot_id)}</div>
+          </div>
+          <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:11px"></i>
+        </a>`;
       }).join('');
     }
 
@@ -176,7 +232,12 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, format
       $('leavePreview').innerHTML = leave.map(l => {
         const p = leaveNames.get(l.faculty_id);
         const slot = l.slot_id ? slotMap.get(l.slot_id) : null;
-        return `<div class="preview-row" style="cursor:default"><div class="preview-info"><div class="preview-title">${escapeHtml(p?.full_name || p?.email || '—')}</div><div class="preview-meta">${slot ? escapeHtml(slot.label || slot.slot_id) + ' · ' + slot.start_time.slice(0,5) + '–' + slot.end_time.slice(0,5) : 'Whole day'}${l.reason ? ' · ' + escapeHtml(l.reason) : ''}</div></div></div>`;
+        return `<div class="preview-row" style="cursor:default">
+          <div class="preview-info">
+            <div class="preview-title">${escapeHtml(p?.full_name || p?.email || '—')}</div>
+            <div class="preview-meta">${slot ? escapeHtml(slot.label || slot.slot_id) + ' · ' + slot.start_time.slice(0,5) + '–' + slot.end_time.slice(0,5) : 'Whole day'}${l.reason ? ' · ' + escapeHtml(l.reason) : ''}</div>
+          </div>
+        </div>`;
       }).join('');
     }
   }
