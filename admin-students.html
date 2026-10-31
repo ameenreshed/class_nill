@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Student Directory · LPU</title>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  /* ============ PAGE-SPECIFIC ============ */
+  .stu-hero {
+    display:flex;justify-content:space-between;align-items:flex-start;
+    gap:20px;padding:24px;background:var(--surface);border:1px solid var(--border);
+    border-radius:14px;margin-bottom:20px;flex-wrap:wrap;
+    background-image:linear-gradient(135deg,var(--brand-soft) 0%,var(--surface) 60%);
+  }
+  .stu-hero-left{display:flex;align-items:center;gap:16px;flex:1;min-width:220px}
+  .stu-hero-icon{
+    width:52px;height:52px;border-radius:13px;background:var(--brand);color:white;
+    display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;
+    box-shadow:0 8px 20px -8px rgba(234,88,12,.5);
+  }
+  .stu-hero-title{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-0.02em;margin-bottom:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .stu-hero-sub{font-size:13px;color:var(--text-secondary);line-height:1.5}
+  .stu-hero-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 8px;background:var(--danger-soft);color:var(--danger-text);border-radius:6px;display:inline-flex;align-items:center;gap:4px}
+
+  .stu-stats{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:12px;margin-bottom:20px;
+  }
+  .stu-stat{padding:18px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;position:relative;overflow:hidden}
+  .stu-stat-val{font-size:28px;font-weight:700;color:var(--text);line-height:1;letter-spacing:-0.02em}
+  .stu-stat-lbl{font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-top:6px}
+  .stu-stat i{position:absolute;top:16px;right:16px;font-size:20px;opacity:.15}
+
+  /* Upload zone */
+  .stu-upload{
+    display:none;padding:40px 24px;background:var(--surface);
+    border:1px solid var(--border);border-radius:14px;margin-bottom:20px;
+  }
+  .stu-upload.show{display:block}
+  .stu-drop{
+    border:2px dashed var(--border-strong);border-radius:12px;padding:40px 20px;
+    text-align:center;cursor:pointer;transition:all 180ms ease;background:var(--bg-subtle);
+  }
+  .stu-drop:hover,.stu-drop.drag{border-color:var(--brand);background:var(--brand-soft)}
+  .stu-drop i{font-size:44px;color:var(--brand);margin-bottom:14px;display:block}
+  .stu-drop h3{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
+  .stu-drop p{font-size:13px;color:var(--text-secondary);line-height:1.55;max-width:440px;margin:0 auto}
+  .stu-drop code{background:var(--bg);padding:1px 6px;border-radius:4px;font-size:12px;color:var(--brand-text);border:1px solid var(--brand-soft-border)}
+
+  /* Preview */
+  .stu-preview{display:none;margin-bottom:20px}
+  .stu-preview.show{display:block}
+  .stu-card{padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:16px}
+  .stu-card-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .stu-card-title i{color:var(--brand);font-size:14px}
+
+  .stu-map-row{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+  .stu-map-row:last-child{border-bottom:none}
+  .stu-map-label{font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em}
+  .stu-map-value{font-size:13px;color:var(--text)}
+  .stu-map-row select{max-width:340px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit;width:100%}
+  .stu-map-row select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+
+  .stu-table-mini{width:100%;border-collapse:collapse;font-size:12.5px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .stu-table-mini thead{background:var(--bg-subtle)}
+  .stu-table-mini th{padding:8px 10px;text-align:left;font-size:10.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+  .stu-table-mini td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text)}
+  .stu-table-mini tr:last-child td{border-bottom:none}
+
+  /* Options */
+  .stu-opt{
+    display:flex;align-items:flex-start;gap:12px;padding:12px 14px;
+    background:var(--bg-subtle);border:1px solid var(--border);border-radius:10px;
+    margin-bottom:8px;cursor:pointer;transition:all 160ms ease;
+  }
+  .stu-opt:hover{background:var(--surface-hover);border-color:var(--border-strong)}
+  .stu-opt:has(input:checked){background:var(--brand-soft);border-color:var(--brand-soft-border)}
+  .stu-opt input[type=radio]{width:18px;height:18px;flex-shrink:0;margin-top:2px;accent-color:var(--brand);cursor:pointer}
+  .stu-opt-body{flex:1;min-width:0}
+  .stu-opt-title{font-weight:600;font-size:13px;color:var(--text)}
+  .stu-opt-desc{font-size:12px;color:var(--text-secondary);margin-top:2px;line-height:1.5}
+
+  /* Progress */
+  .stu-progress{display:none;margin-top:16px}
+  .stu-progress.show{display:block}
+  .stu-progress-bar{height:8px;background:var(--surface-active);border-radius:999px;overflow:hidden;margin-bottom:8px}
+  .stu-progress-fill{height:100%;background:var(--brand);border-radius:999px;transition:width 200ms ease;width:0%}
+  .stu-progress-label{font-size:12px;color:var(--text-secondary);display:flex;justify-content:space-between;gap:12px}
+
+  /* Students table */
+  .stu-list{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .stu-toolbar{display:flex;gap:10px;padding:16px;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center}
+  .stu-toolbar .search-wrap{flex:1;min-width:200px;max-width:320px}
+  .stu-toolbar select{padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit;max-width:220px}
+  .stu-toolbar select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+  .stu-count{margin-left:auto;font-size:12px;color:var(--text-secondary);font-weight:600}
+  .stu-count strong{color:var(--text)}
+
+  .stu-table-wrap{overflow-x:auto}
+  .stu-table{width:100%;border-collapse:collapse;font-size:13px}
+  .stu-table thead{background:var(--bg-subtle)}
+  .stu-table th{padding:11px 16px;text-align:left;font-size:10.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);white-space:nowrap}
+  .stu-table td{padding:12px 16px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+  .stu-table tr:last-child td{border-bottom:none}
+  .stu-table tr:hover td{background:var(--surface-hover)}
+
+  .stu-id{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--brand-text);background:var(--brand-soft);padding:3px 8px;border-radius:5px;display:inline-block}
+  .stu-batch{font-size:11.5px;font-weight:600;color:var(--text-secondary);background:var(--surface-active);padding:3px 9px;border-radius:6px;display:inline-block}
+
+  .stu-row-actions{text-align:right;white-space:nowrap}
+  .stu-row-actions .btn{padding:5px 9px;min-height:28px;font-size:11px}
+
+  .stu-pagination{display:flex;align-items:center;justify-content:center;gap:6px;padding:14px;border-top:1px solid var(--border);flex-wrap:wrap}
+  .stu-pagination button{padding:7px 12px;min-height:32px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;transition:all 140ms ease}
+  .stu-pagination button:hover:not(:disabled){border-color:var(--brand);color:var(--brand)}
+  .stu-pagination button:disabled{opacity:.4;cursor:not-allowed}
+  .stu-pagination button.active{background:var(--brand);border-color:var(--brand);color:white}
+  .stu-pagination .page-info{font-size:12px;color:var(--text-secondary);padding:0 8px}
+
+  /* Empty */
+  .stu-empty{padding:60px 20px;text-align:center;color:var(--text-muted)}
+  .stu-empty i{font-size:42px;opacity:.3;display:block;margin-bottom:14px}
+  .stu-empty-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px}
+  .stu-empty-sub{font-size:12.5px;color:var(--text-secondary);line-height:1.5;max-width:360px;margin:0 auto}
+
+  /* Back link */
+  .back-link{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);text-decoration:none;transition:color 140ms ease}
+  .back-link:hover{color:var(--brand);text-decoration:none}
+  .back-link i{font-size:11px}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+
+  <!-- ═══════════════ HERO ═══════════════ -->
+  <div class="stu-hero">
+    <div class="stu-hero-left">
+      <div class="stu-hero-icon"><i class="fas fa-users-rectangle"></i></div>
+      <div>
+        <div class="stu-hero-title">
+          Student Directory
+          <span class="stu-hero-badge"><i class="fas fa-lock" style="font-size:9px"></i> Admin only</span>
+        </div>
+        <div class="stu-hero-sub">Upload Excel sheets (ID, name, batch). Marks are ignored — only the three fields are stored.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a href="admin.html" class="back-link"><i class="fas fa-arrow-left"></i> Dashboard</a>
+    </div>
+  </div>
+
+  <!-- ═══════════════ STATS ═══════════════ -->
+  <div class="stu-stats">
+    <div class="stu-stat"><i class="fas fa-users"></i><div class="stu-stat-val" id="statTotal">—</div><div class="stu-stat-lbl">Total students</div></div>
+    <div class="stu-stat"><i class="fas fa-users-rectangle"></i><div class="stu-stat-val" id="statBatches">—</div><div class="stu-stat-lbl">Unique batches</div></div>
+    <div class="stu-stat"><i class="fas fa-clock"></i><div class="stu-stat-val" id="statLatest" style="font-size:14px;font-weight:600;padding-top:6px">—</div><div class="stu-stat-lbl">Latest import</div></div>
+  </div>
+
+  <!-- ═══════════════ UPLOAD ZONE ═══════════════ -->
+  <div class="stu-upload show" id="uploadSection">
+    <div class="stu-drop" id="dropZone">
+      <i class="fas fa-cloud-arrow-up"></i>
+      <h3>Upload students Excel file</h3>
+      <p>
+        Drop <code>.xlsx</code>, <code>.xls</code>, or <code>.csv</code> here, or click to browse.<br>
+        Required columns: <strong>ID</strong>, <strong>Name</strong>, <strong>Batch</strong> — extra columns (marks, grades, etc.) are ignored.
+      </p>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
+  </div>
+
+  <!-- ═══════════════ PREVIEW ═══════════════ -->
+  <div class="stu-preview" id="previewSection">
+
+    <!-- Step 1: Column mapping -->
+    <div class="stu-card">
+      <div class="stu-card-title"><i class="fas fa-table-columns"></i> Column mapping</div>
+      <p style="font-size:12.5px;color:var(--text-secondary);line-height:1.55;margin-bottom:14px">
+        We auto-detected the columns below. Adjust if anything looks wrong — the first row of your file is treated as the header.
+      </p>
+      <div id="mappingRows"></div>
+    </div>
+
+    <!-- Step 2: Sample preview -->
+    <div class="stu-card">
+      <div class="stu-card-title"><i class="fas fa-eye"></i> Preview (first 5 rows)</div>
+      <div id="samplePreview"></div>
+      <div style="margin-top:14px;padding:12px 14px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:8px;font-size:12.5px;color:var(--text-secondary);line-height:1.55">
+        <i class="fas fa-info-circle" style="margin-right:6px;color:var(--info)"></i>
+        <span id="parseStats">Parsing…</span>
+      </div>
+    </div>
+
+    <!-- Step 3: Import mode -->
+    <div class="stu-card">
+      <div class="stu-card-title"><i class="fas fa-sliders"></i> Import mode</div>
+      <label class="stu-opt">
+        <input type="radio" name="importMode" value="upsert" checked>
+        <div class="stu-opt-body">
+          <div class="stu-opt-title">Add / update (recommended)</div>
+          <div class="stu-opt-desc">Existing students with the same ID are updated. New IDs are added. Nothing is deleted.</div>
+        </div>
+      </label>
+      <label class="stu-opt">
+        <input type="radio" name="importMode" value="replace">
+        <div class="stu-opt-body">
+          <div class="stu-opt-title" style="color:var(--danger)">Replace all students</div>
+          <div class="stu-opt-desc">Deletes every student in the database first, then imports from this file. Use only for a full re-import.</div>
+        </div>
+      </label>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:16px">
+        <button class="btn" id="cancelImportBtn">Cancel</button>
+        <button class="btn btn-primary" id="startImportBtn"><i class="fas fa-file-import"></i> Import students</button>
+      </div>
+
+      <div class="stu-progress" id="progressSection">
+        <div class="stu-progress-bar"><div class="stu-progress-fill" id="progressFill"></div></div>
+        <div class="stu-progress-label"><span id="progressLabel">Preparing…</span><span id="progressPercent">0%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ STUDENT LIST ═══════════════ -->
+  <div class="stu-list">
+    <div class="stu-toolbar">
+      <div class="search-wrap" style="position:relative">
+        <i class="fas fa-search search-icon" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none"></i>
+        <input class="input" id="searchInput" placeholder="Search by ID or name…" style="padding-left:36px">
+      </div>
+      <select id="batchFilter"><option value="">All batches</option></select>
+      <button class="btn" id="refreshBtn"><i class="fas fa-rotate-right"></i></button>
+      <button class="btn" id="exportBtn"><i class="fas fa-download"></i> Export CSV</button>
+      <div class="stu-count" id="listCount">—</div>
+    </div>
+
+    <div class="stu-table-wrap">
+      <table class="stu-table">
+        <thead>
+          <tr>
+            <th style="width:60px">#</th>
+            <th>Student ID</th>
+            <th>Full Name</th>
+            <th>Batch</th>
+            <th style="width:100px">Added</th>
+            <th style="text-align:right;width:80px">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="studentsBody"></tbody>
+      </table>
+    </div>
+
+    <div id="listEmpty" class="stu-empty" style="display:none">
+      <i class="fas fa-users-slash"></i>
+      <div class="stu-empty-title">No students yet</div>
+      <div class="stu-empty-sub">Upload an Excel file above to populate the directory.</div>
+    </div>
+
+    <div class="stu-pagination" id="pagination" style="display:none"></div>
+  </div>
+
+</div>
+
+<script type="module">
+import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime } from './js/core.js';
+
+(async () => {
+  const auth = await requireRole(['admin']);
+  if (!auth) return;
+  renderNav(auth.profile);
+
+  const $ = id => document.getElementById(id);
+  const PAGE_SIZE = 100;
+
+  let parsed = null;          // { headers, rows, mapping, fileName }
+  let currentPage = 0;
+  let totalStudents = 0;
+  let currentFilters = { search: '', batch: '' };
+
+  /* ═══════════════════════════════════════════════════════════
+     LOAD STATS + LIST
+     ═══════════════════════════════════════════════════════════ */
+  async function loadStats() {
+    // Total
+    const { count: total } = await supabase.from('students').select('*', { count: 'exact', head: true });
+    $('statTotal').textContent = (total ?? 0).toLocaleString();
+
+    // Batches
+    const { data: batches } = await supabase.rpc('get_student_batches');
+    $('statBatches').textContent = (batches?.length ?? 0).toLocaleString();
+
+    // Batch filter
+    const sel = $('batchFilter');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">All batches</option>' +
+      (batches ?? []).map(b => `<option value="${escapeHtml(b.batch)}" ${current === b.batch ? 'selected' : ''}>${escapeHtml(b.batch)} (${b.cnt})</option>`).join('');
+
+    // Latest import
+    const { data: latest } = await supabase.from('students')
+      .select('created_at').order('created_at', { ascending: false }).limit(1);
+    $('statLatest').textContent = latest?.[0]?.created_at ? formatRelativeTime(latest[0].created_at) : '—';
+
+    totalStudents = total ?? 0;
+  }
+
+  async function loadStudents() {
+    const body = $('studentsBody');
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr>';
+
+    let query = supabase.from('students').select('*', { count: 'exact' });
+
+    if (currentFilters.search) {
+      const q = currentFilters.search;
+      query = query.or(`id.ilike.%${q}%,full_name.ilike.%${q}%`);
+    }
+    if (currentFilters.batch) {
+      query = query.eq('batch', currentFilters.batch);
+    }
+
+    const from = currentPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    query = query.order('id', { ascending: true }).range(from, to);
+
+    const { data, count, error } = await query;
+
+    if (error) {
+      body.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--danger)">${escapeHtml(error.message)}</td></tr>`;
+      return;
+    }
+
+    const total = count ?? 0;
+    $('listCount').innerHTML = `<strong>${total.toLocaleString()}</strong> student${total === 1 ? '' : 's'}`;
+
+    if (!data || !data.length) {
+      body.innerHTML = '';
+      $('listEmpty').style.display = 'block';
+      $('pagination').style.display = 'none';
+      return;
+    }
+    $('listEmpty').style.display = 'none';
+
+    body.innerHTML = data.map((s, i) => {
+      const num = from + i + 1;
+      return `<tr>
+        <td style="color:var(--text-muted);font-family:monospace;font-size:12px">${num}</td>
+        <td><span class="stu-id">${escapeHtml(s.id)}</span></td>
+        <td style="font-weight:500">${escapeHtml(s.full_name)}</td>
+        <td><span class="stu-batch">${escapeHtml(s.batch)}</span></td>
+        <td style="font-size:11.5px;color:var(--text-secondary)">${formatRelativeTime(s.created_at)}</td>
+        <td class="stu-row-actions">
+          <button class="btn btn-sm btn-danger" data-del="${escapeHtml(s.id)}" title="Delete"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    document.querySelectorAll('[data-del]').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.del;
+        if (!confirm(`Delete student "${id}"?`)) return;
+        btn.disabled = true;
+        const { error } = await supabase.from('students').delete().eq('id', id);
+        if (error) { toast(error.message, 'error'); btn.disabled = false; return; }
+        toast('Student deleted', 'success');
+        await loadStats();
+        await loadStudents();
+      };
+    });
+
+    // Pagination
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    if (totalPages > 1) {
+      renderPagination(totalPages, total);
+      $('pagination').style.display = 'flex';
+    } else {
+      $('pagination').style.display = 'none';
+    }
+  }
+
+  function renderPagination(totalPages, total) {
+    const el = $('pagination');
+    const parts = [];
+    parts.push(`<button ${currentPage === 0 ? 'disabled' : ''} data-page="prev"><i class="fas fa-chevron-left"></i></button>`);
+
+    const pages = [];
+    const addPage = (p) => {
+      if (!pages.includes(p)) pages.push(p);
+    };
+    addPage(0);
+    for (let p = Math.max(1, currentPage - 2); p <= Math.min(totalPages - 2, currentPage + 2); p++) addPage(p);
+    addPage(totalPages - 1);
+
+    pages.sort((a, b) => a - b);
+    let prev = -2;
+    for (const p of pages) {
+      if (p - prev > 1) parts.push(`<span class="page-info">…</span>`);
+      parts.push(`<button class="${p === currentPage ? 'active' : ''}" data-page="${p}">${p + 1}</button>`);
+      prev = p;
+    }
+
+    parts.push(`<button ${currentPage === totalPages - 1 ? 'disabled' : ''} data-page="next"><i class="fas fa-chevron-right"></i></button>`);
+    parts.push(`<span class="page-info">${total.toLocaleString()} total</span>`);
+
+    el.innerHTML = parts.join('');
+    el.querySelectorAll('[data-page]').forEach(btn => {
+      btn.onclick = () => {
+        const p = btn.dataset.page;
+        if (p === 'prev') currentPage = Math.max(0, currentPage - 1);
+        else if (p === 'next') currentPage = Math.min(totalPages - 1, currentPage + 1);
+        else currentPage = parseInt(p);
+        loadStudents();
+      };
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     FILE HANDLING — PARSE EXCEL
+     ═══════════════════════════════════════════════════════════ */
+  const dropZone = $('dropZone');
+  const fileInput = $('fileInput');
+
+  dropZone.onclick = () => fileInput.click();
+  dropZone.ondragover = e => { e.preventDefault(); dropZone.classList.add('drag'); };
+  dropZone.ondragleave = () => dropZone.classList.remove('drag');
+  dropZone.ondrop = e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag');
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  };
+  fileInput.onchange = e => {
+    const f = e.target.files[0];
+    if (f) handleFile(f);
+  };
+
+  function handleFile(file) {
+    if (!/\.(xlsx|xls|csv)$/i.test(file.name)) {
+      return toast('Please upload .xlsx, .xls, or .csv', 'error');
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const sheetName = wb.SheetNames[0];
+        const sheet = wb.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+        if (!rows.length || rows[0].length === 0) {
+          return toast('File is empty', 'error');
+        }
+
+        const headers = rows[0].map(h => String(h).trim());
+        const dataRows = rows.slice(1).filter(r => r.some(c => String(c).trim()));
+
+        if (!dataRows.length) return toast('No data rows found', 'error');
+
+        parsed = {
+          fileName: file.name,
+          headers,
+          rows: dataRows,
+          mapping: autoMapColumns(headers),
+        };
+
+        renderPreview();
+      } catch (err) {
+        console.error(err);
+        toast('Failed to read file: ' + err.message, 'error');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     COLUMN MAPPING (auto-detect)
+     ═══════════════════════════════════════════════════════════ */
+  const COLUMN_PATTERNS = {
+    id: ['id','student_id','student id','studentid','registration','reg no','regno','reg_no','reg_no.','roll no','rollno','roll_no','enrollment','enrollment no','enrollmentno','enrollment_no','sr no','srno','sr_no','uid','unique id','admission no','admissionno','admission_no'],
+    name: ['name','student_name','student name','studentname','full_name','full name','fullname','student','candidate name','candidate_name','candidate name.','first name','firstname'],
+    batch: ['batch','section','class','group','division','standard','std','class name','classname','section_name','group name','groupname','batch_name','batchname']
+  };
+
+  function autoMapColumns(headers) {
+    const mapping = { id: null, name: null, batch: null };
+    const lower = headers.map(h => h.toLowerCase().trim());
+
+    for (const [key, patterns] of Object.entries(COLUMN_PATTERNS)) {
+      // Exact match first
+      for (let i = 0; i < lower.length; i++) {
+        if (patterns.includes(lower[i])) { mapping[key] = i; break; }
+      }
+      // Fuzzy match
+      if (mapping[key] === null) {
+        for (let i = 0; i < lower.length; i++) {
+          if (patterns.some(p => lower[i].includes(p) || p.includes(lower[i]))) {
+            mapping[key] = i; break;
+          }
+        }
+      }
+    }
+    return mapping;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     RENDER PREVIEW
+     ═══════════════════════════════════════════════════════════ */
+  function renderPreview() {
+    $('uploadSection').classList.remove('show');
+    $('previewSection').classList.add('show');
+    $('progressSection').classList.remove('show');
+
+    // Column mapping
+    const fields = [
+      { key: 'id', label: 'Student ID', required: true },
+      { key: 'name', label: 'Full Name', required: true },
+      { key: 'batch', label: 'Batch', required: true },
+    ];
+
+    $('mappingRows').innerHTML = fields.map(f => `
+      <div class="stu-map-row">
+        <div class="stu-map-label">${f.label}${f.required ? '<span style="color:var(--danger)"> *</span>' : ''}</div>
+        <select data-map-key="${f.key}">
+          <option value="">— Not mapped —</option>
+          ${parsed.headers.map((h, i) => `<option value="${i}" ${parsed.mapping[f.key] === i ? 'selected' : ''}>${escapeHtml(h || '(column ' + (i+1) + ')')}</option>`).join('')}
+        </select>
+      </div>
+    `).join('');
+
+    document.querySelectorAll('[data-map-key]').forEach(sel => {
+      sel.onchange = () => {
+        parsed.mapping[sel.dataset.mapKey] = sel.value === '' ? null : parseInt(sel.value);
+        updateSamplePreview();
+      };
+    });
+
+    updateSamplePreview();
+  }
+
+  function updateSamplePreview() {
+    const { mapping, rows } = parsed;
+
+    // Missing columns?
+    const missing = [];
+    if (mapping.id === null) missing.push('Student ID');
+    if (mapping.name === null) missing.push('Full Name');
+    if (mapping.batch === null) missing.push('Batch');
+
+    if (missing.length) {
+      $('samplePreview').innerHTML = `
+        <div style="padding:20px;text-align:center;color:var(--danger);background:var(--danger-soft);border:1px solid var(--danger-soft-border);border-radius:8px;font-size:13px">
+          <i class="fas fa-triangle-exclamation" style="margin-right:6px"></i>
+          Missing required columns: <strong>${missing.join(', ')}</strong>
+        </div>`;
+      $('parseStats').innerHTML = '<span style="color:var(--danger)">Please map all required columns above</span>';
+      $('startImportBtn').disabled = true;
+      return;
+    }
+
+    $('startImportBtn').disabled = false;
+
+    const get = (row, idx) => String(row[idx] ?? '').trim();
+    const sample = rows.slice(0, 5).map(r => ({
+      id: get(r, mapping.id),
+      full_name: get(r, mapping.name),
+      batch: get(r, mapping.batch),
+    }));
+
+    $('samplePreview').innerHTML = `<table class="stu-table-mini">
+      <thead><tr><th>Student ID</th><th>Full Name</th><th>Batch</th></tr></thead>
+      <tbody>
+        ${sample.map(s => `<tr>
+          <td><span class="stu-id">${escapeHtml(s.id || '—')}</span></td>
+          <td>${escapeHtml(s.full_name || '—')}</td>
+          <td><span class="stu-batch">${escapeHtml(s.batch || '—')}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+
+    // Stats
+    const valid = rows.filter(r => {
+      return get(r, mapping.id) && get(r, mapping.name) && get(r, mapping.batch);
+    });
+    const invalidCount = rows.length - valid.length;
+    const uniqueBatches = new Set(valid.map(r => get(r, mapping.batch)));
+    const seen = new Set();
+    let duplicates = 0;
+    valid.forEach(r => {
+      const id = get(r, mapping.id);
+      if (seen.has(id)) duplicates++;
+      seen.add(id);
+    });
+    const finalRows = valid.filter((r, i) => {
+      // keep first occurrence only for preview count
+      return true;
+    });
+    const uniqueIds = new Set(valid.map(r => get(r, mapping.id)));
+
+    let stats = `<strong style="color:var(--text)">${valid.length.toLocaleString()}</strong> valid row${valid.length === 1 ? '' : 's'} · `;
+    stats += `<strong style="color:var(--text)">${uniqueIds.size.toLocaleString()}</strong> unique student${uniqueIds.size === 1 ? '' : 's'} · `;
+    stats += `<strong style="color:var(--text)">${uniqueBatches.size}</strong> batch${uniqueBatches.size === 1 ? '' : 'es'}`;
+    if (duplicates > 0) stats += ` · <span style="color:var(--warning);font-weight:600">${duplicates} duplicate ID${duplicates === 1 ? '' : 's'} (only first kept)</span>`;
+    if (invalidCount > 0) stats += ` · <span style="color:var(--danger);font-weight:600">${invalidCount} row${invalidCount === 1 ? '' : 's'} skipped (missing data)</span>`;
+
+    $('parseStats').innerHTML = stats;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     IMPORT
+     ═══════════════════════════════════════════════════════════ */
+  $('cancelImportBtn').onclick = () => {
+    parsed = null;
+    $('previewSection').classList.remove('show');
+    $('uploadSection').classList.add('show');
+    $('fileInput').value = '';
+  };
+
+  $('startImportBtn').onclick = async () => {
+    if (!parsed) return;
+    const mode = document.querySelector('input[name="importMode"]:checked').value;
+
+    // Build clean rows
+    const { mapping, rows } = parsed;
+    const get = (row, idx) => String(row[idx] ?? '').trim();
+
+    const cleaned = [];
+    const seenIds = new Set();
+    let skippedInvalid = 0;
+    let skippedDupe = 0;
+
+    for (const r of rows) {
+      const id = get(r, mapping.id);
+      const full_name = get(r, mapping.name);
+      const batch = get(r, mapping.batch);
+      if (!id || !full_name || !batch) { skippedInvalid++; continue; }
+      if (seenIds.has(id)) { skippedDupe++; continue; }
+      seenIds.add(id);
+      cleaned.push({ id, full_name, batch });
+    }
+
+    if (!cleaned.length) return toast('No valid rows to import', 'error');
+
+    if (mode === 'replace') {
+      if (!confirm(`This will DELETE all ${totalStudents} existing students and replace with ${cleaned.length} from this file.\n\nContinue?`)) return;
+    }
+
+    // Show progress
+    $('progressSection').classList.add('show');
+    $('startImportBtn').disabled = true;
+    $('cancelImportBtn').disabled = true;
+    setProgress(0, `Preparing ${cleaned.length} rows…`);
+
+    try {
+      // Replace mode: delete all first
+      if (mode === 'replace') {
+        setProgress(5, 'Clearing existing students…');
+        const { error: delErr } = await supabase.from('students').delete().neq('id', '___never___');
+        if (delErr) throw new Error('Failed to clear: ' + delErr.message);
+        setProgress(10, 'Existing students cleared');
+      }
+
+      // Chunk and upsert
+      const CHUNK = 500;
+      const totalChunks = Math.ceil(cleaned.length / CHUNK);
+      let imported = 0;
+      const errors = [];
+
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK;
+        const chunk = cleaned.slice(start, start + CHUNK);
+
+        const { error } = await supabase.rpc('bulk_upsert_students', { p_rows: chunk });
+        if (error) {
+          errors.push(`Batch ${i + 1}: ${error.message}`);
+        } else {
+          imported += chunk.length;
+        }
+
+        const pct = 10 + Math.round(((i + 1) / totalChunks) * 90);
+        setProgress(pct, `Importing batch ${i + 1} of ${totalChunks} · ${imported.toLocaleString()} / ${cleaned.length.toLocaleString()} rows`);
+      }
+
+      setProgress(100, `Done — ${imported.toLocaleString()} rows imported`);
+
+      const parts = [`${imported.toLocaleString()} students saved`];
+      if (skippedInvalid) parts.push(`${skippedInvalid} invalid skipped`);
+      if (skippedDupe) parts.push(`${skippedDupe} duplicates skipped`);
+      if (errors.length) parts.push(`${errors.length} errors`);
+
+      toast(parts.join(' · '), errors.length ? 'info' : 'success');
+
+      // Reset
+      setTimeout(async () => {
+        parsed = null;
+        $('previewSection').classList.remove('show');
+        $('uploadSection').classList.add('show');
+        $('fileInput').value = '';
+        $('progressSection').classList.remove('show');
+        $('startImportBtn').disabled = false;
+        $('cancelImportBtn').disabled = false;
+        currentPage = 0;
+        await loadStats();
+        await loadStudents();
+      }, 1200);
+
+      if (errors.length) {
+        console.warn('Import errors:', errors);
+      }
+    } catch (err) {
+      console.error(err);
+      toast('Import failed: ' + (err.message || err), 'error');
+      $('startImportBtn').disabled = false;
+      $('cancelImportBtn').disabled = false;
+    }
+  };
+
+  function setProgress(pct, label) {
+    $('progressFill').style.width = pct + '%';
+    $('progressPercent').textContent = pct + '%';
+    $('progressLabel').textContent = label;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SEARCH / FILTER / EXPORT
+     ═══════════════════════════════════════════════════════════ */
+  let searchTimer;
+  $('searchInput').oninput = e => {
+    clearTimeout(searchTimer);
+    const val = e.target.value.trim();
+    searchTimer = setTimeout(() => {
+      currentFilters.search = val;
+      currentPage = 0;
+      loadStudents();
+    }, 300);
+  };
+
+  $('batchFilter').onchange = e => {
+    currentFilters.batch = e.target.value;
+    currentPage = 0;
+    loadStudents();
+  };
+
+  $('refreshBtn').onclick = async () => {
+    await loadStats();
+    await loadStudents();
+    toast('Refreshed', 'success');
+  };
+
+  $('exportBtn').onclick = async () => {
+    let query = supabase.from('students').select('*');
+    if (currentFilters.search) {
+      const q = currentFilters.search;
+      query = query.or(`id.ilike.%${q}%,full_name.ilike.%${q}%`);
+    }
+    if (currentFilters.batch) query = query.eq('batch', currentFilters.batch);
+    query = query.order('id').limit(50000);
+
+    const { data, error } = await query;
+    if (error) return toast(error.message, 'error');
+    if (!data?.length) return toast('Nothing to export', 'error');
+
+    const rows = [['ID','Full Name','Batch']];
+    data.forEach(s => rows.push([s.id, s.full_name, s.batch]));
+
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `students-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    toast(`Exported ${data.length} students`, 'success');
+  };
+
+  /* ═══════════════════════════════════════════════════════════
+     BOOT
+     ═══════════════════════════════════════════════════════════ */
+  await loadStats();
+  await loadStudents();
+})();
+</script>
+</body>
+</html>
