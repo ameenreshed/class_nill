@@ -110,7 +110,7 @@
   .u-empty-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
   .u-empty-sub{font-size:12.5px;color:var(--text-secondary)}
 
-  /* ============ MANAGER MODAL — unified form ============ */
+  /* ============ MANAGER MODAL ============ */
   .mgr-modal .modal-content{width:min(680px,calc(100vw - 32px))}
   .mgr-identity{padding:18px 20px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:12px;margin-bottom:16px}
   .mgr-section-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:13px;font-weight:700;color:var(--text)}
@@ -161,6 +161,12 @@
   .mgr-pw-note{display:flex;align-items:flex-start;gap:8px;padding:10px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:11.5px;color:var(--info-text);line-height:1.5;margin-top:10px}
   .mgr-pw-note i{flex-shrink:0;margin-top:1px;font-size:12px}
   .mgr-pw-note.danger{background:var(--warning-soft);border-color:var(--warning-soft-border);color:var(--warning-text)}
+
+  /* Self-ID change warning */
+  .mgr-selfid-warn{display:none;padding:12px 14px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:10px;font-size:12px;color:var(--warning-text);line-height:1.55;margin-top:14px}
+  .mgr-selfid-warn.show{display:flex;gap:8px;align-items:flex-start}
+  .mgr-selfid-warn i{flex-shrink:0;margin-top:1px;font-size:13px}
+  .mgr-selfid-warn strong{font-weight:600}
 
   /* Responsive */
   @media (max-width:900px){.u-hide-md{display:none}}
@@ -436,7 +442,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
   });
 
   /* ============================================================
-     UNIFIED MANAGER MODAL — the heart of the page
+     UNIFIED MANAGER MODAL
      ============================================================ */
   function openManager(id) {
     const u = users.find(x => x.id === id);
@@ -461,7 +467,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
 
         <div class="modal-body">
 
-          <!-- SECTION: IDENTITY -->
+          <!-- IDENTITY SECTION -->
           <div class="mgr-identity">
             <div class="mgr-section-head">
               <i class="fas fa-id-card"></i>
@@ -477,7 +483,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
               <div class="mgr-field">
                 <label class="mgr-field-label">
                   User ID
-                  ${isMe ? '<span class="hint">(your account)</span>' : ''}
+                  ${isMe ? '<span class="hint">your account</span>' : ''}
                 </label>
                 <input type="text" id="mgrUid" class="mono" inputmode="numeric" pattern="[0-9]*" maxlength="20"
                        value="${escapeHtml(currentUid)}" placeholder="e.g. 9001">
@@ -492,6 +498,14 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
               <div class="mgr-field">
                 <label class="mgr-field-label">Phone</label>
                 <input type="text" id="mgrPhone" value="${escapeHtml(u.phone || '')}" placeholder="+91 ...">
+              </div>
+            </div>
+
+            <!-- Self-ID warning — only shows when this is the admin's own account -->
+            <div class="mgr-selfid-warn" id="mgrSelfWarn">
+              <i class="fas fa-triangle-exclamation"></i>
+              <div>
+                <strong>This is your own account.</strong> If you change your user ID, you'll need to log in with the <strong>new ID</strong> on your next session — the current session keeps working until you log out or refresh. Make sure you remember it.
               </div>
             </div>
 
@@ -517,7 +531,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
             </div>
           </div>
 
-          <!-- SECTION: PASSWORD -->
+          <!-- PASSWORD SECTION -->
           <div class="mgr-pw-section">
             <div class="mgr-section-head">
               <i class="fas fa-lock"></i>
@@ -566,6 +580,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     const nameInput = dialog.querySelector('#mgrName');
     const uidInput = dialog.querySelector('#mgrUid');
     const uidMsg = dialog.querySelector('#mgrUidMsg');
+    const selfWarn = dialog.querySelector('#mgrSelfWarn');
     const pwdInput = dialog.querySelector('#mgrPwd');
     const pwdNote = dialog.querySelector('#mgrPwNote');
     const saveBtn = dialog.querySelector('#mgrSave');
@@ -584,10 +599,16 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     });
     setRole(u.role);
 
-    /* User ID validation */
+    /* User ID validation + self-ID warning */
     function validateUid() {
       const raw = uidInput.value.replace(/\D/g, '').slice(0, 20);
       uidInput.value = raw;
+
+      /* Show/hide self-warning based on whether the UID actually changed */
+      if (isMe) {
+        selfWarn.classList.toggle('show', raw !== currentUid && /^\d{3,20}$/.test(raw));
+      }
+
       if (raw === currentUid) {
         uidMsg.innerHTML = `Login: <span class="mono">${escapeHtml(raw || '?')}@lpu.in</span>`;
         uidMsg.className = 'mgr-field-msg';
@@ -642,6 +663,18 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
       const newUid = uidInput.value.trim();
       const uidChanged = newUid !== currentUid;
 
+      /* Extra confirmation for self-ID change */
+      if (isMe && uidChanged) {
+        const ok = confirm(
+          `You're changing YOUR OWN user ID.\n\n` +
+          `Old ID: ${currentUid || '—'}\n` +
+          `New ID: ${newUid}\n` +
+          `New login: ${newUid}@lpu.in\n\n` +
+          `You'll need to use the new ID next time you log in. Continue?`
+        );
+        if (!ok) return;
+      }
+
       saveBtn.disabled = true;
       saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
 
@@ -661,13 +694,24 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
       if (error) { toast(error.message, 'error'); return; }
       if (data?.error) { toast(data.error, 'error'); return; }
 
-      // Build success message
+      /* Build success message */
       const changes = [];
       if (uidChanged) changes.push(`user ID → ${newUid}`);
       if (newPwd) changes.push('password reset');
       toast(changes.length ? `Saved — ${changes.join(', ')}` : 'Saved', 'success');
 
       dialog.close(); dialog.remove();
+
+      /* If admin changed their own user ID, log them out to force re-login with new ID */
+      if (isMe && uidChanged) {
+        toast('Your user ID changed — signing out in 2 seconds…', 'info');
+        setTimeout(async () => {
+          try { await supabase.auth.signOut(); } catch {}
+          location.replace('./login.html');
+        }, 2000);
+        return;
+      }
+
       await load();
     };
 

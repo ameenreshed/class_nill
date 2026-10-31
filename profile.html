@@ -9,51 +9,21 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 <style>
-  .first-banner {
-    display: none;
-    padding: 20px 24px;
-    background: linear-gradient(135deg, var(--brand-soft) 0%, var(--warning-soft) 100%);
-    border: 1px solid var(--brand-soft-border);
-    border-radius: 14px;
-    margin-bottom: 24px;
-    align-items: flex-start;
-    gap: 14px;
-    box-shadow: var(--shadow-md);
-  }
-  .first-banner.show { display: flex; }
-  .first-banner-icon {
-    width: 44px; height: 44px;
-    border-radius: 12px;
-    background: var(--brand);
-    color: white;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
-    flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
-  }
-  .first-banner-body { flex: 1; min-width: 0; }
-  .first-banner-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--brand-text);
-    margin-bottom: 4px;
-  }
-  .first-banner-text {
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.55;
-  }
-  @media (max-width: 640px) {
-    .first-banner { padding: 16px; gap: 10px; }
-    .first-banner-icon { width: 36px; height: 36px; font-size: 16px; }
-  }
+  .first-banner{display:none;padding:20px 24px;background:linear-gradient(135deg,var(--brand-soft) 0%,var(--warning-soft) 100%);border:1px solid var(--brand-soft-border);border-radius:14px;margin-bottom:24px;align-items:flex-start;gap:14px;box-shadow:var(--shadow-md)}
+  .first-banner.show{display:flex}
+  .first-banner-icon{width:44px;height:44px;border-radius:12px;background:var(--brand);color:white;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 4px 12px rgba(234,88,12,.3)}
+  .first-banner-body{flex:1;min-width:0}
+  .first-banner-title{font-size:15px;font-weight:700;color:var(--brand-text);margin-bottom:4px}
+  .first-banner-text{font-size:13px;color:var(--text-secondary);line-height:1.55}
+  @media (max-width:640px){.first-banner{padding:16px;gap:10px}.first-banner-icon{width:36px;height:36px;font-size:16px}}
 </style>
 </head>
 <body>
 <div id="nav"></div>
 <div class="container" style="max-width:1000px">
   <div class="page-header">
-    <div><h1 class="page-title"><i class="fas fa-user-circle"></i> Profile</h1>
+    <div>
+      <h1 class="page-title"><i class="fas fa-user-circle"></i> Profile</h1>
       <p class="page-subtitle">Manage your account and security.</p>
     </div>
   </div>
@@ -63,7 +33,7 @@
     <div class="first-banner-body">
       <div class="first-banner-title">Welcome — please change your password</div>
       <div class="first-banner-text">
-        Your account is still using the temporary password set up by the administrator. For your security, please set a new password below before continuing.
+        Your account is still using the temporary password set by the administrator. Set a new password below to continue.
       </div>
     </div>
   </div>
@@ -133,9 +103,10 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime, fo
   const $ = id => document.getElementById(id);
   const p = auth.profile;
 
-  const isFirstLogin = p.password_changed_at === null
-    || new URLSearchParams(location.search).get('first') === '1';
+  const hadFirstParam = new URLSearchParams(location.search).get('first') === '1';
+  const isFirstLogin = p.password_changed_at === null;
 
+  /* ============ INITIAL RENDER ============ */
   const initial = ((p.full_name || p.email || '?').trim()[0] || '?').toUpperCase();
   $('avatar').textContent = initial;
   $('displayName').textContent = p.full_name || p.email;
@@ -144,31 +115,30 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime, fo
   $('emailDisplay').value = p.email;
   $('departmentDisplay').value = p.department || '—';
   $('phoneInput').value = p.phone || '';
-
-  const roleIcon = p.role === 'admin' ? 'shield-halved' : 'chalkboard-user';
-  $('profileBadges').innerHTML = `
-    <span class="badge badge-${p.role}"><i class="fas fa-${roleIcon}"></i>${p.role}</span>
-    <span class="badge badge-approved"><i class="fas fa-check"></i>active</span>
-    ${p.password_changed_at === null
-      ? '<span class="badge badge-pending"><i class="fas fa-key"></i>first login</span>'
-      : ''}
-  `;
-
   $('createdAt').textContent = formatDateTime(p.created_at);
   $('lastActive').textContent = formatRelativeTime(p.last_active_at) || formatDateTime(p.last_active_at);
   $('pwdChanged').textContent = p.password_changed_at ? formatDateTime(p.password_changed_at) : 'Never';
 
-  // Show first-login banner
+  function paintBadges() {
+    const roleIcon = p.role === 'admin' ? 'shield-halved' : 'chalkboard-user';
+    const isFirst = p.password_changed_at === null;
+    $('profileBadges').innerHTML = `
+      <span class="badge badge-${p.role}"><i class="fas fa-${roleIcon}"></i>${p.role}</span>
+      <span class="badge badge-approved"><i class="fas fa-check"></i>active</span>
+      ${isFirst ? '<span class="badge badge-pending"><i class="fas fa-key"></i>first login</span>' : ''}
+    `;
+    $('firstBanner').classList.toggle('show', isFirst || (hadFirstParam && isFirst));
+  }
+  paintBadges();
+
   if (isFirstLogin) {
-    $('firstBanner').classList.add('show');
-    // Scroll password card into view + focus
     setTimeout(() => {
       $('passwordCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
       $('currentPwd').focus();
     }, 300);
   }
 
-  // Password visibility toggles
+  // Password visibility
   document.querySelectorAll('.pwd-toggle[data-for]').forEach(btn => {
     btn.onclick = () => {
       const input = $(btn.dataset.for);
@@ -178,7 +148,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime, fo
     };
   });
 
-  // Account form
+  /* ============ ACCOUNT FORM ============ */
   $('accountForm').onsubmit = async (e) => {
     e.preventDefault();
     const btn = $('saveBtn');
@@ -193,47 +163,81 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime, fo
     toast('Profile updated', 'success');
   };
 
-  // Password form
+  /* ============ PASSWORD CHANGE ============ */
   $('passwordForm').onsubmit = async (e) => {
     e.preventDefault();
-    const current = $('currentPwd').value, next = $('newPwd').value, confirm = $('confirmPwd').value;
+    const current = $('currentPwd').value;
+    const next    = $('newPwd').value;
+    const confirm = $('confirmPwd').value;
+
     if (!current || !next || !confirm) return toast('Fill all fields', 'error');
-    if (next.length < 8) return toast('Password must be 8+ chars', 'error');
+    if (next.length < 8) return toast('Password must be 8+ characters', 'error');
     if (next !== confirm) return toast('Passwords do not match', 'error');
-    if (next === current) return toast('New must differ from current', 'error');
+    if (next === current) return toast('New password must differ from current', 'error');
 
     const btn = $('pwdBtn');
-    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating…';
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating…';
 
+    /* Step 1: verify current password by signing in */
     const { error: verifyErr } = await supabase.auth.signInWithPassword({ email: p.email, password: current });
     if (verifyErr) {
       btn.disabled = false; btn.innerHTML = '<i class="fas fa-key"></i> Change password';
       return toast('Current password is incorrect', 'error');
     }
 
-    const { error } = await supabase.auth.updateUser({ password: next });
-    if (error) {
+    /* Step 2: update password in auth.users */
+    const { error: updErr } = await supabase.auth.updateUser({ password: next });
+    if (updErr) {
       btn.disabled = false; btn.innerHTML = '<i class="fas fa-key"></i> Change password';
-      return toast(error.message, 'error');
+      return toast(updErr.message, 'error');
     }
 
-    // Mark password changed in DB
-    await supabase.rpc('mark_password_changed');
+    /* Step 3: mark password as changed — try RPC first, fall back to direct update */
+    let marked = false;
+    const { error: rpcErr } = await supabase.rpc('mark_password_changed');
+    if (!rpcErr) marked = true;
+    else {
+      const { error: directErr } = await supabase
+        .from('profiles')
+        .update({ password_changed_at: new Date().toISOString() })
+        .eq('id', p.id);
+      marked = !directErr;
+    }
 
-    btn.disabled = false; btn.innerHTML = '<i class="fas fa-key"></i> Change password';
-    $('currentPwd').value = ''; $('newPwd').value = ''; $('confirmPwd').value = '';
-    $('pwdChanged').textContent = formatDateTime(new Date().toISOString());
+    /* Step 4: update local state regardless */
+    p.password_changed_at = new Date().toISOString();
+    $('pwdChanged').textContent = formatDateTime(p.password_changed_at);
     $('firstBanner').classList.remove('show');
-    toast('Password updated — you can now use the app', 'success');
+    paintBadges();
+    $('currentPwd').value = ''; $('newPwd').value = ''; $('confirmPwd').value = '';
 
-    // If this was a first-login flow, redirect after a brief pause
-    if (isFirstLogin) {
-      setTimeout(() => {
-        const home = p.role === 'admin' ? 'admin.html' : 'faculty.html';
-        location.replace('./' + home);
-      }, 1200);
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-key"></i> Change password';
+
+    if (!marked) {
+      toast('Password updated — refresh the page if you see a warning banner', 'info');
+      // don't redirect; let them refresh manually if needed
+      return;
     }
+
+    toast('Password updated successfully', 'success');
+
+    /* Step 5: clean URL and redirect after short delay */
+    history.replaceState({}, '', 'profile.html');
+
+    setTimeout(() => {
+      const home = p.role === 'admin' ? 'admin.html' : 'faculty.html';
+      location.replace('./' + home);
+    }, 900);
   };
+
+  // If they arrived via ?first=1 but password is already set (e.g. from another device),
+  // clean the URL and hide the banner
+  if (hadFirstParam && p.password_changed_at !== null) {
+    history.replaceState({}, '', 'profile.html');
+  }
+
 })();
 </script>
 </body>
