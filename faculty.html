@@ -20,6 +20,7 @@
 .fac-panel{display:none}
 .fac-panel.active{display:block;animation:facFade 240ms ease}
 @keyframes facFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
 .section-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:12px}
 .section-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;flex-wrap:wrap}
 .section-card-title{font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
@@ -30,6 +31,7 @@
 .period-name{font-size:13px;color:var(--text);margin-top:2px}
 .period-meta{font-size:11px;color:var(--text-secondary);display:flex;gap:12px;flex-wrap:wrap}
 .period-meta span{display:inline-flex;align-items:center;gap:4px}
+
 .req-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:10px;display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
 .req-card:hover{border-color:var(--border-strong);box-shadow:var(--shadow-sm)}
 .req-icon{width:44px;height:44px;border-radius:12px;background:var(--surface-active);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
@@ -49,14 +51,30 @@
 .req-reason{font-size:12px;color:var(--text-secondary);margin-top:8px;padding:8px 10px;background:var(--surface-hover);border-radius:6px;border-left:3px solid var(--border-strong);line-height:1.5}
 .req-actions{display:flex;gap:6px;align-items:flex-start;flex-shrink:0;flex-wrap:wrap}
 
-/* ═══════════ Booking modal — advanced ═══════════ */
+/* Auto-leave section in bookings tab */
+.leave-details{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden}
+.leave-details summary{padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--text);list-style:none;background:var(--bg-subtle);transition:background 120ms}
+.leave-details summary:hover{background:var(--surface-hover)}
+.leave-details summary::-webkit-details-marker{display:none}
+.leave-details summary::after{content:'\f078';font-family:'Font Awesome 6 Free';font-weight:900;margin-left:auto;font-size:10px;color:var(--text-muted);transition:transform 180ms}
+.leave-details[open] summary::after{transform:rotate(180deg)}
+.leave-details summary i:first-child{color:var(--warning);font-size:14px}
+.leave-details summary .summary-hint{font-size:11px;color:var(--text-secondary);font-weight:400;margin-left:4px}
+.leave-list{padding:6px}
+.leave-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:8px;transition:background 120ms}
+.leave-item:hover{background:var(--surface-hover)}
+.leave-item + .leave-item{border-top:1px solid var(--border);border-radius:0}
+.leave-info{flex:1;min-width:0}
+.leave-date{font-weight:500;font-size:13px;color:var(--text)}
+.leave-meta{font-size:11px;color:var(--text-secondary);margin-top:2px;line-height:1.4}
+
+/* ═══════════ Booking modal ═══════════ */
 .bk-section{margin-bottom:20px}
 .bk-section:last-child{margin-bottom:0}
 .bk-section-title{font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .bk-section-title .num{width:22px;height:22px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
 .bk-section-title .hint{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:500;color:var(--text-secondary);font-size:11.5px}
 
-/* Slot grid */
 .slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
 .slot-card{padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font:inherit;color:var(--text);transition:all 140ms ease}
 .slot-card:hover{border-color:var(--border-strong);background:var(--surface-hover)}
@@ -69,7 +87,6 @@
 .slot-card-avail.none{color:var(--danger)}
 .slot-card-avail i{font-size:9px}
 
-/* Missed classes */
 .missed-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;padding:4px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
 .missed-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background 120ms ease}
 .missed-item:hover{background:var(--surface-hover)}
@@ -81,12 +98,13 @@
 .missed-empty{padding:20px;text-align:center;color:var(--text-muted);font-size:12.5px;line-height:1.5}
 .missed-empty i{display:block;font-size:24px;opacity:.5;margin-bottom:8px}
 
-/* Date warning */
 .date-warn{display:none;margin-top:8px;padding:10px 12px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:8px;color:var(--warning-text);font-size:12px;line-height:1.5}
 .date-warn.show{display:flex;gap:8px;align-items:flex-start}
 .date-warn i{flex-shrink:0;margin-top:1px}
 
-/* Summary */
+.auto-leave-note{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);line-height:1.55;margin-top:10px}
+.auto-leave-note i{flex-shrink:0;margin-top:1px;font-size:13px}
+
 .bk-summary{padding:16px 18px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:12px}
 .bk-summary-title{font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;display:flex;align-items:center;gap:6px}
 .bk-summary-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
@@ -96,11 +114,6 @@
 .bk-summary-total{padding-top:12px;margin-top:8px;border-top:2px solid var(--border-strong);font-size:14px;font-weight:600;color:var(--text)}
 .bk-summary-total .brand{color:var(--brand)}
 
-.bk-progress{display:flex;gap:6px;margin-bottom:20px}
-.bk-progress-step{flex:1;height:4px;border-radius:2px;background:var(--border)}
-.bk-progress-step.done{background:var(--brand)}
-
-/* Room availability hint */
 .room-hint{margin-top:6px;font-size:11.5px;color:var(--text-secondary);line-height:1.5}
 .room-hint.ok{color:var(--success-text);font-weight:500}
 .room-hint.warn{color:var(--warning-text);font-weight:500}
@@ -129,14 +142,13 @@
   <div class="fac-tabs" id="tabs" style="margin-top:24px">
     <button class="fac-tab active" data-tab="today"><i class="fas fa-calendar-day"></i> Today</button>
     <button class="fac-tab" data-tab="timetable"><i class="fas fa-table"></i> My timetable</button>
-    <button class="fac-tab" data-tab="leave"><i class="fas fa-plane-departure"></i> Mark leave</button>
     <button class="fac-tab" data-tab="bookings"><i class="fas fa-paper-plane"></i> My bookings <span class="tab-count" id="reqCount" style="display:none">0</span></button>
   </div>
 
   <div class="fac-panel active" data-panel="today"><div id="todayView"></div></div>
   <div class="fac-panel" data-panel="timetable"><div id="timetableView"></div></div>
-  <div class="fac-panel" data-panel="leave"><div id="leaveView"></div></div>
   <div class="fac-panel" data-panel="bookings">
+    <div id="leaveSection"></div>
     <div class="chips" id="reqFilter" style="margin-bottom:16px">
       <button class="chip on" data-f="all">All</button>
       <button class="chip" data-f="pending">Pending</button>
@@ -176,9 +188,10 @@ import {
       supabase.from('faculty_unavailability').select('*').eq('faculty_id', myId).gte('date', todayISO()).order('date'),
     ]);
     myTeaching = teaching ?? []; myRequests = reqs ?? []; myLeave = leave ?? [];
-    renderStats(); renderToday(); renderTimetable(); renderLeave(); renderRequests(); updateReqCount();
+    renderStats(); renderToday(); renderTimetable(); renderLeaveSection(); renderRequests(); updateReqCount();
   }
 
+  /* ============ Stats ============ */
   function renderStats() {
     const today = todayISO(); const dow = dayOfWeekNum(today);
     const todayClasses = myTeaching.filter(t => t.day_of_week === dow);
@@ -199,6 +212,7 @@ import {
       <div class="stat"><i class="fas fa-calendar-check stat-icon" style="color:var(--success)"></i><div class="stat-value" style="color:var(--success)">${monthApproved}</div><div class="stat-label">Approved this month</div></div>`;
   }
 
+  /* ============ Today ============ */
   function renderToday() {
     const today = todayISO(); const dow = dayOfWeekNum(today);
     const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
@@ -209,7 +223,7 @@ import {
       $('todayView').innerHTML = `<div class="card"><div class="empty-action">
         <div class="empty-action-icon"><i class="fas fa-mug-hot"></i></div>
         <div class="empty-action-title">No classes today</div>
-        <div class="empty-action-sub">Use "New booking" to reserve a room.</div>
+        <div class="empty-action-sub">Use "New booking" to reserve a room, or mark a makeup if you missed a class.</div>
       </div></div>`;
       return;
     }
@@ -235,12 +249,13 @@ import {
     }).join('');
   }
 
+  /* ============ Timetable ============ */
   function renderTimetable() {
     if (!myTeaching.length) {
       $('timetableView').innerHTML = `<div class="card"><div class="empty-action">
         <div class="empty-action-icon"><i class="fas fa-table"></i></div>
         <div class="empty-action-title">No classes assigned yet</div>
-        <div class="empty-action-sub">Ask your admin to add your timetable, or use "New booking" to reserve rooms directly.</div>
+        <div class="empty-action-sub">Ask your admin to add your timetable, or use "New booking" for exams and events.</div>
       </div></div>`;
       return;
     }
@@ -266,52 +281,43 @@ import {
       </div>`).join('');
   }
 
-  function renderLeave() {
-    if (!base.slots.length) {
-      $('leaveView').innerHTML = '<div class="card"><div class="empty">Time slots must be configured by admin</div></div>';
-      return;
-    }
-    const slotOpts = ['<option value="">Whole day</option>'].concat(base.slots.map(s =>
-      `<option value="${escapeHtml(s.slot_id)}">${escapeHtml(s.label || s.slot_id)} (${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)})</option>`)).join('');
-    $('leaveView').innerHTML = `
-      <div class="card">
-        <div class="card-title"><i class="fas fa-plane-departure"></i> Mark yourself on leave</div>
-        <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px">Any of your regular classes in that slot become <strong>Free</strong> on the room grid, so colleagues can book a makeup in that room.</p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
-          <label class="field" style="margin:0"><span>Date *</span><input class="input" type="date" id="lvDate" min="${todayISO()}"></label>
-          <label class="field" style="margin:0"><span>Period</span><select class="input" id="lvSlot">${slotOpts}</select></label>
-          <label class="field" style="margin:0"><span>Reason</span><input class="input" id="lvReason" placeholder="Optional"></label>
+  /* ============ Auto-leave section (inside My bookings) ============ */
+  function renderLeaveSection() {
+    const el = $('leaveSection');
+    if (!myLeave.length) { el.innerHTML = ''; return; }
+    const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
+    el.innerHTML = `
+      <details class="leave-details" open>
+        <summary>
+          <i class="fas fa-calendar-xmark"></i>
+          <span>Auto-leave entries (${myLeave.length})</span>
+          <span class="summary-hint">Your missed classes show as "Free" on the room grid</span>
+        </summary>
+        <div class="leave-list">
+          ${myLeave.map(l => {
+            const slot = slotById.get(l.slot_id);
+            return `<div class="leave-item">
+              <div class="leave-info">
+                <div class="leave-date">${humanDate(l.date)}</div>
+                <div class="leave-meta">
+                  ${slot ? escapeHtml(slot.label || slot.slot_id) + ' · ' + slot.start_time.slice(0,5) + '–' + slot.end_time.slice(0,5) : 'Whole day'}
+                  ${l.reason ? ' · ' + escapeHtml(l.reason) : ''}
+                </div>
+              </div>
+              <button class="btn btn-sm btn-danger" data-del-leave="${l.id}" title="Remove leave entry">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>`;
+          }).join('')}
         </div>
-        <button class="btn btn-primary" id="lvAddBtn" style="margin-top:14px"><i class="fas fa-plus"></i> Mark leave</button>
-      </div>
-      <div class="card">
-        <div class="card-title"><i class="fas fa-list"></i> Upcoming leave</div>
-        ${myLeave.length ? myLeave.map(l => {
-          const slot = base.slots.find(s => s.slot_id === l.slot_id);
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:8px;background:var(--surface-hover);margin-bottom:6px;gap:12px;flex-wrap:wrap">
-            <div><div style="font-weight:500;font-size:13px">${humanDate(l.date)}</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">${slot ? escapeHtml(slot.label || slot.slot_id) + ' · ' + slot.start_time.slice(0,5) + '–' + slot.end_time.slice(0,5) : 'Whole day'}${l.reason ? ' · ' + escapeHtml(l.reason) : ''}</div>
-            </div>
-            <button class="btn btn-sm btn-danger" data-del-leave="${l.id}"><i class="fas fa-trash"></i></button>
-          </div>`;
-        }).join('') : '<div class="empty" style="padding:20px"><i class="fas fa-inbox"></i>No leave marked</div>'}
-      </div>`;
-    $('lvDate').value = todayISO(new Date(Date.now() + 86400000));
-    $('lvAddBtn').onclick = async () => {
-      const date = $('lvDate').value;
-      if (!date) return toast('Pick a date', 'error');
-      const btn = $('lvAddBtn'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-      const { error } = await supabase.from('faculty_unavailability').insert({ faculty_id: myId, date, slot_id: $('lvSlot').value || null, reason: $('lvReason').value.trim() || null });
-      btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Mark leave';
-      if (error) return toast(error.message, 'error');
-      toast('Leave marked', 'success'); await loadAll();
-    };
-    document.querySelectorAll('[data-del-leave]').forEach(btn => {
+      </details>`;
+    el.querySelectorAll('[data-del-leave]').forEach(btn => {
       btn.onclick = async () => {
-        if (!confirm('Remove this leave?')) return;
+        if (!confirm('Remove this leave entry?\n\nYour original class will show as scheduled again on the room grid.')) return;
         const { error } = await supabase.from('faculty_unavailability').delete().eq('id', btn.dataset.delLeave);
         if (error) return toast(error.message, 'error');
-        toast('Removed', 'success'); await loadAll();
+        toast('Leave entry removed', 'success');
+        await loadAll();
       };
     });
   }
@@ -321,6 +327,7 @@ import {
     const rc = $('reqCount'); rc.textContent = pending || ''; rc.style.display = pending ? 'inline-flex' : 'none';
   }
 
+  /* ============ Requests list ============ */
   function renderRequests() {
     const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
     const roomById = new Map(base.rooms.map(r => [r.room_id, r]));
@@ -365,7 +372,7 @@ import {
     }).join('');
     document.querySelectorAll('[data-cancel]').forEach(btn => {
       btn.onclick = async () => {
-        if (!confirm('Cancel this booking?')) return;
+        if (!confirm('Cancel this booking?\n\nNote: If this was a makeup, you may want to also remove the auto-leave entry from above.')) return;
         btn.disabled = true;
         const { error } = await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', btn.dataset.cancel);
         if (error) { toast(error.message, 'error'); btn.disabled = false; return; }
@@ -374,6 +381,7 @@ import {
     });
   }
 
+  /* ============ Tab switching ============ */
   document.querySelectorAll('[data-tab]').forEach(btn => {
     btn.onclick = () => {
       document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b === btn));
@@ -392,7 +400,7 @@ import {
   setInterval(tick, 1000); tick();
 
   /* ══════════════════════════════════════════════════════════
-     ADVANCED BOOKING MODAL
+     BOOKING MODAL
      ══════════════════════════════════════════════════════════ */
   $('bookBtn').onclick = () => openBooking();
 
@@ -400,22 +408,31 @@ import {
     if (!base.slots.length || !base.rooms.length) {
       return toast('Admin must configure rooms and slots first', 'error');
     }
-    const allowed = ['makeup','exam','event'].filter(t => bookingTypeAllowed(settings, t));
-    if (!allowed.length) return toast('No booking types enabled — ask admin', 'error');
+    let allowed = ['makeup','exam','event'].filter(t => bookingTypeAllowed(settings, t));
+
+    // Makeup requires timetable rows — nothing to make up otherwise
+    if (myTeaching.length === 0) {
+      allowed = allowed.filter(t => t !== 'makeup');
+    }
+    if (!allowed.length) {
+      const msg = myTeaching.length === 0
+        ? 'No booking types available. Ask admin to add your timetable or enable Exam/Event types.'
+        : 'No booking types enabled — ask admin';
+      return toast(msg, 'error');
+    }
 
     const autoApprove = !!settings['booking_auto_approve'];
 
-    // Working state
     const state = {
       type: allowed[0],
       date: todayISO(new Date(Date.now() + 86400000)),
       selectedSlots: new Set(),
       roomId: null,
-      missedClassKeys: new Set(),   // "slotId|dow"
+      missedClassKeys: new Set(),
       missedDate: todayISO(),
       courseCode: '',
       reason: '',
-      availability: null, // { perSlot: Map<slotId, Set<roomId>>, calendarEntry, timetable, bookings }
+      availability: null,
     };
 
     const dialog = document.createElement('dialog');
@@ -431,19 +448,18 @@ import {
         </div>
         <div class="modal-body" id="bkBody">
 
-          <div class="bk-progress">
-            <div class="bk-progress-step done"></div>
-            <div class="bk-progress-step" id="prog2"></div>
-            <div class="bk-progress-step" id="prog3"></div>
-            <div class="bk-progress-step" id="prog4"></div>
-          </div>
-
           <!-- 1. Type -->
           <div class="bk-section">
             <div class="bk-section-title"><span class="num">1</span> Booking type</div>
             <div class="chips" id="typeChips">
               ${allowed.map(t => `<button type="button" class="chip ${t === state.type ? 'on' : ''}" data-type="${t}"><i class="fas fa-${t==='makeup'?'clock-rotate-left':t==='exam'?'file-pen':'users'}"></i> ${t.charAt(0).toUpperCase() + t.slice(1)}</button>`).join('')}
             </div>
+            ${myTeaching.length === 0 && allowed.length > 0 ? `
+              <div class="auto-leave-note" style="background:var(--warning-soft);border-color:var(--warning-soft-border);color:var(--warning-text);margin-top:12px">
+                <i class="fas fa-triangle-exclamation"></i>
+                <div>Makeup isn't available because you have no timetable rows. Ask your admin, or use <strong>Exam</strong> / <strong>Event</strong> instead.</div>
+              </div>
+            ` : ''}
           </div>
 
           <!-- 2. Date -->
@@ -453,7 +469,7 @@ import {
             <div class="date-warn" id="dateWarn"></div>
           </div>
 
-          <!-- 3. Slots (multi) -->
+          <!-- 3. Slots -->
           <div class="bk-section">
             <div class="bk-section-title">
               <span class="num">3</span> Periods
@@ -469,24 +485,24 @@ import {
             <div class="room-hint" id="roomHint"></div>
           </div>
 
-          <!-- 5. If makeup — missed classes -->
+          <!-- 5. Missed classes (makeup only) -->
           <div class="bk-section" id="makeupSection" style="display:none">
             <div class="bk-section-title">
-              <span class="num">5</span> Classes being missed
-              <span class="hint" id="missedHint">Select the classes you're making up for</span>
+              <span class="num">5</span> Which class are you making up?
+              <span class="hint" id="missedHint">Select at least one</span>
             </div>
             <div class="missed-list" id="missedList"></div>
             <label class="field" style="margin-top:12px">
-              <span>Date of the missed classes *</span>
+              <span>Date of the missed class(es) *</span>
               <input class="input" type="date" id="bkMissedDate" value="${state.missedDate}">
             </label>
-            <div style="font-size:11.5px;color:var(--text-secondary);margin-top:6px;line-height:1.5">
-              <i class="fas fa-info-circle" style="margin-right:4px"></i>
-              Your original classes on this date will show as <strong>Free</strong> on the room grid, so colleagues can use that room.
+            <div class="auto-leave-note">
+              <i class="fas fa-info-circle"></i>
+              <div>Your original class slot will show as <strong>Free</strong> on the room grid for this date — so other faculty can use that room. No separate leave needed.</div>
             </div>
           </div>
 
-          <!-- 6. Course & reason -->
+          <!-- 6. Details -->
           <div class="bk-section">
             <div class="bk-section-title"><span class="num">6</span> Details</div>
             <label class="field" style="margin-bottom:12px"><span>Course code</span>
@@ -499,7 +515,6 @@ import {
 
           <!-- Summary -->
           <div class="bk-summary" id="summaryBox" style="margin-top:20px"></div>
-
         </div>
         <div class="modal-footer">
           <button class="btn" data-close>Cancel</button>
@@ -510,7 +525,6 @@ import {
     dialog.showModal();
 
     const refs = {
-      body: dialog.querySelector('#bkBody'),
       dateInput: dialog.querySelector('#bkDate'),
       dateWarn: dialog.querySelector('#dateWarn'),
       slotGrid: dialog.querySelector('#slotGrid'),
@@ -525,9 +539,6 @@ import {
       reason: dialog.querySelector('#bkReason'),
       submit: dialog.querySelector('#bkSubmit'),
       summary: dialog.querySelector('#summaryBox'),
-      prog2: dialog.querySelector('#prog2'),
-      prog3: dialog.querySelector('#prog3'),
-      prog4: dialog.querySelector('#prog4'),
     };
 
     /* ---------- Type chips ---------- */
@@ -545,7 +556,7 @@ import {
       renderMissedClasses();
     }
 
-    /* ---------- Date handling ---------- */
+    /* ---------- Date ---------- */
     refs.dateInput.onchange = () => {
       state.date = refs.dateInput.value;
       state.selectedSlots.clear();
@@ -561,7 +572,6 @@ import {
       const data = await loadDataForDate(state.date);
       const dow = dayOfWeekNum(state.date);
 
-      // Warnings
       if (data.calendarEntry) {
         const ce = data.calendarEntry;
         if (ce.kind === 'holiday') {
@@ -579,7 +589,6 @@ import {
         refs.dateWarn.classList.add('show');
       }
 
-      // Compute per-slot free rooms
       const perSlot = new Map();
       for (const slot of base.slots) {
         const free = new Set();
@@ -596,8 +605,6 @@ import {
       }
 
       state.availability = { perSlot, data, dow };
-
-      // Render slot cards
       renderSlotGrid();
       renderRoomOptions();
       updateSummary();
@@ -642,7 +649,7 @@ import {
       refs.slotHint.textContent = n === 0 ? 'Select one or more' : `${n} period${n === 1 ? '' : 's'} selected`;
     }
 
-    /* ---------- Room options (filtered by ALL selected slots) ---------- */
+    /* ---------- Room options ---------- */
     function renderRoomOptions() {
       if (!state.availability) return;
       const n = state.selectedSlots.size;
@@ -654,7 +661,6 @@ import {
         return;
       }
 
-      // Intersection: room must be free in ALL selected slots
       const slotsArr = [...state.selectedSlots];
       let intersection = null;
       for (const sid of slotsArr) {
@@ -683,7 +689,6 @@ import {
       refs.roomHint.className = 'room-hint ok';
       refs.roomHint.innerHTML = `<i class="fas fa-check-circle" style="margin-right:4px"></i>${roomList.length} room${roomList.length === 1 ? '' : 's'} free in all ${n} selected period${n === 1 ? '' : 's'}`;
 
-      // Restore previous selection if still valid
       if (state.roomId && !roomList.find(r => r.room_id === state.roomId)) state.roomId = null;
       if (state.roomId) refs.roomSelect.value = state.roomId;
     }
@@ -699,7 +704,7 @@ import {
         refs.missedList.innerHTML = `<div class="missed-empty">
           <i class="fas fa-table"></i>
           <div style="font-weight:600;color:var(--text);margin-bottom:4px">No timetable rows found</div>
-          <div>Ask your admin to add your classes first, or use <strong>Exam</strong> / <strong>Event</strong> type instead.</div>
+          <div>Ask your admin to add your classes first.</div>
         </div>`;
         state.missedClassKeys.clear();
         updateSummary();
@@ -741,13 +746,13 @@ import {
           if (cb.checked) state.missedClassKeys.add(cb.dataset.missedKey);
           else state.missedClassKeys.delete(cb.dataset.missedKey);
           const n = state.missedClassKeys.size;
-          refs.missedHint.textContent = n === 0 ? 'Select the classes you\'re making up for' : `${n} class${n === 1 ? '' : 'es'} selected`;
+          refs.missedHint.textContent = n === 0 ? 'Select at least one' : `${n} class${n === 1 ? '' : 'es'} selected`;
           updateSummary();
         };
       });
 
       const n = state.missedClassKeys.size;
-      refs.missedHint.textContent = n === 0 ? 'Select the classes you\'re making up for' : `${n} class${n === 1 ? '' : 'es'} selected`;
+      refs.missedHint.textContent = n === 0 ? 'Select at least one' : `${n} class${n === 1 ? '' : 'es'} selected`;
     }
 
     refs.missedDate.onchange = () => {
@@ -767,12 +772,6 @@ import {
       const room = state.roomId ? base.rooms.find(r => r.room_id === state.roomId) : null;
       const missedN = state.missedClassKeys.size;
 
-      // Progress bars
-      refs.prog2.classList.toggle('done', n > 0);
-      refs.prog3.classList.toggle('done', !!state.roomId);
-      refs.prog4.classList.toggle('done', state.type !== 'makeup' || missedN > 0);
-
-      // Summary table
       const rows = [];
       rows.push(`<div class="bk-summary-row"><span class="bk-summary-label">Type</span><span class="bk-summary-value" style="text-transform:capitalize">${escapeHtml(state.type)}</span></div>`);
       rows.push(`<div class="bk-summary-row"><span class="bk-summary-label">Date</span><span class="bk-summary-value">${humanDate(state.date)}</span></div>`);
@@ -795,6 +794,7 @@ import {
           rows.push(`<div class="bk-summary-row"><span class="bk-summary-label">Missed classes</span><span class="bk-summary-value" style="color:var(--danger)">Not selected</span></div>`);
         } else {
           rows.push(`<div class="bk-summary-row"><span class="bk-summary-label">Missed classes</span><span class="bk-summary-value">${missedN} class${missedN === 1 ? '' : 'es'} on ${humanDate(state.missedDate)}</span></div>`);
+          rows.push(`<div class="bk-summary-row"><span class="bk-summary-label">Auto-leave</span><span class="bk-summary-value" style="color:var(--info-text)">${missedN} slot${missedN === 1 ? '' : 's'} will show as Free</span></div>`);
         }
       }
 
@@ -804,12 +804,11 @@ import {
 
       if (n > 0 && room) {
         const auto = !!settings['booking_auto_approve'];
-        rows.push(`<div class="bk-summary-total"><span class="bk-summary-label">Creates</span><span class="bk-summary-value"><span class="brand">${n}</span> booking${n === 1 ? '' : 's'} ${auto ? '· auto-approved' : '· pending approval'}${state.type === 'makeup' && missedN > 0 ? ` + <span class="brand">${missedN}</span> leave entr${missedN === 1 ? 'y' : 'ies'}` : ''}</span></div>`);
+        rows.push(`<div class="bk-summary-total"><span class="bk-summary-label">Creates</span><span class="bk-summary-value"><span class="brand">${n}</span> booking${n === 1 ? '' : 's'} ${auto ? '· auto-approved' : '· pending approval'}${state.type === 'makeup' && missedN > 0 ? ` + <span class="brand">${missedN}</span> auto-leave` : ''}</span></div>`);
       }
 
       refs.summary.innerHTML = `<div class="bk-summary-title"><i class="fas fa-clipboard-check"></i> Summary</div>` + rows.join('');
 
-      // Submit validation
       const canSubmit = (
         state.type &&
         state.date &&
@@ -827,7 +826,7 @@ import {
       if (n === 0) return toast('Select at least one period', 'error');
       if (!state.roomId) return toast('Select a room', 'error');
       if (state.type === 'makeup' && (state.missedClassKeys.size === 0 || !state.missedDate)) {
-        return toast('Select the classes you\'re missing and their date', 'error');
+        return toast('Select the classes you missed and their date', 'error');
       }
 
       refs.submit.disabled = true;
@@ -840,7 +839,7 @@ import {
         // 1. Create leave entries for missed classes (makeup only)
         if (state.type === 'makeup' && state.missedClassKeys.size > 0) {
           for (const key of state.missedClassKeys) {
-            const [slotId, dowStr] = key.split('|');
+            const [slotId] = key.split('|');
             const { error } = await supabase.from('faculty_unavailability').insert({
               faculty_id: myId,
               date: state.missedDate,
@@ -873,7 +872,6 @@ import {
           else results.bookings++;
         }
 
-        // 3. Report
         if (results.bookings === 0) {
           toast('Failed: ' + (results.failedBookings[0] || 'unknown error'), 'error');
           refs.submit.disabled = false;
@@ -882,7 +880,7 @@ import {
         }
 
         const parts = [`${results.bookings} booking${results.bookings === 1 ? '' : 's'} ${auto ? 'created' : 'submitted'}`];
-        if (results.leave > 0) parts.push(`${results.leave} leave entr${results.leave === 1 ? 'y' : 'ies'}`);
+        if (results.leave > 0) parts.push(`${results.leave} auto-leave`);
         if (results.failedBookings.length) parts.push(`${results.failedBookings.length} failed`);
 
         toast(parts.join(' · '), results.failedBookings.length ? 'info' : 'success');
@@ -898,13 +896,11 @@ import {
       }
     };
 
-    /* ---------- Close ---------- */
     const close = () => { dialog.close(); dialog.remove(); };
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
     dialog.onclick = e => { if (e.target === dialog) close(); };
 
-    /* ---------- Boot ---------- */
     loadAvailability();
   }
 
@@ -913,6 +909,7 @@ import {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadAll(); });
 })();
 </script>
+
 <!-- Centralized site banner -->
 <script type="module" src="js/banner.js"></script>
 </body>
