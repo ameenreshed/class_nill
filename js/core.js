@@ -233,10 +233,10 @@ export async function renderNav(profile) {
   const currentPage = location.pathname.split('/').pop() || home;
 
   const items = profile.role === 'admin' ? [
-    { href:'admin.html',          label:'Dashboard',  icon:'fa-gauge-high', active: currentPage === 'admin.html' },
-    { href:'admin-timetable.html',label:'Timetable',  icon:'fa-table',      active: currentPage.startsWith('admin-') && currentPage !== 'admin.html' && currentPage !== 'admin-settings.html' },
-    { href:'free-rooms.html',     label:'Free rooms', icon:'fa-building',   active: currentPage === 'free-rooms.html' },
-    { href:'admin-settings.html', label:'Settings',   icon:'fa-gear',       active: currentPage === 'admin-settings.html' },
+    { href:'admin.html',           label:'Dashboard',  icon:'fa-gauge-high', active: currentPage === 'admin.html' },
+    { href:'admin-timetable.html', label:'Timetable',  icon:'fa-table',      active: currentPage.startsWith('admin-') && currentPage !== 'admin.html' && currentPage !== 'admin-settings.html' },
+    { href:'free-rooms.html',      label:'Free rooms', icon:'fa-building',   active: currentPage === 'free-rooms.html' },
+    { href:'admin-settings.html',  label:'Settings',   icon:'fa-gear',       active: currentPage === 'admin-settings.html' },
   ] : [
     { href:'faculty.html',   label:'Dashboard',  icon:'fa-gauge-high', active: currentPage === 'faculty.html' },
     { href:'free-rooms.html',label:'Free rooms', icon:'fa-building',   active: currentPage === 'free-rooms.html' },

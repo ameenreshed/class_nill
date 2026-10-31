@@ -11,20 +11,19 @@
 <link rel="stylesheet" href="css/style.css">
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
-  .auth-help { margin-top:24px;padding-top:20px;border-top:1px solid var(--border);font-size:13px;color:var(--text-secondary);line-height:1.6;text-align:center; }
-  .auth-help a { color:var(--brand);font-weight:500;text-decoration:none; }
-  .auth-help a:hover { text-decoration:underline; }
-  .credits-link { margin-top:18px;padding-top:16px;border-top:1px solid var(--border);text-align:center;font-size:12px;color:var(--text-muted); }
-  .credits-link a { color:var(--text-secondary);text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:color 160ms ease; }
-  .credits-link a:hover { color:var(--brand);text-decoration:underline; }
-  .credits-link i { font-size:10px;color:var(--brand); }
-  .banner-warn { background:var(--warning-soft);border:1px solid var(--warning-soft-border);color:var(--warning-text);padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none;line-height:1.5; }
-  .banner-warn.show { display:flex;gap:8px;align-items:flex-start; }
-  .banner-warn i { flex-shrink:0;margin-top:1px; }
+  .auth-help{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);font-size:13px;color:var(--text-secondary);line-height:1.6;text-align:center}
+  .auth-help a{color:var(--brand);font-weight:500;text-decoration:none}
+  .auth-help a:hover{text-decoration:underline}
+  .credits-link{margin-top:18px;padding-top:16px;border-top:1px solid var(--border);text-align:center;font-size:12px;color:var(--text-muted)}
+  .credits-link a{color:var(--text-secondary);text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:color 160ms ease}
+  .credits-link a:hover{color:var(--brand);text-decoration:underline}
+  .credits-link i{font-size:10px;color:var(--brand)}
+  .banner-warn{background:var(--warning-soft);border:1px solid var(--warning-soft-border);color:var(--warning-text);padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none;line-height:1.5}
+  .banner-warn.show{display:flex;gap:8px;align-items:flex-start}
+  .banner-warn i{flex-shrink:0;margin-top:1px}
 </style>
 </head>
 <body>
-
 <div class="auth-shell">
   <aside class="auth-brand-panel">
     <div class="auth-brand-content">
@@ -39,24 +38,20 @@
     </div>
     <div class="auth-brand-footer">Lovely Professional University · Scheduler</div>
   </aside>
-
   <main class="auth-form-panel">
     <div class="auth-form-wrap">
       <div class="auth-mobile-brand">
         <div class="auth-mobile-brand-icon"><i class="fas fa-calendar-check"></i></div>
         <div>LPU<span style="color:var(--brand)">.</span>Scheduler</div>
       </div>
-
       <div class="auth-form-header">
         <h2 class="auth-form-title">Sign in</h2>
         <p class="auth-form-sub">Enter your registration number and password to continue.</p>
       </div>
-
       <div class="banner-warn" id="verifyWarn">
         <i class="fas fa-triangle-exclamation"></i>
         <div id="verifyWarnText">Verification failed to load. Please check your connection and refresh.</div>
       </div>
-
       <form id="loginForm" novalidate>
         <label class="field">
           <span>Registration number</span>
@@ -64,7 +59,6 @@
                  placeholder="Enter registration number" autocomplete="username"
                  required maxlength="20" autofocus>
         </label>
-
         <label class="field" style="margin-bottom:8px">
           <span>Password</span>
           <div class="pwd-wrap">
@@ -74,36 +68,25 @@
             </button>
           </div>
         </label>
-
         <div style="text-align:right; margin-bottom:16px; font-size:13px">
-          <a href="https://ums.lpu.in/lpuums/forgetpassword.aspx"
-             style="color:var(--brand);font-weight:500;text-decoration:none">
+          <a href="https://ums.lpu.in/lpuums/forgetpassword.aspx" style="color:var(--brand);font-weight:500;text-decoration:none">
             Forgot password?
           </a>
         </div>
-
         <div id="turnstile-container" style="margin-bottom:16px; min-height:65px;"></div>
-
         <button type="submit" class="btn btn-primary btn-block" id="loginBtn" style="min-height:44px" disabled>
           <i class="fas fa-shield-halved"></i> Loading verification…
         </button>
       </form>
-
       <div id="errorMsg" class="login-error"></div>
-
       <div class="auth-help">
-        <div style="font-weight:600;color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">
-          Need help signing in?
-        </div>
+        <div style="font-weight:600;color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Need help signing in?</div>
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:4px">
           <i class="fas fa-circle-info" style="font-size:11px;opacity:0.7"></i>
           <span>Contact your administrator or visit</span>
-          <a href="https://ums.lpu.in/lpuums/" target="_blank" rel="noopener noreferrer">
-            UMS Portal
-          </a>
+          <a href="https://ums.lpu.in/lpuums/" target="_blank" rel="noopener noreferrer">UMS Portal</a>
         </div>
       </div>
-
       <div class="credits-link">
         <a href="credits.html"><i class="fas fa-heart"></i> Credits</a>
       </div>
@@ -113,17 +96,12 @@
 
 <script type="module">
 import { supabase, initTheme, waitForSession } from './js/core.js';
-
 const EMAIL_DOMAIN = 'lpu.in';
 const TURNSTILE_SITE_KEY = '0x4AAAAAAFk78nRRRuS58LzL';
-
 initTheme();
 const $ = id => document.getElementById(id);
 
-let turnstileToken = null;
-let turnstileWidgetId = null;
-let turnstileReady = false;
-let turnstileFailed = false;
+let turnstileToken = null, turnstileWidgetId = null, turnstileReady = false, turnstileFailed = false;
 
 function setLoginButton(state) {
   const btn = $('loginBtn');
@@ -155,27 +133,17 @@ if (params.get('err') === 'suspended') {
   history.replaceState({}, '', 'login.html');
 }
 
-/* Redirect signed-in users, respecting first-login state */
 (async () => {
   const session = await waitForSession(1000);
   if (!session) return;
-  const { data: profile } = await supabase
-    .from('profiles').select('role, is_active, password_changed_at').eq('id', session.user.id).single();
-
-  if (!profile || profile.is_active === false) {
-    await supabase.auth.signOut();
-    return;
-  }
-
-  if (profile.password_changed_at === null) {
-    return location.replace('./profile.html?first=1');
-  }
-  if (profile.role === 'admin')   return location.replace('./admin.html');
+  const { data: profile } = await supabase.from('profiles').select('role, is_active, password_changed_at').eq('id', session.user.id).single();
+  if (!profile || profile.is_active === false) { await supabase.auth.signOut(); return; }
+  if (profile.password_changed_at === null) return location.replace('./profile.html?first=1');
+  if (profile.role === 'admin') return location.replace('./admin.html');
   if (profile.role === 'faculty') return location.replace('./faculty.html');
   await supabase.auth.signOut();
 })();
 
-/* Turnstile */
 let pollAttempts = 0;
 const MAX_POLL_ATTEMPTS = 50;
 
@@ -184,10 +152,7 @@ function initTurnstile() {
   if (!window.turnstile) {
     if (pollAttempts >= MAX_POLL_ATTEMPTS) {
       turnstileFailed = true;
-      $('verifyWarnText').innerHTML =
-        'Verification failed to load. Please check: (1) your internet connection, ' +
-        '(2) your browser is not blocking <code>challenges.cloudflare.com</code>, ' +
-        '(3) no ad-blocker is interfering. Then refresh the page.';
+      $('verifyWarnText').innerHTML = 'Verification failed to load. Please check: (1) your internet connection, (2) your browser is not blocking <code>challenges.cloudflare.com</code>, (3) no ad-blocker is interfering. Then refresh the page.';
       $('verifyWarn').classList.add('show');
       setLoginButton('waiting');
       return;
@@ -206,19 +171,16 @@ function initTurnstile() {
       callback: (token) => { turnstileToken = token; setLoginButton('ready'); clearError(); },
       'expired-callback': () => { turnstileToken = null; setLoginButton('waiting'); },
       'error-callback': (code) => {
-        turnstileToken = null;
-        turnstileFailed = true;
-        setLoginButton('waiting');
+        turnstileToken = null; turnstileFailed = true; setLoginButton('waiting');
         $('verifyWarnText').innerHTML = `Verification error (code ${code}). Please refresh and try again.`;
         $('verifyWarn').classList.add('show');
       },
     });
     setLoginButton('waiting');
-  } catch (err) {
-    turnstileFailed = true;
+  } catch {
+    turnstileFailed = true; setLoginButton('waiting');
     $('verifyWarnText').innerHTML = 'Verification could not start. Please refresh the page.';
     $('verifyWarn').classList.add('show');
-    setLoginButton('waiting');
   }
 }
 if (document.readyState === 'complete' || document.readyState === 'interactive') initTurnstile();
@@ -244,7 +206,6 @@ $('loginForm').onsubmit = async (e) => {
   e.preventDefault();
   clearError();
   if (!turnstileToken) { showError('Please complete the verification checkbox first.'); return; }
-
   const regno = regnoEl.value.trim();
   const password = $('password').value;
   if (!/^\d{3,20}$/.test(regno)) { showError('Enter a valid registration number (3–20 digits).'); regnoEl.focus(); return; }
@@ -277,6 +238,12 @@ $('loginForm').onsubmit = async (e) => {
     return;
   }
 
+  if (!result.data?.session) {
+    showError('Sign-in failed. Please try again.');
+    setLoginButton(turnstileToken ? 'ready' : 'waiting');
+    return;
+  }
+
   const { data: profile, error: profErr } = await supabase
     .from('profiles').select('role, is_active, password_changed_at').eq('id', result.data.session.user.id).single();
 
@@ -294,7 +261,6 @@ $('loginForm').onsubmit = async (e) => {
     return;
   }
 
-  // First-login users must change password before doing anything else
   if (profile.password_changed_at === null) {
     return location.replace('./profile.html?first=1');
   }

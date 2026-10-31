@@ -10,7 +10,6 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/admin.css">
 <style>
-  /* ============ STATS ============ */
   .u-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px}
   .u-stat{padding:20px 22px;background:var(--surface);border:1px solid var(--border);border-radius:14px;display:flex;align-items:center;gap:16px;transition:all 180ms ease}
   .u-stat:hover{border-color:var(--border-strong);box-shadow:var(--shadow-sm)}
@@ -22,21 +21,18 @@
   .u-stat-value{font-size:26px;font-weight:700;color:var(--text);line-height:1;letter-spacing:-0.02em}
   .u-stat-label{font-size:11px;color:var(--text-secondary);margin-top:6px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600}
 
-  /* ============ BANNER ============ */
   .u-fl-banner{display:none;align-items:center;gap:14px;padding:14px 20px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:12px;margin-bottom:20px;color:var(--warning-text);font-size:13px}
   .u-fl-banner.show{display:flex}
   .u-fl-banner-icon{width:36px;height:36px;border-radius:9px;background:var(--surface);border:1px solid var(--warning-soft-border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;color:var(--warning)}
   .u-fl-banner-body{flex:1;min-width:0;line-height:1.5}
   .u-fl-banner-body strong{font-weight:600}
 
-  /* ============ TOOLBAR ============ */
   .u-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
   .u-filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   .u-search{position:relative;flex:1;min-width:200px;max-width:320px;margin-left:auto}
   .u-search .input{padding-left:38px;padding-right:14px;min-height:38px}
   .u-search .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none}
 
-  /* ============ BULK BAR ============ */
   .u-bulk-bar{display:none;align-items:center;gap:12px;padding:12px 18px;background:var(--brand);color:white;border-radius:12px;box-shadow:var(--shadow-lg);margin-bottom:16px;flex-wrap:wrap}
   .u-bulk-bar.show{display:flex}
   .u-bulk-bar-count{font-weight:600;font-size:13.5px;display:inline-flex;align-items:center;gap:8px}
@@ -45,7 +41,6 @@
   .u-bulk-bar .btn{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.25);color:white;min-height:34px;font-size:12.5px;padding:7px 14px}
   .u-bulk-bar .btn:hover{background:rgba(255,255,255,.3);border-color:rgba(255,255,255,.45)}
 
-  /* ============ TABLE ============ */
   .u-table-wrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--surface);box-shadow:var(--shadow-xs)}
   .u-table{width:100%;border-collapse:collapse;font-size:13px}
   .u-table thead{background:var(--bg-subtle)}
@@ -59,7 +54,6 @@
   .u-table tbody tr{transition:background 120ms ease}
   .u-table tbody tr:hover td{background:var(--surface-hover)}
 
-  /* ============ CELLS ============ */
   .u-user-cell{display:flex;align-items:center;gap:12px;min-width:0}
   .u-user-avatar{width:34px;height:34px;border-radius:50%;background:var(--brand);color:var(--brand-contrast);display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;text-transform:uppercase;flex-shrink:0}
   .u-user-info{min-width:0;flex:1}
@@ -92,7 +86,6 @@
   .u-status.suspended{background:var(--danger-soft);color:var(--danger-text)}
   .u-status i{font-size:8px}
 
-  /* ============ ACTION BUTTONS ============ */
   .u-actions{display:inline-flex;align-items:center;gap:4px;justify-content:flex-end}
   .u-action-btn{width:30px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);cursor:pointer;transition:all 140ms ease;font-size:12px;flex-shrink:0}
   .u-action-btn:hover{background:var(--surface-hover);border-color:var(--border-strong);color:var(--text)}
@@ -104,13 +97,11 @@
   .u-checkbox{width:16px;height:16px;cursor:pointer;accent-color:var(--brand);vertical-align:middle}
   .u-checkbox:disabled{opacity:.4;cursor:not-allowed}
 
-  /* ============ EMPTY ============ */
   .u-empty{padding:60px 24px;text-align:center;color:var(--text-muted)}
   .u-empty i{display:block;font-size:36px;opacity:.4;margin-bottom:14px}
   .u-empty-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
   .u-empty-sub{font-size:12.5px;color:var(--text-secondary)}
 
-  /* ============ MANAGER MODAL ============ */
   .mgr-modal .modal-content{width:min(680px,calc(100vw - 32px))}
   .mgr-identity{padding:18px 20px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:12px;margin-bottom:16px}
   .mgr-section-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:13px;font-weight:700;color:var(--text)}
@@ -162,13 +153,11 @@
   .mgr-pw-note i{flex-shrink:0;margin-top:1px;font-size:12px}
   .mgr-pw-note.danger{background:var(--warning-soft);border-color:var(--warning-soft-border);color:var(--warning-text)}
 
-  /* Self-ID change warning */
   .mgr-selfid-warn{display:none;padding:12px 14px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:10px;font-size:12px;color:var(--warning-text);line-height:1.55;margin-top:14px}
   .mgr-selfid-warn.show{display:flex;gap:8px;align-items:flex-start}
   .mgr-selfid-warn i{flex-shrink:0;margin-top:1px;font-size:13px}
   .mgr-selfid-warn strong{font-weight:600}
 
-  /* Responsive */
   @media (max-width:900px){.u-hide-md{display:none}}
   @media (max-width:640px){
     .u-stats{grid-template-columns:repeat(2,1fr);gap:10px}
@@ -211,9 +200,7 @@
 
   <div class="u-fl-banner" id="firstLoginBanner">
     <div class="u-fl-banner-icon"><i class="fas fa-shield-halved"></i></div>
-    <div class="u-fl-banner-body">
-      <strong id="flCount">0</strong> faculty still using the temporary password.
-    </div>
+    <div class="u-fl-banner-body"><strong id="flCount">0</strong> faculty still using the temporary password.</div>
     <button class="btn btn-sm" id="flFilterBtn">Show them</button>
   </div>
 
@@ -233,10 +220,7 @@
   </div>
 
   <div class="u-bulk-bar" id="bulkBar">
-    <span class="u-bulk-bar-count">
-      <i class="fas fa-check-circle"></i>
-      <span id="bulkCount">0 selected</span>
-    </span>
+    <span class="u-bulk-bar-count"><i class="fas fa-check-circle"></i><span id="bulkCount">0 selected</span></span>
     <div class="u-bulk-bar-actions">
       <button class="btn btn-sm" data-bulk="ids"><i class="fas fa-id-card"></i> Change user IDs</button>
       <button class="btn btn-sm" data-bulk="reset"><i class="fas fa-key"></i> Reset passwords</button>
@@ -276,7 +260,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
   let users = [], tt = [], roleFilter = 'all', search = '';
   let selected = new Set();
 
-  /* ============ LOAD ============ */
   async function load() {
     const [uRes, tRes] = await Promise.all([
       supabase.from('profiles').select('*').order('created_at', { ascending: false }),
@@ -296,7 +279,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     return /^\d+$/.test(local) ? local : null;
   }
 
-  /* ============ STATS ============ */
   function renderStats() {
     const admins = users.filter(u => u.role === 'admin').length;
     const faculty = users.filter(u => u.role === 'faculty').length;
@@ -316,7 +298,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     $('firstLoginBanner').classList.toggle('show', count > 0);
   }
 
-  /* ============ FILTER + RENDER ============ */
   function filtered() {
     let list = users;
     if (roleFilter === 'faculty') list = list.filter(u => u.role === 'faculty');
@@ -324,7 +305,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     else if (roleFilter === 'active') list = list.filter(u => u.is_active !== false);
     else if (roleFilter === 'suspended') list = list.filter(u => u.is_active === false);
     else if (roleFilter === 'firstlogin') list = list.filter(u => u.password_changed_at === null);
-
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(u =>
@@ -343,9 +323,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
       $('selectAll').checked = false;
       return;
     }
-
     $('body').innerHTML = list.map(u => renderRow(u)).join('');
-
     document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => viewSchedule(b.dataset.view));
     document.querySelectorAll('[data-manage]').forEach(b => b.onclick = () => openManager(b.dataset.manage));
     document.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => toggleUser(b.dataset.toggle, b.dataset.active === 'true'));
@@ -369,27 +347,19 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     const userId = getUserId(u);
     const pwdNever = u.password_changed_at === null;
     const pwdDate = u.password_changed_at ? formatRelativeTime(u.password_changed_at) : null;
-
     let lastLoginHtml = '<span class="u-login">Never</span>';
     if (u.last_active_at) {
       const diff = nowDate().getTime() - new Date(u.last_active_at).getTime();
       if (diff < 5 * 60 * 1000) lastLoginHtml = '<span class="u-login active"><span class="u-login-dot"></span>Active now</span>';
       else lastLoginHtml = `<span class="u-login">${formatRelativeTime(u.last_active_at)}</span>`;
     }
-
     return `<tr>
-      <td class="checkbox-col">
-        <input type="checkbox" class="u-checkbox row-select" data-id="${u.id}" ${selected.has(u.id) ? 'checked' : ''} ${isMe ? 'disabled' : ''}>
-      </td>
+      <td class="checkbox-col"><input type="checkbox" class="u-checkbox row-select" data-id="${u.id}" ${selected.has(u.id) ? 'checked' : ''} ${isMe ? 'disabled' : ''}></td>
       <td>
         <div class="u-user-cell">
           <span class="u-user-avatar">${escapeHtml(init)}</span>
           <div class="u-user-info">
-            <div class="u-user-name">
-              ${escapeHtml(u.full_name || u.email)}
-              <span class="u-user-badge ${u.role}"><i class="fas fa-${roleIcon}"></i>${u.role}</span>
-              ${isMe ? '<span class="u-user-badge you">you</span>' : ''}
-            </div>
+            <div class="u-user-name">${escapeHtml(u.full_name || u.email)}<span class="u-user-badge ${u.role}"><i class="fas fa-${roleIcon}"></i>${u.role}</span>${isMe ? '<span class="u-user-badge you">you</span>' : ''}</div>
             <div class="u-user-email">${escapeHtml(u.email)}</div>
           </div>
         </div>
@@ -410,7 +380,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     </tr>`;
   }
 
-  /* ============ SELECT-ALL ============ */
   $('selectAll').onchange = e => {
     const list = filtered().filter(u => u.id !== auth.profile.id);
     if (e.target.checked) list.forEach(u => selected.add(u.id));
@@ -441,9 +410,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     if (a === 'reset') bulkResetPasswords();
   });
 
-  /* ============================================================
-     UNIFIED MANAGER MODAL
-     ============================================================ */
   function openManager(id) {
     const u = users.find(x => x.id === id);
     if (!u) return;
@@ -454,7 +420,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
 
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog mgr-modal';
-
     dialog.innerHTML = `
       <div class="modal-content">
         <div class="modal-header">
@@ -464,110 +429,74 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
           </div>
           <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
         </div>
-
         <div class="modal-body">
-
-          <!-- IDENTITY SECTION -->
           <div class="mgr-identity">
-            <div class="mgr-section-head">
-              <i class="fas fa-id-card"></i>
-              Identity & access
-            </div>
-
+            <div class="mgr-section-head"><i class="fas fa-id-card"></i> Identity & access</div>
             <div class="mgr-grid">
               <div class="mgr-field">
                 <label class="mgr-field-label">Full name</label>
                 <input type="text" id="mgrName" value="${escapeHtml(u.full_name || '')}" placeholder="Dr. Jane Smith">
               </div>
-
               <div class="mgr-field">
-                <label class="mgr-field-label">
-                  User ID
-                  ${isMe ? '<span class="hint">your account</span>' : ''}
-                </label>
-                <input type="text" id="mgrUid" class="mono" inputmode="numeric" pattern="[0-9]*" maxlength="20"
-                       value="${escapeHtml(currentUid)}" placeholder="e.g. 9001">
+                <label class="mgr-field-label">User ID ${isMe ? '<span class="hint">your account</span>' : ''}</label>
+                <input type="text" id="mgrUid" class="mono" inputmode="numeric" pattern="[0-9]*" maxlength="20" value="${escapeHtml(currentUid)}" placeholder="e.g. 9001">
                 <div class="mgr-field-msg" id="mgrUidMsg">Login: <span class="mono">${escapeHtml(currentUid || '?')}@lpu.in</span></div>
               </div>
-
               <div class="mgr-field">
                 <label class="mgr-field-label">Department</label>
                 <input type="text" id="mgrDept" value="${escapeHtml(u.department || '')}" placeholder="CSE">
               </div>
-
               <div class="mgr-field">
                 <label class="mgr-field-label">Phone</label>
                 <input type="text" id="mgrPhone" value="${escapeHtml(u.phone || '')}" placeholder="+91 ...">
               </div>
             </div>
-
-            <!-- Self-ID warning — only shows when this is the admin's own account -->
             <div class="mgr-selfid-warn" id="mgrSelfWarn">
               <i class="fas fa-triangle-exclamation"></i>
-              <div>
-                <strong>This is your own account.</strong> If you change your user ID, you'll need to log in with the <strong>new ID</strong> on your next session — the current session keeps working until you log out or refresh. Make sure you remember it.
-              </div>
+              <div><strong>This is your own account.</strong> If you change your user ID, you'll need to log in with the <strong>new ID</strong> on your next session — you'll be signed out automatically after saving. Make sure you remember it.</div>
             </div>
-
             <div class="mgr-field" style="margin-top:14px">
               <label class="mgr-field-label">Role</label>
               <div class="mgr-role-group">
                 <button type="button" class="mgr-role-btn" data-role="faculty">
                   <i class="fas fa-chalkboard-user"></i>
-                  <div class="mgr-role-btn-body">
-                    <div class="mgr-role-btn-title">Faculty</div>
-                    <div class="mgr-role-btn-sub">Can book rooms, mark leave</div>
-                  </div>
+                  <div class="mgr-role-btn-body"><div class="mgr-role-btn-title">Faculty</div><div class="mgr-role-btn-sub">Can book rooms, mark leave</div></div>
                 </button>
                 <button type="button" class="mgr-role-btn" data-role="admin">
                   <i class="fas fa-shield-halved"></i>
-                  <div class="mgr-role-btn-body">
-                    <div class="mgr-role-btn-title">Admin</div>
-                    <div class="mgr-role-btn-sub">Full system access</div>
-                  </div>
+                  <div class="mgr-role-btn-body"><div class="mgr-role-btn-title">Admin</div><div class="mgr-role-btn-sub">Full system access</div></div>
                 </button>
               </div>
               ${isMe ? '<div class="mgr-field-msg" style="margin-top:6px">You cannot change your own role.</div>' : ''}
             </div>
           </div>
-
-          <!-- PASSWORD SECTION -->
           <div class="mgr-pw-section">
-            <div class="mgr-section-head">
-              <i class="fas fa-lock"></i>
-              Password
-              <span class="mgr-badge">Optional</span>
-            </div>
-
+            <div class="mgr-section-head"><i class="fas fa-lock"></i> Password <span class="mgr-badge">Optional</span></div>
             <div class="mgr-pw-status ${pwdNever ? 'warn' : 'ok'}">
               <i class="fas fa-${pwdNever ? 'exclamation-triangle' : 'check-circle'}"></i>
-              <span>
-                ${pwdNever
-                  ? '<strong>Never changed</strong> — user is still on the temporary password'
-                  : `Last changed <strong>${escapeHtml(pwdDate)}</strong>`}
-              </span>
+              <span>${pwdNever ? '<strong>Never changed</strong> — user is still on the temporary password' : `Last changed <strong>${escapeHtml(pwdDate)}</strong>`}</span>
             </div>
-
-            <div class="mgr-field">
-              <label class="mgr-field-label">
-                New password
-                <span class="hint">Leave blank to keep current</span>
-              </label>
-              <div class="mgr-pw-row">
-                <input type="password" id="mgrPwd" class="mono" placeholder="Min 6 characters" autocomplete="new-password">
-                <button type="button" class="mgr-pw-btn" id="mgrPwdToggle" title="Show password"><i class="fas fa-eye"></i></button>
-                <button type="button" class="mgr-pw-btn primary" id="mgrPwdGen" title="Generate random"><i class="fas fa-dice"></i></button>
+            ${isMe ? `
+              <div class="mgr-pw-note">
+                <i class="fas fa-info-circle"></i>
+                <div>To change <strong>your own</strong> password, please use the <a href="profile.html" style="color:inherit;text-decoration:underline;font-weight:600">Profile page</a>. This ensures your current session stays valid.</div>
               </div>
-            </div>
-
-            <div class="mgr-pw-note danger" id="mgrPwNote" style="display:none">
-              <i class="fas fa-triangle-exclamation"></i>
-              <div>Setting a new password will <strong>sign this user out of all devices</strong> and force them to change it on their next login.</div>
-            </div>
+            ` : `
+              <div class="mgr-field">
+                <label class="mgr-field-label">New password <span class="hint">Leave blank to keep current</span></label>
+                <div class="mgr-pw-row">
+                  <input type="password" id="mgrPwd" class="mono" placeholder="Min 6 characters" autocomplete="new-password">
+                  <button type="button" class="mgr-pw-btn" id="mgrPwdToggle" title="Show password"><i class="fas fa-eye"></i></button>
+                  <button type="button" class="mgr-pw-btn primary" id="mgrPwdGen" title="Generate random"><i class="fas fa-dice"></i></button>
+                </div>
+              </div>
+              <div class="mgr-pw-note danger" id="mgrPwNote" style="display:none">
+                <i class="fas fa-triangle-exclamation"></i>
+                <div>Setting a new password will require this user to log in with the <strong>new password</strong> on their next session. Their current session stays active until it expires naturally.</div>
+              </div>
+            `}
           </div>
-
         </div>
-
         <div class="modal-footer">
           <button class="btn" data-close>Cancel</button>
           <button class="btn btn-primary" id="mgrSave"><i class="fas fa-check"></i> Save changes</button>
@@ -585,7 +514,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     const pwdNote = dialog.querySelector('#mgrPwNote');
     const saveBtn = dialog.querySelector('#mgrSave');
 
-    /* Role buttons */
     let selectedRole = u.role;
     const roleBtns = dialog.querySelectorAll('[data-role]');
     function setRole(r) {
@@ -593,22 +521,13 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
       roleBtns.forEach(b => b.classList.toggle('selected', b.dataset.role === r));
       if (isMe) roleBtns.forEach(b => b.disabled = true);
     }
-    roleBtns.forEach(b => b.onclick = () => {
-      if (isMe) return;
-      setRole(b.dataset.role);
-    });
+    roleBtns.forEach(b => b.onclick = () => { if (isMe) return; setRole(b.dataset.role); });
     setRole(u.role);
 
-    /* User ID validation + self-ID warning */
     function validateUid() {
       const raw = uidInput.value.replace(/\D/g, '').slice(0, 20);
       uidInput.value = raw;
-
-      /* Show/hide self-warning based on whether the UID actually changed */
-      if (isMe) {
-        selfWarn.classList.toggle('show', raw !== currentUid && /^\d{3,20}$/.test(raw));
-      }
-
+      if (isMe) selfWarn.classList.toggle('show', raw !== currentUid && /^\d{3,20}$/.test(raw));
       if (raw === currentUid) {
         uidMsg.innerHTML = `Login: <span class="mono">${escapeHtml(raw || '?')}@lpu.in</span>`;
         uidMsg.className = 'mgr-field-msg';
@@ -621,9 +540,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
         uidInput.classList.add('invalid');
         return false;
       }
-      const collides = users.some(x =>
-        x.id !== u.id && (x.email || '').toLowerCase() === `${raw}@lpu.in`.toLowerCase()
-      );
+      const collides = users.some(x => x.id !== u.id && (x.email || '').toLowerCase() === `${raw}@lpu.in`.toLowerCase());
       if (collides) {
         uidMsg.textContent = `Already taken · ${raw}@lpu.in`;
         uidMsg.className = 'mgr-field-msg warn';
@@ -638,40 +555,30 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     uidInput.oninput = validateUid;
     validateUid();
 
-    /* Password toggles */
-    dialog.querySelector('#mgrPwdToggle').onclick = () => {
-      const isPwd = pwdInput.type === 'password';
-      pwdInput.type = isPwd ? 'text' : 'password';
-      dialog.querySelector('#mgrPwdToggle').innerHTML = isPwd ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
-    };
-    dialog.querySelector('#mgrPwdGen').onclick = () => {
-      pwdInput.value = Math.random().toString(36).slice(-10);
-      pwdInput.type = 'text';
-      dialog.querySelector('#mgrPwdToggle').innerHTML = '<i class="fas fa-eye-slash"></i>';
-      pwdNote.style.display = 'flex';
-    };
-    pwdInput.oninput = () => {
-      pwdNote.style.display = pwdInput.value.length ? 'flex' : 'none';
-    };
+    if (pwdInput) {
+      dialog.querySelector('#mgrPwdToggle').onclick = () => {
+        const isPwd = pwdInput.type === 'password';
+        pwdInput.type = isPwd ? 'text' : 'password';
+        dialog.querySelector('#mgrPwdToggle').innerHTML = isPwd ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+      };
+      dialog.querySelector('#mgrPwdGen').onclick = () => {
+        pwdInput.value = Math.random().toString(36).slice(-10);
+        pwdInput.type = 'text';
+        dialog.querySelector('#mgrPwdToggle').innerHTML = '<i class="fas fa-eye-slash"></i>';
+        pwdNote.style.display = 'flex';
+      };
+      pwdInput.oninput = () => { pwdNote.style.display = pwdInput.value.length ? 'flex' : 'none'; };
+    }
 
-    /* Save */
     saveBtn.onclick = async () => {
       if (!validateUid()) { toast('Fix user ID first', 'error'); return; }
-      const newPwd = pwdInput.value.trim();
+      const newPwd = pwdInput ? pwdInput.value.trim() : '';
       if (newPwd && newPwd.length < 6) { toast('Password must be 6+ characters', 'error'); return; }
-
       const newUid = uidInput.value.trim();
       const uidChanged = newUid !== currentUid;
 
-      /* Extra confirmation for self-ID change */
       if (isMe && uidChanged) {
-        const ok = confirm(
-          `You're changing YOUR OWN user ID.\n\n` +
-          `Old ID: ${currentUid || '—'}\n` +
-          `New ID: ${newUid}\n` +
-          `New login: ${newUid}@lpu.in\n\n` +
-          `You'll need to use the new ID next time you log in. Continue?`
-        );
+        const ok = confirm(`You're changing YOUR OWN user ID.\n\nOld ID: ${currentUid || '—'}\nNew ID: ${newUid}\nNew login: ${newUid}@lpu.in\n\nYou'll be signed out after saving. Continue?`);
         if (!ok) return;
       }
 
@@ -690,19 +597,15 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
 
       saveBtn.disabled = false;
       saveBtn.innerHTML = '<i class="fas fa-check"></i> Save changes';
-
       if (error) { toast(error.message, 'error'); return; }
       if (data?.error) { toast(data.error, 'error'); return; }
 
-      /* Build success message */
       const changes = [];
       if (uidChanged) changes.push(`user ID → ${newUid}`);
       if (newPwd) changes.push('password reset');
       toast(changes.length ? `Saved — ${changes.join(', ')}` : 'Saved', 'success');
-
       dialog.close(); dialog.remove();
 
-      /* If admin changed their own user ID, log them out to force re-login with new ID */
       if (isMe && uidChanged) {
         toast('Your user ID changed — signing out in 2 seconds…', 'info');
         setTimeout(async () => {
@@ -711,7 +614,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
         }, 2000);
         return;
       }
-
       await load();
     };
 
@@ -721,29 +623,21 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  /* ============================================================
-     BULK CHANGE USER IDs
-     ============================================================ */
   function bulkChangeIds() {
     const sel = users.filter(u => selected.has(u.id));
     if (!sel.length) return;
     const updates = new Map();
     sel.forEach(u => updates.set(u.id, getUserId(u) || ''));
-
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
     dialog.innerHTML = `<div class="modal-content modal-wide">
       <div class="modal-header">
-        <div>
-          <div class="modal-title">Bulk change user IDs</div>
-          <div class="modal-sub">${sel.length} user${sel.length === 1 ? '' : 's'} selected</div>
-        </div>
+        <div><div class="modal-title">Bulk change user IDs</div><div class="modal-sub">${sel.length} user${sel.length === 1 ? '' : 's'} selected</div></div>
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
         <div style="padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:10px;font-size:12px;color:var(--info-text);line-height:1.55;margin-bottom:16px">
-          <i class="fas fa-info-circle" style="margin-right:6px"></i>
-          Only rows where the new ID differs from the current one will be updated.
+          <i class="fas fa-info-circle" style="margin-right:6px"></i>Only rows where the new ID differs from the current one will be updated.
         </div>
         <div id="bulkList"></div>
       </div>
@@ -754,27 +648,18 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     </div>`;
     document.body.appendChild(dialog);
     dialog.showModal();
-
     const listEl = dialog.querySelector('#bulkList');
-
     function renderList() {
       listEl.innerHTML = sel.map(u => {
         const cur = getUserId(u) || '';
         return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:10px;background:var(--bg-subtle);border:1px solid var(--border);margin-bottom:8px">
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:600;font-size:13px;color:var(--text)">${escapeHtml(u.full_name || u.email)}</div>
-            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;font-family:monospace">${escapeHtml(u.email)}</div>
-          </div>
+          <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px;color:var(--text)">${escapeHtml(u.full_name || u.email)}</div><div style="font-size:11px;color:var(--text-secondary);margin-top:2px;font-family:monospace">${escapeHtml(u.email)}</div></div>
           <div style="width:130px;flex-shrink:0">
-            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="20"
-                   data-bulk-input="${u.id}" value="${escapeHtml(updates.get(u.id))}"
-                   placeholder="${escapeHtml(cur)}"
-                   style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-family:monospace;font-size:13px;text-align:right;background:var(--surface);color:var(--text)">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="20" data-bulk-input="${u.id}" value="${escapeHtml(updates.get(u.id))}" placeholder="${escapeHtml(cur)}" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-family:monospace;font-size:13px;text-align:right;background:var(--surface);color:var(--text)">
             <div data-bulk-hint="${u.id}" style="font-size:10px;color:var(--text-muted);text-align:right;margin-top:3px">Current: ${escapeHtml(cur || '—')}</div>
           </div>
         </div>`;
       }).join('');
-
       listEl.querySelectorAll('[data-bulk-input]').forEach(input => {
         input.oninput = () => {
           const raw = input.value.replace(/\D/g, '').slice(0, 20);
@@ -785,96 +670,57 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
         validateRow(input.dataset.bulkInput);
       });
     }
-
     function validateRow(uid) {
       const input = listEl.querySelector(`[data-bulk-input="${uid}"]`);
       const hint = listEl.querySelector(`[data-bulk-hint="${uid}"]`);
       const u = users.find(x => x.id === uid);
       const cur = getUserId(u) || '';
       const nv = updates.get(uid) || '';
-      if (nv === cur) {
-        input.style.borderColor = '';
-        hint.style.color = 'var(--text-muted)';
-        hint.textContent = `Current: ${cur || '—'}`;
-        return true;
-      }
-      if (!/^\d{3,20}$/.test(nv)) {
-        input.style.borderColor = 'var(--danger)';
-        hint.style.color = 'var(--danger)';
-        hint.textContent = 'Invalid (3–20 digits)';
-        return false;
-      }
-      if (users.some(x => x.id !== uid && !selected.has(x.id) && (x.email || '').toLowerCase() === `${nv}@lpu.in`.toLowerCase())) {
-        input.style.borderColor = 'var(--danger)';
-        hint.style.color = 'var(--danger)';
-        hint.textContent = `Taken · ${nv}@lpu.in`;
-        return false;
-      }
-      const dups = sel.filter(x => (updates.get(x.id) || '') === nv);
-      if (dups.length > 1) {
-        input.style.borderColor = 'var(--danger)';
-        hint.style.color = 'var(--danger)';
-        hint.textContent = 'Duplicate in batch';
-        return false;
-      }
-      input.style.borderColor = '';
-      hint.style.color = 'var(--text-muted)';
-      hint.textContent = `→ ${nv}@lpu.in`;
-      return true;
+      if (nv === cur) { input.style.borderColor = ''; hint.style.color = 'var(--text-muted)'; hint.textContent = `Current: ${cur || '—'}`; return true; }
+      if (!/^\d{3,20}$/.test(nv)) { input.style.borderColor = 'var(--danger)'; hint.style.color = 'var(--danger)'; hint.textContent = 'Invalid (3–20 digits)'; return false; }
+      if (users.some(x => x.id !== uid && !selected.has(x.id) && (x.email || '').toLowerCase() === `${nv}@lpu.in`.toLowerCase())) { input.style.borderColor = 'var(--danger)'; hint.style.color = 'var(--danger)'; hint.textContent = `Taken · ${nv}@lpu.in`; return false; }
+      if (sel.filter(x => (updates.get(x.id) || '') === nv).length > 1) { input.style.borderColor = 'var(--danger)'; hint.style.color = 'var(--danger)'; hint.textContent = 'Duplicate in batch'; return false; }
+      input.style.borderColor = ''; hint.style.color = 'var(--text-muted)'; hint.textContent = `→ ${nv}@lpu.in`; return true;
     }
-
     renderList();
-
     dialog.querySelector('#bulkSave').onclick = async () => {
       const payload = [];
       for (const u of sel) {
         const nv = updates.get(u.id) || '';
-        const cur = getUserId(u) || '';
-        if (nv === cur) continue;
+        if (nv === (getUserId(u) || '')) continue;
         if (!/^\d{3,20}$/.test(nv)) return toast(`Invalid ID for ${u.full_name}`, 'error');
         payload.push({ user_id: u.id, new_userid: nv });
       }
       if (!payload.length) return toast('No changes', 'error');
       const btn = dialog.querySelector('#bulkSave');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying…';
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying…';
       const { data, error } = await supabase.rpc('admin_bulk_change_userids', { p_updates: payload });
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-check"></i> Apply';
+      btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Apply';
       if (error) return toast(error.message, 'error');
       if (data?.error) return toast(data.error, 'error');
       toast(`${data.updated || 0} user ID${data.updated === 1 ? '' : 's'} updated`, 'success');
       dialog.close(); dialog.remove();
       await load();
     };
-
     const close = () => { dialog.close(); dialog.remove(); };
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
     dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  /* ============================================================
-     BULK RESET PASSWORDS
-     ============================================================ */
   function bulkResetPasswords() {
     const sel = users.filter(u => selected.has(u.id));
     if (!sel.length) return;
-
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
     dialog.innerHTML = `<div class="modal-content modal-wide">
       <div class="modal-header">
-        <div>
-          <div class="modal-title">Bulk reset passwords</div>
-          <div class="modal-sub">${sel.length} user${sel.length === 1 ? '' : 's'} selected</div>
-        </div>
+        <div><div class="modal-title">Bulk reset passwords</div><div class="modal-sub">${sel.length} user${sel.length === 1 ? '' : 's'} selected</div></div>
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
         <div style="padding:12px 14px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:10px;font-size:12px;color:var(--warning-text);line-height:1.55;margin-bottom:16px">
-          <i class="fas fa-triangle-exclamation" style="margin-right:6px"></i>
-          Each user will be signed out and forced to change password on next login.
+          <i class="fas fa-triangle-exclamation" style="margin-right:6px"></i>Each user's <strong>next login</strong> must use the new password. Their current session stays active until it expires naturally.
         </div>
         <div id="bulkResetList">
           ${sel.map(u => `<div style="padding:8px 12px;background:var(--bg-subtle);border-radius:7px;margin-bottom:6px;display:flex;justify-content:space-between;gap:12px;font-size:12px"><span style="color:var(--text);font-weight:500">${escapeHtml(u.full_name || u.email)}</span><span style="font-family:monospace;font-size:11px;color:var(--text-secondary)">${escapeHtml(u.email)}</span></div>`).join('')}
@@ -888,11 +734,9 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     </div>`;
     document.body.appendChild(dialog);
     dialog.showModal();
-
     dialog.querySelector('#bulkResetBtn').onclick = async () => {
       const btn = dialog.querySelector('#bulkResetBtn');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting…';
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting…';
       const creds = [], errs = [];
       for (const u of sel) {
         const pwd = Math.random().toString(36).slice(-10);
@@ -905,84 +749,43 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
       resultEl.style.display = 'block';
       resultEl.innerHTML = `
         <div style="padding:12px 14px;background:var(--success-soft);border:1px solid var(--success-soft-border);border-radius:10px;margin-bottom:12px;font-size:13px;font-weight:600;color:var(--success-text)">
-          <i class="fas fa-check-circle" style="margin-right:6px"></i>
-          ${creds.length} password${creds.length === 1 ? '' : 's'} reset${errs.length ? ` · ${errs.length} failed` : ''}
+          <i class="fas fa-check-circle" style="margin-right:6px"></i>${creds.length} password${creds.length === 1 ? '' : 's'} reset${errs.length ? ` · ${errs.length} failed` : ''}
         </div>
-        ${creds.map(c => `
-          <div style="padding:12px 14px;background:var(--success-soft);border:1px solid var(--success-soft-border);border-radius:10px;margin-bottom:8px">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px">
-              <span style="font-weight:600;font-size:13px;color:var(--success-text)">${escapeHtml(c.name)}</span>
-              <span style="font-size:11px;color:var(--success-text);opacity:.75">Login: <strong>${escapeHtml(c.uid)}</strong></span>
-            </div>
-            <input readonly value="${escapeHtml(c.password)}" style="width:100%;padding:8px 12px;font-family:monospace;font-size:12px;border:1px solid var(--success-soft-border);border-radius:7px;background:var(--surface);color:var(--success-text)">
-          </div>
-        `).join('')}
+        ${creds.map(c => `<div style="padding:12px 14px;background:var(--success-soft);border:1px solid var(--success-soft-border);border-radius:10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px"><span style="font-weight:600;font-size:13px;color:var(--success-text)">${escapeHtml(c.name)}</span><span style="font-size:11px;color:var(--success-text);opacity:.75">Login: <strong>${escapeHtml(c.uid)}</strong></span></div><input readonly value="${escapeHtml(c.password)}" style="width:100%;padding:8px 12px;font-family:monospace;font-size:12px;border:1px solid var(--success-soft-border);border-radius:7px;background:var(--surface);color:var(--success-text)"></div>`).join('')}
         ${errs.length ? `<div style="padding:12px;background:var(--danger-soft);border:1px solid var(--danger-soft-border);border-radius:8px;margin-top:12px;font-size:12px;color:var(--danger-text)"><strong>Failed:</strong>${errs.map(e => `<div style="margin-top:4px">• ${escapeHtml(e)}</div>`).join('')}</div>` : ''}
-        <div style="margin-top:14px;text-align:right">
-          <button class="btn btn-sm" id="dlCreds"><i class="fas fa-download"></i> Download CSV</button>
-        </div>`;
+        <div style="margin-top:14px;text-align:right"><button class="btn btn-sm" id="dlCreds"><i class="fas fa-download"></i> Download CSV</button></div>`;
       const dl = resultEl.querySelector('#dlCreds');
       if (dl) {
-        const url = 'data:text/csv;charset=utf-8,' + encodeURIComponent(
-          'Name,UserID,Email,Password\n' +
-          creds.map(c => `"${c.name.replace(/"/g,'""')}","${c.uid}","${c.email}","${c.password}"`).join('\n')
-        );
-        dl.onclick = () => {
-          const a = document.createElement('a');
-          a.href = url; a.download = `passwords-${Date.now()}.csv`; a.click();
-        };
+        const url = 'data:text/csv;charset=utf-8,' + encodeURIComponent('Name,UserID,Email,Password\n' + creds.map(c => `"${c.name.replace(/"/g,'""')}","${c.uid}","${c.email}","${c.password}"`).join('\n'));
+        dl.onclick = () => { const a = document.createElement('a'); a.href = url; a.download = `passwords-${Date.now()}.csv`; a.click(); };
       }
       btn.style.display = 'none';
       dialog.querySelectorAll('[data-close]').forEach(x => x.textContent = 'Done');
       toast(`Reset complete for ${creds.length} user${creds.length === 1 ? '' : 's'}`, 'success');
       await load();
     };
-
     const close = () => { dialog.close(); dialog.remove(); };
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
     dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  /* ============================================================
-     ADD USER
-     ============================================================ */
   $('addBtn').onclick = () => {
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
     dialog.innerHTML = `<div class="modal-content modal-wide">
       <div class="modal-header">
-        <div>
-          <div class="modal-title">Add new user</div>
-          <div class="modal-sub">Create a faculty or admin account.</div>
-        </div>
+        <div><div class="modal-title">Add new user</div><div class="modal-sub">Create a faculty or admin account.</div></div>
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
-          <label class="field" style="margin-bottom:0"><span>Full name *</span>
-            <input class="input" data-field="full_name" placeholder="Jane Doe" autofocus>
-          </label>
-          <label class="field" style="margin-bottom:0"><span>User ID *</span>
-            <input class="input" data-field="userid" inputmode="numeric" pattern="[0-9]*" maxlength="20" placeholder="e.g. 9001" style="font-family:monospace">
-            <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Numeric — used as <span class="mono">id@lpu.in</span></div>
-          </label>
-          <label class="field" style="margin-bottom:0"><span>Password *</span>
-            <input class="input" type="text" data-field="password" value="${Math.random().toString(36).slice(-8)}">
-            <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">User will be forced to change on first login.</div>
-          </label>
-          <label class="field" style="margin-bottom:0"><span>Phone</span>
-            <input class="input" data-field="phone" placeholder="+91 ...">
-          </label>
-          <label class="field" style="margin-bottom:0"><span>Role *</span>
-            <select class="input" data-field="role">
-              <option value="faculty">faculty</option>
-              <option value="admin">admin</option>
-            </select>
-          </label>
-          <label class="field" style="margin-bottom:0"><span>Department</span>
-            <input class="input" data-field="department" placeholder="CSE">
-          </label>
+          <label class="field" style="margin-bottom:0"><span>Full name *</span><input class="input" data-field="full_name" placeholder="Jane Doe" autofocus></label>
+          <label class="field" style="margin-bottom:0"><span>User ID *</span><input class="input" data-field="userid" inputmode="numeric" pattern="[0-9]*" maxlength="20" placeholder="e.g. 9001" style="font-family:monospace"><div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Numeric — used as <span class="mono">id@lpu.in</span></div></label>
+          <label class="field" style="margin-bottom:0"><span>Password *</span><input class="input" type="text" data-field="password" value="${Math.random().toString(36).slice(-8)}"><div style="font-size:11px;color:var(--text-secondary);margin-top:4px">User will be forced to change on first login.</div></label>
+          <label class="field" style="margin-bottom:0"><span>Phone</span><input class="input" data-field="phone" placeholder="+91 ..."></label>
+          <label class="field" style="margin-bottom:0"><span>Role *</span><select class="input" data-field="role"><option value="faculty">faculty</option><option value="admin">admin</option></select></label>
+          <label class="field" style="margin-bottom:0"><span>Department</span><input class="input" data-field="department" placeholder="CSE"></label>
         </div>
       </div>
       <div class="modal-footer">
@@ -992,44 +795,32 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     </div>`;
     document.body.appendChild(dialog);
     dialog.showModal();
-
     const uidInput = dialog.querySelector('[data-field="userid"]');
     uidInput.oninput = () => { uidInput.value = uidInput.value.replace(/\D/g, '').slice(0, 20); };
-
     dialog.querySelector('[data-save]').onclick = async () => {
       const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();
       if (!get('full_name')) return toast('Full name required', 'error');
       if (!/^\d{3,20}$/.test(get('userid'))) return toast('User ID must be 3–20 digits', 'error');
       if (get('password').length < 6) return toast('Password must be 6+ characters', 'error');
       const btn = dialog.querySelector('[data-save]');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
       const { data, error } = await supabase.rpc('admin_create_user', {
-        p_email: `${get('userid')}@lpu.in`,
-        p_password: get('password'),
-        p_full_name: get('full_name'),
-        p_role: get('role'),
-        p_department: get('department') || null,
-        p_phone: get('phone') || null,
+        p_email: `${get('userid')}@lpu.in`, p_password: get('password'), p_full_name: get('full_name'),
+        p_role: get('role'), p_department: get('department') || null, p_phone: get('phone') || null,
       });
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-user-plus"></i> Create user';
+      btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus"></i> Create user';
       if (error) return toast(error.message, 'error');
       if (data?.error) return toast(data.error, 'error');
       toast('User created', 'success');
       dialog.close(); dialog.remove();
       await load();
     };
-
     const close = () => { dialog.close(); dialog.remove(); };
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
     dialog.onclick = e => { if (e.target === dialog) close(); };
   };
 
-  /* ============================================================
-     VIEW SCHEDULE
-     ============================================================ */
   function viewSchedule(id) {
     const u = users.find(x => x.id === id);
     if (!u) return;
@@ -1040,24 +831,14 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
       const items = byDay.get(d).sort((a, b) => a.slot_id.localeCompare(b.slot_id));
       return `<div style="margin-bottom:16px">
         <div style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">${DOW[d]}</div>
-        ${items.map(c => `<div style="padding:10px 12px;background:var(--surface-hover);border-radius:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px">
-          <div>
-            <div style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--brand);font-size:12px">${escapeHtml(c.course_code || '—')}</div>
-            <div style="color:var(--text-secondary);font-size:11px;margin-top:2px">${escapeHtml(c.course_name || '')} · ${escapeHtml(c.room_id)}</div>
-          </div>
-          <div style="color:var(--text-secondary);font-family:'JetBrains Mono',monospace;font-size:11px">${escapeHtml(c.slot_id)}</div>
-        </div>`).join('')}
+        ${items.map(c => `<div style="padding:10px 12px;background:var(--surface-hover);border-radius:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px"><div><div style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--brand);font-size:12px">${escapeHtml(c.course_code || '—')}</div><div style="color:var(--text-secondary);font-size:11px;margin-top:2px">${escapeHtml(c.course_name || '')} · ${escapeHtml(c.room_id)}</div></div><div style="color:var(--text-secondary);font-family:'JetBrains Mono',monospace;font-size:11px">${escapeHtml(c.slot_id)}</div></div>`).join('')}
       </div>`;
     }).join('') || '<div class="empty" style="padding:20px"><i class="fas fa-inbox"></i><br>No classes assigned yet</div>';
-
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
     dialog.innerHTML = `<div class="modal-content modal-wide">
       <div class="modal-header">
-        <div>
-          <div class="modal-title">${escapeHtml(u.full_name || u.email)}</div>
-          <div class="modal-sub">${escapeHtml(u.email)} · ${escapeHtml(u.department || 'No department')}</div>
-        </div>
+        <div><div class="modal-title">${escapeHtml(u.full_name || u.email)}</div><div class="modal-sub">${escapeHtml(u.email)} · ${escapeHtml(u.department || 'No department')}</div></div>
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
@@ -1075,7 +856,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     </div>`;
     document.body.appendChild(dialog);
     dialog.showModal();
-
     dialog.querySelector('#editFromSched').onclick = () => { dialog.close(); dialog.remove(); openManager(id); };
     const close = () => { dialog.close(); dialog.remove(); };
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
@@ -1083,9 +863,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  /* ============================================================
-     TOGGLE / DELETE
-     ============================================================ */
   async function toggleUser(id, active) {
     if (id === auth.profile.id) return toast('You cannot suspend yourself', 'error');
     const { error } = await supabase.from('profiles').update({
@@ -1110,9 +887,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     await load();
   }
 
-  /* ============================================================
-     FILTERS
-     ============================================================ */
   document.querySelectorAll('[data-r]').forEach(b => b.onclick = () => {
     roleFilter = b.dataset.r;
     document.querySelectorAll('[data-r]').forEach(x => x.classList.toggle('on', x === b));

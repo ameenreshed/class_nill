@@ -18,32 +18,43 @@
 <div id="nav"></div>
 <div class="container">
   <div class="page-header">
-    <div><h1 class="page-title"><i class="fas fa-table"></i> Timetable</h1><p class="page-subtitle">Assign classes to faculty. Conflicts detected automatically.</p></div>
+    <div>
+      <h1 class="page-title"><i class="fas fa-table"></i> Timetable</h1>
+      <p class="page-subtitle">Assign classes to faculty. Conflicts detected automatically.</p>
+    </div>
     <div class="row">
       <button class="btn" id="exportBtn"><i class="fas fa-download"></i> Export</button>
       <button class="btn btn-primary" id="addBtn"><i class="fas fa-plus"></i> Add row</button>
     </div>
   </div>
   <div class="admin-tabs">
-  <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
-  <a href="admin-timetable.html" class="admin-tab active"><i class="fas fa-table"></i> Timetable</a>
-  <a href="admin-import.html" class="admin-tab"><i class="fas fa-file-import"></i> Import</a>
-  <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
-  <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
-  <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
-  <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
-  <a href="admin-settings.html" class="admin-tab"><i class="fas fa-gear"></i> Settings</a>
-</div>
+    <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
+    <a href="admin-timetable.html" class="admin-tab active"><i class="fas fa-table"></i> Timetable</a>
+    <a href="admin-import.html" class="admin-tab"><i class="fas fa-file-import"></i> Import</a>
+    <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
+    <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
+    <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
+    <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
+    <a href="admin-settings.html" class="admin-tab"><i class="fas fa-gear"></i> Settings</a>
+  </div>
   <div class="row" style="margin-bottom:16px;gap:8px">
     <select class="input" id="facFilter" style="max-width:220px"><option value="">All faculty</option></select>
     <select class="input" id="dayFilter" style="max-width:160px">
-      <option value="">All days</option><option value="1">Mon</option><option value="2">Tue</option><option value="3">Wed</option><option value="4">Thu</option><option value="5">Fri</option><option value="6">Sat</option><option value="0">Sun</option>
+      <option value="">All days</option>
+      <option value="1">Mon</option><option value="2">Tue</option><option value="3">Wed</option>
+      <option value="4">Thu</option><option value="5">Fri</option><option value="6">Sat</option><option value="0">Sun</option>
     </select>
-    <div class="search-wrap" style="margin-left:auto;max-width:360px"><i class="fas fa-search search-icon"></i><input class="input" id="search" placeholder="Search course, room, faculty…"></div>
+    <div class="search-wrap" style="margin-left:auto;max-width:360px">
+      <i class="fas fa-search search-icon"></i>
+      <input class="input" id="search" placeholder="Search course, room, faculty…">
+    </div>
   </div>
-  <div class="table-wrap"><table><thead><tr>
-    <th>Faculty</th><th>Day</th><th>Slot</th><th>Room</th><th>Course</th><th style="text-align:right">Actions</th>
-  </tr></thead><tbody id="body"></tbody></table></div>
+  <div class="table-wrap"><table>
+    <thead><tr>
+      <th>Faculty</th><th>Day</th><th>Slot</th><th>Room</th><th>Course</th><th style="text-align:right">Actions</th>
+    </tr></thead>
+    <tbody id="body"></tbody>
+  </table></div>
 </div>
 <script type="module">
 import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from './js/core.js';
@@ -58,8 +69,8 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '.
     const [{ data: t }, { data: s }, { data: r }, { data: u }] = await Promise.all([
       supabase.from('timetable').select('*').eq('is_active', true).order('day_of_week').order('slot_id'),
       supabase.from('time_slots').select('*').eq('is_active', true).order('sort_order'),
-      supabase.from('rooms').select('room_id,display_name'),
-      supabase.from('profiles').select('id,full_name,email').eq('role', 'faculty'),
+      supabase.from('rooms').select('room_id,display_name').order('room_id'),
+      supabase.from('profiles').select('id,full_name,email').eq('role', 'faculty').order('full_name'),
     ]);
     tt = t ?? []; slots = s ?? []; rooms = r ?? []; users = u ?? [];
     $('facFilter').innerHTML = `<option value="">All faculty</option>${users.map(u => `<option value="${u.id}" ${facFilter === u.id ? 'selected' : ''}>${escapeHtml(u.full_name || u.email)}</option>`).join('')}`;

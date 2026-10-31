@@ -14,19 +14,22 @@
 <div id="nav"></div>
 <div class="container">
   <div class="page-header">
-    <div><h1 class="page-title"><i class="fas fa-clock"></i> Time slots</h1><p class="page-subtitle">Period definitions used by the timetable and bookings.</p></div>
+    <div>
+      <h1 class="page-title"><i class="fas fa-clock"></i> Time slots</h1>
+      <p class="page-subtitle">Period definitions used by the timetable and bookings.</p>
+    </div>
     <button class="btn btn-primary" id="addBtn"><i class="fas fa-plus"></i> Add slot</button>
   </div>
   <div class="admin-tabs">
-  <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
-   <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
-  <a href="admin-import.html" class="admin-tab"><i class="fas fa-file-import"></i> Import</a>
-  <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
-  <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
-  <a href="admin-slots.html" class="admin-tab active"><i class="fas fa-clock"></i> Time slots</a>
-  <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
-  <a href="admin-settings.html" class="admin-tab"><i class="fas fa-gear"></i> Settings</a>
-</div>
+    <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
+    <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
+    <a href="admin-import.html" class="admin-tab"><i class="fas fa-file-import"></i> Import</a>
+    <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
+    <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
+    <a href="admin-slots.html" class="admin-tab active"><i class="fas fa-clock"></i> Time slots</a>
+    <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
+    <a href="admin-settings.html" class="admin-tab"><i class="fas fa-gear"></i> Settings</a>
+  </div>
   <div class="table-wrap"><table><thead><tr><th>ID</th><th>Label</th><th>Start</th><th>End</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead><tbody id="body"></tbody></table></div>
 </div>
 <script type="module">
@@ -56,7 +59,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   function edit(id) {
     const s = id ? slots.find(x => x.slot_id === id) : null;
     const dialog = document.createElement('dialog'); dialog.className = 'modal-dialog';
-    dialog.innerHTML = `<div class="modal-content"><div class="modal-header"><div class="modal-title">${s ? 'Edit ' + escapeHtml(s.slot_id) : 'Add slot'}</div><button class="modal-close" data-close><i class="fas fa-xmark"></i></button></div><div class="modal-body"><label class="field"><span>Slot ID *</span><input class="input" data-field="slot_id" value="${escapeHtml(s?.slot_id || '')}" ${s ? 'disabled' : ''} placeholder="P8"></label><label class="field"><span>Label</span><input class="input" data-field="label" value="${escapeHtml(s?.label || '')}"></label><label class="field"><span>Start time</span><input class="input" type="time" data-field="start_time" value="${s?.start_time.slice(0,5) || '09:00'}"></label><label class="field"><span>End time</span><input class="input" type="time" data-field="end_time" value="${s?.end_time.slice(0,5) || '09:50'}"></label><label class="field"><span>Sort order</span><input class="input" type="number" data-field="sort_order" value="${s?.sort_order || 0}"></label></div><div class="modal-footer"><button class="btn" data-close>Cancel</button><button class="btn btn-primary" data-save>Save</button></div></div>`;
+    dialog.innerHTML = `<div class="modal-content"><div class="modal-header"><div class="modal-title">${s ? 'Edit ' + escapeHtml(s.slot_id) : 'Add slot'}</div><button class="modal-close" data-close><i class="fas fa-xmark"></i></button></div><div class="modal-body"><label class="field"><span>Slot ID *</span><input class="input" data-field="slot_id" value="${escapeHtml(s?.slot_id || '')}" ${s ? 'disabled' : ''} placeholder="P1"></label><label class="field"><span>Label</span><input class="input" data-field="label" value="${escapeHtml(s?.label || '')}" placeholder="1st period"></label><label class="field"><span>Start time</span><input class="input" type="time" data-field="start_time" value="${s?.start_time.slice(0,5) || '09:00'}"></label><label class="field"><span>End time</span><input class="input" type="time" data-field="end_time" value="${s?.end_time.slice(0,5) || '09:50'}"></label><label class="field"><span>Sort order</span><input class="input" type="number" data-field="sort_order" value="${s?.sort_order || 0}"></label></div><div class="modal-footer"><button class="btn" data-close>Cancel</button><button class="btn btn-primary" data-save>Save</button></div></div>`;
     document.body.appendChild(dialog); dialog.showModal();
     dialog.querySelector('[data-save]').onclick = async () => {
       const get = f => dialog.querySelector(`[data-field="${f}"]`).value.trim();

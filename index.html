@@ -23,8 +23,9 @@ import { supabase, waitForSession } from './js/core.js';
 (async () => {
   const session = await waitForSession(2000);
   if (!session) return location.replace('./login.html');
-  const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', session.user.id).single();
+  const { data: profile } = await supabase.from('profiles').select('role, is_active, password_changed_at').eq('id', session.user.id).single();
   if (!profile || profile.is_active === false) { await supabase.auth.signOut(); return location.replace('./login.html'); }
+  if (profile.password_changed_at === null) return location.replace('./profile.html?first=1');
   if (profile.role === 'admin') return location.replace('./admin.html');
   if (profile.role === 'faculty') return location.replace('./faculty.html');
   await supabase.auth.signOut();

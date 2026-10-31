@@ -40,6 +40,16 @@
 .quick-link-icon{width:36px;height:36px;border-radius:8px;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
 .quick-link-title{font-weight:600;font-size:13px;color:var(--text)}
 .quick-link-sub{font-size:11px;color:var(--text-secondary);margin-top:2px}
+
+@keyframes pwSlideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.pw-reminder{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;max-width:560px;width:calc(100vw - 32px);padding:16px 20px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:12px;box-shadow:var(--shadow-xl);display:flex;align-items:center;gap:14px;font-size:13px;color:var(--warning-text);animation:pwSlideUp 400ms ease}
+.pw-reminder i{font-size:20px;flex-shrink:0;color:var(--warning)}
+.pw-reminder-body{flex:1;line-height:1.5}
+.pw-reminder-body strong{display:block;margin-bottom:2px}
+.pw-reminder .btn{flex-shrink:0}
+.pw-reminder-x{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;font-size:16px;padding:4px;border-radius:6px}
+.pw-reminder-x:hover{opacity:1;background:rgba(0,0,0,.05)}
+@media(max-width:640px){.pw-reminder{flex-direction:column;align-items:stretch;gap:10px}.pw-reminder .btn{width:100%;justify-content:center}}
 </style>
 </head>
 <body>
@@ -164,13 +174,7 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, format
       const slotMap = new Map(base.slots.map(s => [s.slot_id, s]));
       $('pendingPreview').innerHTML = pending.map(b => {
         const slot = slotMap.get(b.slot_id);
-        return `<a href="admin-bookings.html" class="preview-row">
-          <div class="preview-info">
-            <div class="preview-title"><span class="mono">${escapeHtml(roomMap.get(b.room_id) || b.room_id)}</span> <span class="badge badge-gray" style="margin-left:4px">${escapeHtml(b.type)}</span></div>
-            <div class="preview-meta">${b.course_code ? escapeHtml(b.course_code) + ' · ' : ''}${humanDate(b.book_date)} · ${escapeHtml(slot?.label || b.slot_id)}</div>
-          </div>
-          <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:11px"></i>
-        </a>`;
+        return `<a href="admin-bookings.html" class="preview-row"><div class="preview-info"><div class="preview-title"><span class="mono">${escapeHtml(roomMap.get(b.room_id) || b.room_id)}</span> <span class="badge badge-gray" style="margin-left:4px">${escapeHtml(b.type)}</span></div><div class="preview-meta">${b.course_code ? escapeHtml(b.course_code) + ' · ' : ''}${humanDate(b.book_date)} · ${escapeHtml(slot?.label || b.slot_id)}</div></div><i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:11px"></i></a>`;
       }).join('');
     }
 
@@ -182,12 +186,7 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, format
       $('leavePreview').innerHTML = leave.map(l => {
         const p = leaveNames.get(l.faculty_id);
         const slot = l.slot_id ? slotMap.get(l.slot_id) : null;
-        return `<div class="preview-row" style="cursor:default">
-          <div class="preview-info">
-            <div class="preview-title">${escapeHtml(p?.full_name || p?.email || '—')}</div>
-            <div class="preview-meta">${slot ? escapeHtml(slot.label || slot.slot_id) + ' · ' + slot.start_time.slice(0,5) + '–' + slot.end_time.slice(0,5) : 'Whole day'}${l.reason ? ' · ' + escapeHtml(l.reason) : ''}</div>
-          </div>
-        </div>`;
+        return `<div class="preview-row" style="cursor:default"><div class="preview-info"><div class="preview-title">${escapeHtml(p?.full_name || p?.email || '—')}</div><div class="preview-meta">${slot ? escapeHtml(slot.label || slot.slot_id) + ' · ' + slot.start_time.slice(0,5) + '–' + slot.end_time.slice(0,5) : 'Whole day'}${l.reason ? ' · ' + escapeHtml(l.reason) : ''}</div></div></div>`;
       }).join('');
     }
   }
@@ -197,6 +196,25 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, format
 
   await load();
   setInterval(() => { if (!document.hidden) load(); }, 60_000);
+
+  // ───── First-login password reminder ─────
+  try {
+    const { data: p } = await supabase.from('profiles').select('password_changed_at').eq('id', auth.profile.id).single();
+    if (p && p.password_changed_at === null) {
+      const banner = document.createElement('div');
+      banner.className = 'pw-reminder';
+      banner.innerHTML = `
+        <i class="fas fa-shield-halved"></i>
+        <div class="pw-reminder-body">
+          <strong>Password change required</strong>
+          You're still using the temporary password.
+        </div>
+        <a href="profile.html?first=1" class="btn btn-sm btn-primary">Change now</a>
+        <button class="pw-reminder-x" onclick="this.parentElement.remove()" title="Dismiss">×</button>
+      `;
+      document.body.appendChild(banner);
+    }
+  } catch {}
 })();
 </script>
 </body>

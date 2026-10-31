@@ -224,7 +224,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   let facultyNameToProfile = new Map();
   let facultyUserIds = new Map();
 
-  /* ============ CSV PARSER ============ */
   function parseCSVLine(line) {
     const out = []; let cur = '', inQ = false;
     for (let i = 0; i < line.length; i++) {
@@ -349,7 +348,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     return result;
   }
 
-  /* ============ EXISTING DATA ============ */
   async function fetchExistingData() {
     const { data: fac } = await supabase.from('profiles').select('id, full_name, email').eq('role', 'faculty');
     existingFaculty = fac ?? [];
@@ -383,7 +381,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     return String(candidate);
   }
 
-  /* ============ FILE UPLOAD ============ */
   const dropZone = $('dropZone');
   const fileInput = $('fileInput');
   dropZone.onclick = () => fileInput.click();
@@ -434,7 +431,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     });
   }
 
-  /* ============ FACULTY LIST UI ============ */
   $('optFaculty').onchange = e => {
     $('facultySection').style.display = e.target.checked ? 'block' : 'none';
     if (e.target.checked) renderFacultyList();
@@ -528,7 +524,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     return { ok: true };
   }
 
-  /* ============ PREVIEW ============ */
   function showPreview() {
     $('step1').style.display = 'none';
     $('step2').style.display = 'block';
@@ -579,7 +574,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     return `<details class="preview-details"><summary>${escapeHtml(title)}</summary><div class="preview-list">${rowsHtml || '<div class="preview-row dim">None</div>'}</div></details>`;
   }
 
-  /* ============ IMPORT ============ */
   $('cancelBtn').onclick = resetAll;
   $('againBtn').onclick = resetAll;
 
@@ -627,12 +621,11 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       created: { buildings: 0, floors: 0, rooms: 0, slots: 0, timetable: 0, faculty: 0 },
       skipped: 0,
       errors: [],
-      newFaculty: [],       // { name, userId, email, password } — freshly created
-      reusedFaculty: [],    // { name, userId, email } — matched existing by email
-      recoveredFaculty: [], // { name, userId, email } — auth user existed but no profile
+      newFaculty: [],
+      reusedFaculty: [],
+      recoveredFaculty: [],
     };
 
-    /* --- BUILDINGS --- */
     if (opts.buildings) {
       const { data: existing } = await supabase.from('buildings').select('id');
       const haveIds = new Set((existing || []).map(b => b.id));
@@ -647,7 +640,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       }
     }
 
-    /* --- FLOORS --- */
     if (opts.floors) {
       const { data: existing } = await supabase.from('building_floors').select('building_id, floor');
       const haveKeys = new Set((existing || []).map(f => `${f.building_id}|${f.floor}`));
@@ -661,7 +653,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       }
     }
 
-    /* --- ROOMS --- */
     if (opts.rooms) {
       const { data: existing } = await supabase.from('rooms').select('room_id');
       const haveIds = new Set((existing || []).map(r => r.room_id));
@@ -685,7 +676,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       }
     }
 
-    /* --- SLOTS --- */
     if (opts.slots) {
       const { data: existing } = await supabase.from('time_slots').select('slot_id');
       const haveIds = new Set((existing || []).map(s => s.slot_id));
@@ -697,7 +687,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       }
     }
 
-    /* --- FACULTY --- */
     const facultyNameToId = new Map();
     const { data: existingFac } = await supabase.from('profiles').select('id, full_name, email').eq('role', 'faculty');
     (existingFac || []).forEach(p => {
@@ -710,7 +699,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       for (const name of neededFaculty) {
         const key = name.toLowerCase().trim();
         if (facultyNameToId.has(key)) continue;
-
         const userId = (facultyUserIds.get(key) || '').trim();
         if (!/^\d{3,20}$/.test(userId)) {
           result.errors.push(`Faculty "${name}": invalid user ID "${userId}"`);
@@ -718,18 +706,15 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         }
         const email = `${userId}@lpu.in`;
         const pwd = Math.random().toString(36).slice(-10);
-
         const { data, error } = await supabase.rpc('admin_create_user', {
           p_email: email, p_password: pwd, p_full_name: name,
           p_role: 'faculty', p_department: null, p_phone: null,
         });
-
         if (error || data?.error) {
           result.errors.push(`Faculty "${name}" (${email}): ${error?.message || data?.error}`);
           continue;
         }
         facultyNameToId.set(key, data.user_id);
-
         if (data?.status === 'created') {
           result.created.faculty++;
           result.newFaculty.push({ name, userId, email, password: pwd });
@@ -740,20 +725,17 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
           result.recoveredFaculty.push({ name, userId, email });
           result.newFaculty.push({ name, userId, email, password: pwd });
         } else {
-          // Fallback for older RPC responses without status
           result.created.faculty++;
           result.newFaculty.push({ name, userId, email, password: pwd });
         }
       }
     }
 
-    /* --- CLEAR TIMETABLE --- */
     if (opts.replace) {
       const { error } = await supabase.from('timetable').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       if (error) result.errors.push(`Clear timetable: ${error.message}`);
     }
 
-    /* --- TIMETABLE ENTRIES --- */
     const { data: existingTT } = await supabase.from('timetable').select('day_of_week, slot_id, room_id').eq('is_active', true);
     const ttKeys = new Set((existingTT || []).map(t => `${t.day_of_week}|${t.slot_id}|${t.room_id}`));
     for (const entry of parsed.entries) {
@@ -775,7 +757,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     return result;
   }
 
-  /* ============ RESULT ============ */
   function showResult(result) {
     $('step2').style.display = 'none';
     $('step3').style.display = 'block';
@@ -815,7 +796,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       $('reusedContainer').innerHTML = `
         <div class="reused-box">
           <h4><i class="fas fa-check-circle" style="color:var(--success);margin-right:6px"></i>Linked to existing accounts</h4>
-          <p style="font-size:12px;color:var(--text-secondary);line-height:1.55;margin-bottom:8px">These emails already existed in the system — their profiles were updated instead of creating duplicates. Their existing passwords were kept (or set to the temp password if never changed).</p>
+          <p style="font-size:12px;color:var(--text-secondary);line-height:1.55;margin-bottom:8px">These emails already existed in the system — their profiles were updated instead of creating duplicates.</p>
           ${rows}
         </div>`;
     } else {

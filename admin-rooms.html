@@ -15,27 +15,20 @@
   .rm-stat-val{font-size:26px;font-weight:700;letter-spacing:-0.03em;color:var(--text);line-height:1}
   .rm-stat-lbl{font-size:11px;color:var(--text-secondary);margin-top:4px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600}
 
-  .floor-section{margin-bottom:24px}
-  .floor-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-  .floor-head-title{font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.05em}
-  .floor-head-count{font-size:11px;color:var(--text-secondary);background:var(--surface-active);padding:2px 8px;border-radius:999px;font-weight:600}
   .bld-section{margin-bottom:32px}
-
-  .bld-section-head{
-    display:flex;align-items:center;justify-content:space-between;gap:12px;
-    padding:14px 18px;background:var(--surface);border:1px solid var(--border);
-    border-radius:12px;margin-bottom:16px;
-  }
+  .bld-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:16px}
   .bld-section-title{font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:10px}
   .bld-section-title i{color:var(--brand);font-size:14px}
   .bld-section-meta{display:flex;gap:14px;font-size:12px;color:var(--text-secondary)}
   .bld-section-meta strong{color:var(--text);font-weight:600}
 
+  .floor-section{margin-bottom:24px}
+  .floor-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+  .floor-head-title{font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.05em}
+  .floor-head-count{font-size:11px;color:var(--text-secondary);background:var(--surface-active);padding:2px 8px;border-radius:999px;font-weight:600}
+
   .room-grid-modern{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
-  .room-card-mod{
-    background:var(--surface);border:1px solid var(--border);border-radius:12px;
-    padding:16px;transition:all 160ms ease;position:relative;
-  }
+  .room-card-mod{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;transition:all 160ms ease;position:relative}
   .room-card-mod:hover{border-color:var(--brand);box-shadow:var(--shadow-md);transform:translateY(-2px)}
   .room-card-mod-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px}
   .room-card-mod-name{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:15px;color:var(--text);letter-spacing:-0.01em}
@@ -53,7 +46,7 @@
   .room-card-mod-facilities{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
   .facility-pill{padding:2px 8px;background:var(--bg-subtle);color:var(--text-secondary);border-radius:4px;font-size:10px;font-weight:500}
 
-  .bld-table-modal{width:100%;font-size:13px}
+  .bld-table-modal{width:100%;font-size:13px;border-collapse:collapse}
   .bld-table-modal th{font-size:11px;text-align:left;padding:8px 10px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border)}
   .bld-table-modal td{padding:10px;border-bottom:1px solid var(--border);vertical-align:middle}
   .bld-table-modal tr:last-child td{border-bottom:none}
@@ -76,8 +69,8 @@
 
   <div class="admin-tabs">
     <a href="admin-rooms.html" class="admin-tab active"><i class="fas fa-door-open"></i> Rooms</a>
-     <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
-  <a href="admin-import.html" class="admin-tab"><i class="fas fa-file-import"></i> Import</a>
+    <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
+    <a href="admin-import.html" class="admin-tab"><i class="fas fa-file-import"></i> Import</a>
     <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
     <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
     <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
@@ -113,7 +106,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '.
   let selectedBuilding = 'all';
   let search = '';
 
-  /* ============ LOAD ============ */
   async function load() {
     const [rRes, bRes, fRes, tRes] = await Promise.all([
       supabase.from('rooms').select('*').order('room_id'),
@@ -128,7 +120,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '.
     render();
   }
 
-  /* ============ STATS ============ */
   function renderStats() {
     const bookable = rooms.filter(r => r.bookable).length;
     const totalCap = rooms.reduce((s, r) => s + (r.capacity || 0), 0);
@@ -139,7 +130,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '.
       <div class="rm-stat"><div class="rm-stat-val">${totalCap}</div><div class="rm-stat-lbl">Total seats</div></div>`;
   }
 
-  /* ============ BUILDING CHIPS ============ */
   function renderBuildingChips() {
     const el = $('buildingChips');
     el.innerHTML = `
@@ -156,7 +146,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '.
     });
   }
 
-  /* ============ ROOMS ============ */
   function renderRooms() {
     let filtered = rooms;
     if (selectedBuilding !== 'all') filtered = filtered.filter(r => r.building === selectedBuilding);
@@ -180,8 +169,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '.
     }
 
     const typeMap = new Map(types.map(t => [t.id, t.label]));
-
-    // Group by building (if 'all') → floor → rooms
     const buildingGroups = new Map();
     filtered.forEach(r => {
       if (!buildingGroups.has(r.building)) buildingGroups.set(r.building, new Map());
@@ -234,7 +221,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '.
         </div>`;
     }).join('');
 
-    // Wire actions
     document.querySelectorAll('[data-edit-room]').forEach(b => b.onclick = () => editRoom(b.dataset.editRoom));
     document.querySelectorAll('[data-del-room]').forEach(b => b.onclick = () => delRoom(b.dataset.delRoom));
     document.querySelectorAll('[data-add-room-bld]').forEach(b => b.onclick = () => addRoom(b.dataset.addRoomBld));
@@ -271,7 +257,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '.
       </div>`;
   }
 
-  /* ============ ROOM MODAL ============ */
   function addRoom(preselectBuilding = null) {
     editRoom(null, preselectBuilding);
   }
@@ -390,7 +375,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '.
     await load();
   }
 
-  /* ============ MANAGE BUILDINGS MODAL ============ */
   $('manageBuildingsBtn').onclick = () => openBuildingsModal();
 
   function openBuildingsModal() {
@@ -423,7 +407,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '.
 
     renderBuildingsList();
 
-    dialog.querySelector('#mbAddBtn').onclick = () => editBuilding(null, dialog);
+    dialog.querySelector('#mbAddBtn').onclick = () => editBuilding(null);
 
     const close = () => { dialog.close(); dialog.remove(); };
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
@@ -485,7 +469,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '.
     });
   }
 
-  function editBuilding(id, parentDialog = null) {
+  function editBuilding(id) {
     const b = id ? buildings.find(x => x.id === id) : null;
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
@@ -545,7 +529,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '.
   function openFloorsModal(buildingId) {
     const bld = buildings.find(x => x.id === buildingId);
     if (!bld) return;
-    const bldFloors = floors.filter(f => f.building_id === buildingId).sort((a, b) => a.floor - b.floor);
 
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
@@ -614,7 +597,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '.
     dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  /* ============ TOP-LEVEL BUTTONS ============ */
   $('addRoomBtn').onclick = () => addRoom(selectedBuilding !== 'all' ? selectedBuilding : null);
   $('search').oninput = e => { search = e.target.value.trim(); render(); };
 
@@ -634,7 +616,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '.
     toast('Exported', 'success');
   };
 
-  /* ============ RENDER ============ */
   function render() {
     renderStats();
     renderBuildingChips();

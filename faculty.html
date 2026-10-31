@@ -48,6 +48,16 @@
 .req-meta span{display:inline-flex;align-items:center;gap:5px}
 .req-reason{font-size:12px;color:var(--text-secondary);margin-top:8px;padding:8px 10px;background:var(--surface-hover);border-radius:6px;border-left:3px solid var(--border-strong);line-height:1.5}
 .req-actions{display:flex;gap:6px;align-items:flex-start;flex-shrink:0;flex-wrap:wrap}
+
+@keyframes pwSlideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.pw-reminder{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;max-width:560px;width:calc(100vw - 32px);padding:16px 20px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:12px;box-shadow:var(--shadow-xl);display:flex;align-items:center;gap:14px;font-size:13px;color:var(--warning-text);animation:pwSlideUp 400ms ease}
+.pw-reminder i{font-size:20px;flex-shrink:0;color:var(--warning)}
+.pw-reminder-body{flex:1;line-height:1.5}
+.pw-reminder-body strong{display:block;margin-bottom:2px}
+.pw-reminder .btn{flex-shrink:0}
+.pw-reminder-x{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;font-size:16px;padding:4px;border-radius:6px}
+.pw-reminder-x:hover{opacity:1;background:rgba(0,0,0,.05)}
+@media(max-width:640px){.pw-reminder{flex-direction:column;align-items:stretch;gap:10px}.pw-reminder .btn{width:100%;justify-content:center}}
 </style>
 </head>
 <body>
@@ -143,11 +153,7 @@ import {
     const list = myTeaching.filter(t => t.day_of_week === dow)
       .sort((a, b) => (slotById.get(a.slot_id)?.start_time || '').localeCompare(slotById.get(b.slot_id)?.start_time || ''));
     if (!list.length) {
-      $('todayView').innerHTML = `<div class="card"><div class="empty-action">
-        <div class="empty-action-icon"><i class="fas fa-mug-hot"></i></div>
-        <div class="empty-action-title">No classes today</div>
-        <div class="empty-action-sub">Use "New booking" to reserve a room.</div>
-      </div></div>`;
+      $('todayView').innerHTML = `<div class="card"><div class="empty-action"><div class="empty-action-icon"><i class="fas fa-mug-hot"></i></div><div class="empty-action-title">No classes today</div><div class="empty-action-sub">Use "New booking" to reserve a room.</div></div></div>`;
       return;
     }
     const nowSlot = currentSlot(base.slots);
@@ -174,11 +180,7 @@ import {
 
   function renderTimetable() {
     if (!myTeaching.length) {
-      $('timetableView').innerHTML = `<div class="card"><div class="empty-action">
-        <div class="empty-action-icon"><i class="fas fa-table"></i></div>
-        <div class="empty-action-title">No classes assigned yet</div>
-        <div class="empty-action-sub">Ask your admin to add your timetable, or use "New booking" to reserve rooms directly.</div>
-      </div></div>`;
+      $('timetableView').innerHTML = `<div class="card"><div class="empty-action"><div class="empty-action-icon"><i class="fas fa-table"></i></div><div class="empty-action-title">No classes assigned yet</div><div class="empty-action-sub">Ask your admin to add your timetable, or use "New booking" to reserve rooms directly.</div></div></div>`;
       return;
     }
     const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
@@ -186,7 +188,6 @@ import {
     const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const byDay = new Map();
     myTeaching.forEach(c => { if (!byDay.has(c.day_of_week)) byDay.set(c.day_of_week, []); byDay.get(c.day_of_week).push(c); });
-
     $('timetableView').innerHTML = [1,2,3,4,5,6,0].filter(d => byDay.has(d)).map(d => `
       <div class="section-card">
         <div class="section-card-head">
@@ -197,14 +198,8 @@ import {
           const slot = slotById.get(c.slot_id);
           const room = roomById.get(c.room_id);
           return `<div class="period-row">
-            <div class="period-course">
-              <div class="period-code">${escapeHtml(c.course_code || '—')}</div>
-              <div class="period-name">${escapeHtml(c.course_name || 'Untitled')}</div>
-            </div>
-            <div class="period-meta">
-              <span><i class="fas fa-clock"></i>${escapeHtml(slot?.label || c.slot_id)}</span>
-              <span><i class="fas fa-door-open"></i>${escapeHtml(room?.display_name || c.room_id)}</span>
-            </div>
+            <div class="period-course"><div class="period-code">${escapeHtml(c.course_code || '—')}</div><div class="period-name">${escapeHtml(c.course_name || 'Untitled')}</div></div>
+            <div class="period-meta"><span><i class="fas fa-clock"></i>${escapeHtml(slot?.label || c.slot_id)}</span><span><i class="fas fa-door-open"></i>${escapeHtml(room?.display_name || c.room_id)}</span></div>
           </div>`;
         }).join('')}
       </div>`).join('');
@@ -220,9 +215,7 @@ import {
     $('leaveView').innerHTML = `
       <div class="card">
         <div class="card-title"><i class="fas fa-plane-departure"></i> Mark yourself on leave</div>
-        <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px">
-          Any of your regular classes in that slot become <strong>Free</strong> on the room grid, so colleagues can book a makeup in that room.
-        </p>
+        <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px">Any of your regular classes in that slot become <strong>Free</strong> on the room grid, so colleagues can book a makeup in that room.</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
           <label class="field" style="margin:0"><span>Date *</span><input class="input" type="date" id="lvDate" min="${todayISO()}"></label>
           <label class="field" style="margin:0"><span>Period</span><select class="input" id="lvSlot">${slotOpts}</select></label>
@@ -234,12 +227,7 @@ import {
         <div class="card-title"><i class="fas fa-list"></i> Upcoming leave</div>
         ${myLeave.length ? myLeave.map(l => {
           const slot = base.slots.find(s => s.slot_id === l.slot_id);
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:8px;background:var(--surface-hover);margin-bottom:6px;gap:12px;flex-wrap:wrap">
-            <div><div style="font-weight:500;font-size:13px">${humanDate(l.date)}</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">${slot ? escapeHtml(slot.label || slot.slot_id) + ' · ' + slot.start_time.slice(0,5) + '–' + slot.end_time.slice(0,5) : 'Whole day'}${l.reason ? ' · ' + escapeHtml(l.reason) : ''}</div>
-            </div>
-            <button class="btn btn-sm btn-danger" data-del-leave="${l.id}"><i class="fas fa-trash"></i></button>
-          </div>`;
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:8px;background:var(--surface-hover);margin-bottom:6px;gap:12px;flex-wrap:wrap"><div><div style="font-weight:500;font-size:13px">${humanDate(l.date)}</div><div style="font-size:11px;color:var(--text-secondary);margin-top:2px">${slot ? escapeHtml(slot.label || slot.slot_id) + ' · ' + slot.start_time.slice(0,5) + '–' + slot.end_time.slice(0,5) : 'Whole day'}${l.reason ? ' · ' + escapeHtml(l.reason) : ''}</div></div><button class="btn btn-sm btn-danger" data-del-leave="${l.id}"><i class="fas fa-trash"></i></button></div>`;
         }).join('') : '<div class="empty" style="padding:20px"><i class="fas fa-inbox"></i>No leave marked</div>'}
       </div>`;
     $('lvDate').value = todayISO(new Date(Date.now() + 86400000));
@@ -247,9 +235,7 @@ import {
       const date = $('lvDate').value;
       if (!date) return toast('Pick a date', 'error');
       const btn = $('lvAddBtn'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-      const { error } = await supabase.from('faculty_unavailability').insert({
-        faculty_id: myId, date, slot_id: $('lvSlot').value || null, reason: $('lvReason').value.trim() || null,
-      });
+      const { error } = await supabase.from('faculty_unavailability').insert({ faculty_id: myId, date, slot_id: $('lvSlot').value || null, reason: $('lvReason').value.trim() || null });
       btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Mark leave';
       if (error) return toast(error.message, 'error');
       toast('Leave marked', 'success'); await loadAll();
@@ -279,11 +265,7 @@ import {
       return b.book_date.localeCompare(a.book_date);
     });
     if (!filtered.length) {
-      $('requestsList').innerHTML = `<div class="card"><div class="empty-action">
-        <div class="empty-action-icon"><i class="fas fa-paper-plane"></i></div>
-        <div class="empty-action-title">No ${reqFilter === 'all' ? '' : reqFilter + ' '}bookings</div>
-        <div class="empty-action-sub">Use "New booking" to request a makeup, event, or exam.</div>
-      </div></div>`;
+      $('requestsList').innerHTML = `<div class="card"><div class="empty-action"><div class="empty-action-icon"><i class="fas fa-paper-plane"></i></div><div class="empty-action-title">No ${reqFilter === 'all' ? '' : reqFilter + ' '}bookings</div><div class="empty-action-sub">Use "New booking" to request a makeup, event, or exam.</div></div></div>`;
       return;
     }
     $('requestsList').innerHTML = filtered.map(r => {
@@ -291,21 +273,13 @@ import {
       const room = roomById.get(r.room_id);
       const iconMap = { pending:'fa-hourglass-half', approved:'fa-circle-check', rejected:'fa-circle-xmark', cancelled:'fa-ban' };
       const actions = [];
-      if (r.status === 'pending' || r.status === 'approved') {
-        actions.push(`<button class="btn btn-sm btn-danger" data-cancel="${r.id}"><i class="fas fa-times"></i> Cancel</button>`);
-      }
+      if (r.status === 'pending' || r.status === 'approved') actions.push(`<button class="btn btn-sm btn-danger" data-cancel="${r.id}"><i class="fas fa-times"></i> Cancel</button>`);
       const typeLabel = r.type ? r.type.charAt(0).toUpperCase() + r.type.slice(1) : 'Booking';
       return `<div class="req-card">
         <div class="req-icon ${r.status}"><i class="fas ${iconMap[r.status] || 'fa-question'}"></i></div>
         <div class="req-body">
-          <div class="req-title">${escapeHtml(typeLabel)} · ${escapeHtml(room?.display_name || r.room_id)}
-            <span class="req-badge ${r.status}">${r.status}</span>
-          </div>
-          <div class="req-meta">
-            <span><i class="fas fa-calendar"></i>${humanDate(r.book_date)}</span>
-            <span><i class="fas fa-clock"></i>${escapeHtml(slot?.label || r.slot_id)}</span>
-            <span><i class="fas fa-paper-plane"></i>${formatRelativeTime(r.created_at)}</span>
-          </div>
+          <div class="req-title">${escapeHtml(typeLabel)} · ${escapeHtml(room?.display_name || r.room_id)}<span class="req-badge ${r.status}">${r.status}</span></div>
+          <div class="req-meta"><span><i class="fas fa-calendar"></i>${humanDate(r.book_date)}</span><span><i class="fas fa-clock"></i>${escapeHtml(slot?.label || r.slot_id)}</span><span><i class="fas fa-paper-plane"></i>${formatRelativeTime(r.created_at)}</span></div>
           ${r.reason ? `<div class="req-reason">${escapeHtml(r.reason)}</div>` : ''}
         </div>
         <div class="req-actions">${actions.join('')}</div>
@@ -355,19 +329,13 @@ import {
     dialog.className = 'modal-dialog';
     dialog.innerHTML = `<div class="modal-content modal-wide">
       <div class="modal-header">
-        <div><div class="modal-title">Book a room</div>
-          <div class="modal-sub">${autoApprove ? 'Auto-approved — booked instantly.' : 'Sent to admin for approval.'}</div>
-        </div>
+        <div><div class="modal-title">Book a room</div><div class="modal-sub">${autoApprove ? 'Auto-approved — booked instantly.' : 'Sent to admin for approval.'}</div></div>
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
         <label class="field"><span>Type *</span><select class="input" id="bkType">${typeOpts}</select></label>
-
         <div id="makeupSection" style="display:none">
-          <div style="padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);line-height:1.55;margin-bottom:12px">
-            <i class="fas fa-info-circle" style="margin-right:6px"></i>
-            Makeup ties to a class you're missing. The original slot will be marked as <strong>Free</strong> automatically.
-          </div>
+          <div style="padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);line-height:1.55;margin-bottom:12px"><i class="fas fa-info-circle" style="margin-right:6px"></i>Makeup ties to a class you're missing. The original slot will be marked as <strong>Free</strong> automatically.</div>
           <label class="field"><span>Which class is being missed? *</span>
             <select class="input" id="bkOriginalSlot">
               <option value="">— Select a class from your timetable —</option>
@@ -378,14 +346,9 @@ import {
               }).join('')}
             </select>
           </label>
-          <label class="field"><span>Date of the missed class *</span>
-            <input class="input" type="date" id="bkOriginalDate" value="${todayISO()}">
-          </label>
+          <label class="field"><span>Date of the missed class *</span><input class="input" type="date" id="bkOriginalDate" value="${todayISO()}"></label>
         </div>
-
-        <label class="field"><span>Makeup / new booking date *</span>
-          <input class="input" type="date" id="bkDate" min="${todayISO()}" value="${todayISO(new Date(Date.now() + 86400000))}">
-        </label>
+        <label class="field"><span>Makeup / new booking date *</span><input class="input" type="date" id="bkDate" min="${todayISO()}" value="${todayISO(new Date(Date.now() + 86400000))}"></label>
         <label class="field"><span>Period *</span><select class="input" id="bkSlot">${slotOpts}</select></label>
         <label class="field"><span>Room *</span><select class="input" id="bkRoom">${roomOpts}</select></label>
         <label class="field"><span>Course code</span><input class="input" id="bkCode" placeholder="CS401"></label>
@@ -428,8 +391,7 @@ import {
 
       if (type === 'makeup' && origSlotId && origDate) {
         const { error: unavailErr } = await supabase.from('faculty_unavailability').insert({
-          faculty_id: myId, date: origDate, slot_id: origSlotId,
-          reason: 'Auto-created by makeup booking',
+          faculty_id: myId, date: origDate, slot_id: origSlotId, reason: 'Auto-created by makeup booking',
         });
         if (unavailErr && !unavailErr.message.toLowerCase().includes('duplicate')) {
           btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Book';
@@ -444,8 +406,7 @@ import {
       });
 
       if (error) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-check"></i> Book';
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Book';
         return toast(error.message, 'error');
       }
 
@@ -458,6 +419,25 @@ import {
   await loadAll();
   setInterval(() => { if (!document.hidden) loadAll(); }, 60_000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadAll(); });
+
+  // ───── First-login password reminder ─────
+  try {
+    const { data: p } = await supabase.from('profiles').select('password_changed_at').eq('id', auth.profile.id).single();
+    if (p && p.password_changed_at === null) {
+      const banner = document.createElement('div');
+      banner.className = 'pw-reminder';
+      banner.innerHTML = `
+        <i class="fas fa-shield-halved"></i>
+        <div class="pw-reminder-body">
+          <strong>Password change required</strong>
+          You're still using the temporary password.
+        </div>
+        <a href="profile.html?first=1" class="btn btn-sm btn-primary">Change now</a>
+        <button class="pw-reminder-x" onclick="this.parentElement.remove()" title="Dismiss">×</button>
+      `;
+      document.body.appendChild(banner);
+    }
+  } catch {}
 })();
 </script>
 </body>
