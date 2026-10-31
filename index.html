@@ -3,13 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="LPU Scheduler">
+<meta name="mobile-web-app-capable" content="yes">
 <title>LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="LPU Scheduler">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#EA580C">
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/mobile-app.css">
 </head>
 <body>
-<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px">
+<div style="min-height:100dvh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px">
   <div>
     <div style="width:56px;height:56px;border-radius:14px;background:var(--brand);color:var(--brand-contrast);display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px">
       <i class="fas fa-calendar-check"></i>
@@ -19,12 +37,21 @@
   </div>
 </div>
 <script type="module">
+// importing core.js auto-initializes PWA (service worker, install prompt, offline banner)
 import { supabase, waitForSession } from './js/core.js';
+
 (async () => {
   const session = await waitForSession(2000);
   if (!session) return location.replace('./login.html');
-  const { data: profile } = await supabase.from('profiles').select('role, is_active, password_changed_at').eq('id', session.user.id).single();
-  if (!profile || profile.is_active === false) { await supabase.auth.signOut(); return location.replace('./login.html'); }
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, is_active, password_changed_at')
+    .eq('id', session.user.id)
+    .single();
+  if (!profile || profile.is_active === false) {
+    await supabase.auth.signOut();
+    return location.replace('./login.html');
+  }
   if (profile.password_changed_at === null) return location.replace('./profile.html?first=1');
   if (profile.role === 'admin') return location.replace('./admin.html');
   if (profile.role === 'faculty') return location.replace('./faculty.html');
@@ -32,7 +59,5 @@ import { supabase, waitForSession } from './js/core.js';
   location.replace('./login.html');
 })();
 </script>
-<!-- Centralized site banner -->
-<script type="module" src="js/banner.js"></script>
 </body>
 </html>

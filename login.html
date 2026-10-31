@@ -3,12 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="LPU Scheduler">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Sign in · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="LPU Scheduler">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#EA580C">
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/mobile-app.css">
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
   .auth-help{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);font-size:13px;color:var(--text-secondary);line-height:1.6;text-align:center}
@@ -24,6 +41,7 @@
 </style>
 </head>
 <body>
+
 <div class="auth-shell">
   <aside class="auth-brand-panel">
     <div class="auth-brand-content">
@@ -38,20 +56,24 @@
     </div>
     <div class="auth-brand-footer">Lovely Professional University · Scheduler</div>
   </aside>
+
   <main class="auth-form-panel">
     <div class="auth-form-wrap">
       <div class="auth-mobile-brand">
         <div class="auth-mobile-brand-icon"><i class="fas fa-calendar-check"></i></div>
         <div>LPU<span style="color:var(--brand)">.</span>Scheduler</div>
       </div>
+
       <div class="auth-form-header">
         <h2 class="auth-form-title">Sign in</h2>
         <p class="auth-form-sub">Enter your registration number and password to continue.</p>
       </div>
+
       <div class="banner-warn" id="verifyWarn">
         <i class="fas fa-triangle-exclamation"></i>
         <div id="verifyWarnText">Verification failed to load. Please check your connection and refresh.</div>
       </div>
+
       <form id="loginForm" novalidate>
         <label class="field">
           <span>Registration number</span>
@@ -59,6 +81,7 @@
                  placeholder="Enter registration number" autocomplete="username"
                  required maxlength="20" autofocus>
         </label>
+
         <label class="field" style="margin-bottom:8px">
           <span>Password</span>
           <div class="pwd-wrap">
@@ -68,25 +91,35 @@
             </button>
           </div>
         </label>
+
         <div style="text-align:right; margin-bottom:16px; font-size:13px">
           <a href="https://ums.lpu.in/lpuums/forgetpassword.aspx" style="color:var(--brand);font-weight:500;text-decoration:none">
             Forgot password?
           </a>
         </div>
+
         <div id="turnstile-container" style="margin-bottom:16px; min-height:65px;"></div>
+
         <button type="submit" class="btn btn-primary btn-block" id="loginBtn" style="min-height:44px" disabled>
           <i class="fas fa-shield-halved"></i> Loading verification…
         </button>
       </form>
+
       <div id="errorMsg" class="login-error"></div>
+
       <div class="auth-help">
-        <div style="font-weight:600;color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Need help signing in?</div>
+        <div style="font-weight:600;color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">
+          Need help signing in?
+        </div>
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:4px">
           <i class="fas fa-circle-info" style="font-size:11px;opacity:0.7"></i>
           <span>Contact your administrator or visit</span>
-          <a href="https://ums.lpu.in/lpuums/" target="_blank" rel="noopener noreferrer">UMS Portal</a>
+          <a href="https://ums.lpu.in/lpuums/" target="_blank" rel="noopener noreferrer">
+            UMS Portal
+          </a>
         </div>
       </div>
+
       <div class="credits-link">
         <a href="credits.html"><i class="fas fa-heart"></i> Credits</a>
       </div>
@@ -273,6 +306,7 @@ $('loginForm').onsubmit = async (e) => {
   setLoginButton(turnstileToken ? 'ready' : 'waiting');
 };
 </script>
+
 <!-- Centralized site banner -->
 <script type="module" src="js/banner.js"></script>
 </body>

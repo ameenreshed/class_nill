@@ -151,6 +151,10 @@ export function toast(msg, kind = 'info') {
   el.textContent = msg;
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.remove('show'), 3000);
+  // Haptic feedback if available
+  if (navigator.vibrate) {
+    try { navigator.vibrate(kind === 'error' ? [30, 30, 30] : 15); } catch {}
+  }
 }
 export function formatRelativeTime(iso) {
   if (!iso) return '';
@@ -187,7 +191,12 @@ function updateThemeIcons() {
     btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
   });
 }
-export function applyTheme(theme) { document.documentElement.setAttribute('data-theme', theme); updateThemeIcons(); }
+export function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#0B1220' : '#EA580C');
+  updateThemeIcons();
+}
 export function setTheme(theme, persist = true) {
   applyTheme(theme);
   if (persist) { try { localStorage.setItem(THEME_KEY, theme); } catch {} }
@@ -222,6 +231,9 @@ export async function signOut() {
   location.replace(`${BASE}login.html`);
 }
 
+/* ============================================================
+   NAVIGATION — top nav + mobile bottom nav + more sheet
+   ============================================================ */
 export async function renderNav(profile) {
   const el = document.getElementById('nav');
   if (!el || !profile) return;
@@ -232,9 +244,13 @@ export async function renderNav(profile) {
   const home = profile.role === 'admin' ? 'admin.html' : 'faculty.html';
   const currentPage = location.pathname.split('/').pop() || home;
 
-  const items = profile.role === 'admin' ? [
+  // -------- Top nav links --------
+  const topItems = profile.role === 'admin' ? [
     { href:'admin.html',           label:'Dashboard',  icon:'fa-gauge-high', active: currentPage === 'admin.html' },
-    { href:'admin-timetable.html', label:'Timetable',  icon:'fa-table',      active: currentPage.startsWith('admin-') && currentPage !== 'admin.html' && currentPage !== 'admin-settings.html' },
+    { href:'admin-timetable.html', label:'Timetable',  icon:'fa-table',      active: currentPage === 'admin-timetable.html' },
+    { href:'admin-bookings.html',  label:'Bookings',   icon:'fa-calendar-check', active: currentPage === 'admin-bookings.html' },
+    { href:'admin-faculty.html',   label:'Users',      icon:'fa-users',      active: currentPage === 'admin-faculty.html' },
+    { href:'admin-import.html',    label:'Import',     icon:'fa-file-import', active: currentPage === 'admin-import.html' },
     { href:'free-rooms.html',      label:'Free rooms', icon:'fa-building',   active: currentPage === 'free-rooms.html' },
     { href:'admin-settings.html',  label:'Settings',   icon:'fa-gear',       active: currentPage === 'admin-settings.html' },
   ] : [
@@ -243,12 +259,37 @@ export async function renderNav(profile) {
     { href:'profile.html',   label:'Profile',    icon:'fa-user',       active: currentPage === 'profile.html' },
   ];
 
+  // -------- Mobile bottom nav (max 5 items) --------
+  const bottomItems = profile.role === 'admin' ? [
+    { href:'admin.html',          label:'Home',      icon:'fa-house',          active: currentPage === 'admin.html' },
+    { href:'admin-timetable.html',label:'Schedule',  icon:'fa-table',          active: currentPage === 'admin-timetable.html' },
+    { href:'admin-bookings.html', label:'Bookings',  icon:'fa-calendar-check', active: currentPage === 'admin-bookings.html' },
+    { href:'admin-faculty.html',  label:'Users',     icon:'fa-users',          active: currentPage === 'admin-faculty.html' },
+    { more: true,                 label:'More',      icon:'fa-ellipsis' },
+  ] : [
+    { href:'faculty.html',   label:'Home',      icon:'fa-house',           active: currentPage === 'faculty.html' },
+    { href:'free-rooms.html',label:'Rooms',     icon:'fa-building',        active: currentPage === 'free-rooms.html' },
+    { href:'profile.html',   label:'Profile',   icon:'fa-circle-user',     active: currentPage === 'profile.html' },
+  ];
+
+  // -------- "More" items (for admin) --------
+  const moreItems = profile.role === 'admin' ? [
+    { href:'admin-import.html',     label:'Import CSV',   icon:'fa-file-import' },
+    { href:'free-rooms.html',       label:'Free rooms',   icon:'fa-building' },
+    { href:'admin-rooms.html',      label:'Rooms & buildings', icon:'fa-door-open' },
+    { href:'admin-slots.html',      label:'Time slots',   icon:'fa-clock' },
+    { href:'admin-calendar.html',   label:'Calendar',     icon:'fa-calendar-days' },
+    { href:'profile.html',          label:'Profile',      icon:'fa-user' },
+    { href:'admin-settings.html',   label:'Settings',     icon:'fa-gear' },
+  ] : [];
+
+  // -------- Render --------
   el.innerHTML = `
     <div class="nav">
       <div class="nav-inner">
         <a href="${home}" class="nav-brand">LPU<span class="nav-brand-dot">.</span>Scheduler</a>
         <div class="nav-links">
-          ${items.map(l => `<a href="${l.href}" class="nav-link ${l.active ? 'active' : ''}"><i class="fas ${l.icon}"></i>${l.label}</a>`).join('')}
+          ${topItems.map(l => `<a href="${l.href}" class="nav-link ${l.active ? 'active' : ''}"><i class="fas ${l.icon}"></i>${l.label}</a>`).join('')}
         </div>
         <div class="nav-actions">
           <button class="nav-icon-btn" data-theme-toggle aria-label="Toggle theme"></button>
@@ -267,12 +308,52 @@ export async function renderNav(profile) {
         </div>
         <div class="avatar-menu-divider"></div>
         <a href="profile.html" class="avatar-menu-item"><i class="fas fa-user"></i> Profile</a>
+        <button class="avatar-menu-item install-app-item" id="installAppBtn"><i class="fas fa-download"></i> Install app</button>
         <button class="avatar-menu-item" id="themeMenuItem"></button>
         <div class="avatar-menu-divider"></div>
         <button class="avatar-menu-item avatar-menu-danger" id="logoutBtn"><i class="fas fa-right-from-bracket"></i> Sign out</button>
       </div>
-    </div>`;
+    </div>
 
+    <div class="mobile-bottom-nav" id="mobileBottomNav">
+      <div class="mobile-bottom-nav-items">
+        ${bottomItems.map(l => l.more ? `
+          <button class="mobile-nav-item mobile-nav-more" id="moreBtn" type="button">
+            <i class="fas ${l.icon}"></i>
+            <span>${l.label}</span>
+          </button>
+        ` : `
+          <a href="${l.href}" class="mobile-nav-item ${l.active ? 'active' : ''}" ${l.badge ? `data-badge="${l.badge}"` : ''}>
+            <i class="fas ${l.icon}"></i>
+            <span>${l.label}</span>
+            ${l.badge ? `<span class="mobile-nav-badge">${l.badge}</span>` : ''}
+          </a>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="more-sheet-backdrop" id="moreSheetBackdrop"></div>
+    <div class="more-sheet" id="moreSheet">
+      <div class="more-sheet-handle"></div>
+      ${moreItems.map(m => `
+        <a href="${m.href}" class="more-sheet-item ${currentPage === m.href ? 'active' : ''}">
+          <i class="fas ${m.icon}"></i>
+          <span>${m.label}</span>
+        </a>
+      `).join('') || '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">No additional pages</div>'}
+      <div class="more-sheet-divider"></div>
+      <button class="more-sheet-item" id="moreThemeToggle">
+        <i class="fas fa-moon"></i>
+        <span>Toggle theme</span>
+      </button>
+      <button class="more-sheet-item" id="moreSignOut" style="color:var(--danger)">
+        <i class="fas fa-right-from-bracket" style="background:var(--danger-soft);color:var(--danger)"></i>
+        <span>Sign out</span>
+      </button>
+    </div>
+  `;
+
+  // -------- Wire up: theme toggle --------
   document.querySelectorAll('[data-theme-toggle]').forEach(btn => { btn.onclick = toggleTheme; });
   const themeMenuItem = document.getElementById('themeMenuItem');
   if (themeMenuItem) {
@@ -286,6 +367,7 @@ export async function renderNav(profile) {
   }
   updateThemeIcons();
 
+  // -------- Wire up: avatar menu --------
   const avatarBtn = document.getElementById('avatarBtn');
   const avatarMenu = document.getElementById('avatarMenu');
   if (avatarBtn && avatarMenu) {
@@ -294,5 +376,115 @@ export async function renderNav(profile) {
       if (!avatarMenu.contains(e.target) && !avatarBtn.contains(e.target)) avatarMenu.classList.remove('open');
     });
   }
+
+  // -------- Wire up: more sheet --------
+  const moreBtn = document.getElementById('moreBtn');
+  const moreSheet = document.getElementById('moreSheet');
+  const moreBackdrop = document.getElementById('moreSheetBackdrop');
+  if (moreBtn && moreSheet && moreBackdrop) {
+    const openMore = () => {
+      moreSheet.classList.add('open');
+      moreBackdrop.classList.add('open');
+      if (navigator.vibrate) try { navigator.vibrate(10); } catch {}
+    };
+    const closeMore = () => {
+      moreSheet.classList.remove('open');
+      moreBackdrop.classList.remove('open');
+    };
+    moreBtn.onclick = openMore;
+    moreBackdrop.onclick = closeMore;
+    document.getElementById('moreThemeToggle')?.addEventListener('click', () => {
+      toggleTheme();
+      closeMore();
+    });
+    document.getElementById('moreSignOut')?.addEventListener('click', signOut);
+  }
+
+  // -------- Wire up: logout --------
   document.getElementById('logoutBtn')?.addEventListener('click', signOut);
+
+  // -------- PWA install button --------
+  const installBtn = document.getElementById('installAppBtn');
+  if (installBtn) {
+    if (window.deferredInstallPrompt) {
+      installBtn.classList.add('available');
+    }
+    window.addEventListener('pwainstallready', () => {
+      installBtn.classList.add('available');
+    });
+    installBtn.onclick = async () => {
+      const p = window.deferredInstallPrompt;
+      if (!p) return;
+      p.prompt();
+      const { outcome } = await p.userChoice;
+      if (outcome === 'accepted') {
+        installBtn.classList.remove('available');
+      }
+      window.deferredInstallPrompt = null;
+    };
+  }
+
+  // -------- Mobile nav haptic --------
+  document.querySelectorAll('.mobile-nav-item').forEach(item => {
+    item.addEventListener('touchstart', () => {
+      if (navigator.vibrate) try { navigator.vibrate(8); } catch {}
+    }, { passive: true });
+  });
 }
+
+/* ============================================================
+   PWA — register service worker + handle install prompt
+   ============================================================ */
+let _pwaInitialized = false;
+export function initPWA() {
+  if (_pwaInitialized) return;
+  _pwaInitialized = true;
+
+  // Register service worker (only in http/https, not file://)
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        // Check for updates periodically
+        setInterval(() => { reg.update().catch(() => {}); }, 60 * 60 * 1000);
+      }).catch(err => {
+        console.warn('[PWA] SW registration failed:', err);
+      });
+    });
+  }
+
+  // Capture install prompt
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    window.deferredInstallPrompt = e;
+    window.dispatchEvent(new Event('pwainstallready'));
+    document.querySelectorAll('.install-app-item').forEach(el => el.classList.add('available'));
+  });
+
+  // Hide install button after install
+  window.addEventListener('appinstalled', () => {
+    window.deferredInstallPrompt = null;
+    document.querySelectorAll('.install-app-item').forEach(el => el.classList.remove('available'));
+  });
+
+  // Online / offline indicator
+  function updateOnlineStatus() {
+    let bar = document.querySelector('.offline-banner');
+    if (navigator.onLine) {
+      if (bar) bar.classList.remove('show');
+    } else {
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.className = 'offline-banner';
+        bar.innerHTML = '<i class="fas fa-wifi" style="opacity:.6"></i> You\'re offline — some features may not work';
+        document.body.prepend(bar);
+      }
+      bar.classList.add('show');
+    }
+  }
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  updateOnlineStatus();
+}
+
+// Auto-init on import (safe: guards against double-init)
+initPWA();
