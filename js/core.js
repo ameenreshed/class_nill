@@ -151,7 +151,6 @@ export function toast(msg, kind = 'info') {
   el.textContent = msg;
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.remove('show'), 3000);
-  // Haptic feedback if available
   if (navigator.vibrate) {
     try { navigator.vibrate(kind === 'error' ? [30, 30, 30] : 15); } catch {}
   }
@@ -190,6 +189,22 @@ function updateThemeIcons() {
   document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
     btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
   });
+  // Update mobile sheet theme label if present
+  const masThemeLabel = document.querySelector('#masThemeToggle .mas-item-label');
+  const masThemeIcon = document.querySelector('#masThemeToggle .mas-item-icon i');
+  if (masThemeLabel) {
+    masThemeLabel.textContent = isDark ? 'Light mode' : 'Dark mode';
+    if (masThemeIcon) {
+      masThemeIcon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+    }
+  }
+  // Update desktop theme menu item
+  const themeMenuItem = document.getElementById('themeMenuItem');
+  if (themeMenuItem) {
+    themeMenuItem.innerHTML = isDark
+      ? '<i class="fas fa-sun"></i> Light mode'
+      : '<i class="fas fa-moon"></i> Dark mode';
+  }
 }
 export function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
@@ -232,7 +247,7 @@ export async function signOut() {
 }
 
 /* ============================================================
-   NAVIGATION — top nav + mobile bottom nav + more sheet
+   NAVIGATION — desktop popover + mobile bottom sheet
    ============================================================ */
 export async function renderNav(profile) {
   const el = document.getElementById('nav');
@@ -243,23 +258,22 @@ export async function renderNav(profile) {
   const roleIcon = profile.role === 'admin' ? 'shield-halved' : 'chalkboard-user';
   const home = profile.role === 'admin' ? 'admin.html' : 'faculty.html';
   const currentPage = location.pathname.split('/').pop() || home;
+  const isDark = getCurrentTheme() === 'dark';
 
-  // -------- Top nav links --------
   const topItems = profile.role === 'admin' ? [
-    { href:'admin.html',           label:'Dashboard',  icon:'fa-gauge-high', active: currentPage === 'admin.html' },
-    { href:'admin-timetable.html', label:'Timetable',  icon:'fa-table',      active: currentPage === 'admin-timetable.html' },
+    { href:'admin.html',           label:'Dashboard',  icon:'fa-gauge-high',     active: currentPage === 'admin.html' },
+    { href:'admin-timetable.html', label:'Timetable',  icon:'fa-table',          active: currentPage === 'admin-timetable.html' },
     { href:'admin-bookings.html',  label:'Bookings',   icon:'fa-calendar-check', active: currentPage === 'admin-bookings.html' },
-    { href:'admin-faculty.html',   label:'Users',      icon:'fa-users',      active: currentPage === 'admin-faculty.html' },
-    { href:'admin-import.html',    label:'Import',     icon:'fa-file-import', active: currentPage === 'admin-import.html' },
-    { href:'free-rooms.html',      label:'Free rooms', icon:'fa-building',   active: currentPage === 'free-rooms.html' },
-    { href:'admin-settings.html',  label:'Settings',   icon:'fa-gear',       active: currentPage === 'admin-settings.html' },
+    { href:'admin-faculty.html',   label:'Users',      icon:'fa-users',          active: currentPage === 'admin-faculty.html' },
+    { href:'admin-import.html',    label:'Import',     icon:'fa-file-import',    active: currentPage === 'admin-import.html' },
+    { href:'free-rooms.html',      label:'Free rooms', icon:'fa-building',       active: currentPage === 'free-rooms.html' },
+    { href:'admin-settings.html',  label:'Settings',   icon:'fa-gear',           active: currentPage === 'admin-settings.html' },
   ] : [
     { href:'faculty.html',   label:'Dashboard',  icon:'fa-gauge-high', active: currentPage === 'faculty.html' },
     { href:'free-rooms.html',label:'Free rooms', icon:'fa-building',   active: currentPage === 'free-rooms.html' },
     { href:'profile.html',   label:'Profile',    icon:'fa-user',       active: currentPage === 'profile.html' },
   ];
 
-  // -------- Mobile bottom nav (max 5 items) --------
   const bottomItems = profile.role === 'admin' ? [
     { href:'admin.html',          label:'Home',      icon:'fa-house',          active: currentPage === 'admin.html' },
     { href:'admin-timetable.html',label:'Schedule',  icon:'fa-table',          active: currentPage === 'admin-timetable.html' },
@@ -267,23 +281,21 @@ export async function renderNav(profile) {
     { href:'admin-faculty.html',  label:'Users',     icon:'fa-users',          active: currentPage === 'admin-faculty.html' },
     { more: true,                 label:'More',      icon:'fa-ellipsis' },
   ] : [
-    { href:'faculty.html',   label:'Home',      icon:'fa-house',           active: currentPage === 'faculty.html' },
-    { href:'free-rooms.html',label:'Rooms',     icon:'fa-building',        active: currentPage === 'free-rooms.html' },
-    { href:'profile.html',   label:'Profile',   icon:'fa-circle-user',     active: currentPage === 'profile.html' },
+    { href:'faculty.html',   label:'Home',    icon:'fa-house',       active: currentPage === 'faculty.html' },
+    { href:'free-rooms.html',label:'Rooms',   icon:'fa-building',    active: currentPage === 'free-rooms.html' },
+    { href:'profile.html',   label:'Profile', icon:'fa-circle-user', active: currentPage === 'profile.html' },
   ];
 
-  // -------- "More" items (for admin) --------
   const moreItems = profile.role === 'admin' ? [
-    { href:'admin-import.html',     label:'Import CSV',   icon:'fa-file-import' },
-    { href:'free-rooms.html',       label:'Free rooms',   icon:'fa-building' },
-    { href:'admin-rooms.html',      label:'Rooms & buildings', icon:'fa-door-open' },
-    { href:'admin-slots.html',      label:'Time slots',   icon:'fa-clock' },
-    { href:'admin-calendar.html',   label:'Calendar',     icon:'fa-calendar-days' },
-    { href:'profile.html',          label:'Profile',      icon:'fa-user' },
-    { href:'admin-settings.html',   label:'Settings',     icon:'fa-gear' },
+    { href:'admin-import.html',   label:'Import CSV',       icon:'fa-file-import' },
+    { href:'free-rooms.html',     label:'Free rooms',       icon:'fa-building' },
+    { href:'admin-rooms.html',    label:'Rooms & buildings',icon:'fa-door-open' },
+    { href:'admin-slots.html',    label:'Time slots',       icon:'fa-clock' },
+    { href:'admin-calendar.html', label:'Calendar',         icon:'fa-calendar-days' },
+    { href:'profile.html',        label:'Profile',          icon:'fa-user' },
+    { href:'admin-settings.html', label:'Settings',         icon:'fa-gear' },
   ] : [];
 
-  // -------- Render --------
   el.innerHTML = `
     <div class="nav">
       <div class="nav-inner">
@@ -298,23 +310,29 @@ export async function renderNav(profile) {
           </button>
         </div>
       </div>
-      <div class="avatar-menu" id="avatarMenu">
+
+      <!-- ===== Desktop popover (hidden on mobile via CSS) ===== -->
+      <div class="avatar-menu" id="avatarMenu" role="menu">
         <div class="avatar-menu-header">
-          <div class="avatar-menu-name">${escapeHtml(profile.full_name || profile.email)}</div>
-          <div class="avatar-menu-email">${escapeHtml(profile.email)}</div>
-          <div class="avatar-menu-role">
-            <span class="badge badge-${profile.role}"><i class="fas fa-${roleIcon}"></i>${profile.role}</span>
+          <div class="avatar-menu-avatar">${escapeHtml(initial)}</div>
+          <div class="avatar-menu-header-info">
+            <div class="avatar-menu-name">${escapeHtml(profile.full_name || profile.email)}</div>
+            <div class="avatar-menu-email">${escapeHtml(profile.email)}</div>
+            <div class="avatar-menu-role">
+              <span class="badge badge-${profile.role}"><i class="fas fa-${roleIcon}"></i>${profile.role}</span>
+            </div>
           </div>
         </div>
         <div class="avatar-menu-divider"></div>
-        <a href="profile.html" class="avatar-menu-item"><i class="fas fa-user"></i> Profile</a>
-        <button class="avatar-menu-item install-app-item" id="installAppBtn"><i class="fas fa-download"></i> Install app</button>
-        <button class="avatar-menu-item" id="themeMenuItem"></button>
+        <a href="profile.html" class="avatar-menu-item" role="menuitem"><i class="fas fa-user"></i> Profile</a>
+        <button class="avatar-menu-item install-app-item" id="installAppBtn" role="menuitem"><i class="fas fa-download"></i> Install app</button>
+        <button class="avatar-menu-item" id="themeMenuItem" role="menuitem">${isDark ? '<i class="fas fa-sun"></i> Light mode' : '<i class="fas fa-moon"></i> Dark mode'}</button>
         <div class="avatar-menu-divider"></div>
-        <button class="avatar-menu-item avatar-menu-danger" id="logoutBtn"><i class="fas fa-right-from-bracket"></i> Sign out</button>
+        <button class="avatar-menu-item avatar-menu-danger" id="logoutBtn" role="menuitem"><i class="fas fa-right-from-bracket"></i> Sign out</button>
       </div>
     </div>
 
+    <!-- ===== Mobile bottom nav ===== -->
     <div class="mobile-bottom-nav" id="mobileBottomNav">
       <div class="mobile-bottom-nav-items">
         ${bottomItems.map(l => l.more ? `
@@ -323,15 +341,15 @@ export async function renderNav(profile) {
             <span>${l.label}</span>
           </button>
         ` : `
-          <a href="${l.href}" class="mobile-nav-item ${l.active ? 'active' : ''}" ${l.badge ? `data-badge="${l.badge}"` : ''}>
+          <a href="${l.href}" class="mobile-nav-item ${l.active ? 'active' : ''}">
             <i class="fas ${l.icon}"></i>
             <span>${l.label}</span>
-            ${l.badge ? `<span class="mobile-nav-badge">${l.badge}</span>` : ''}
           </a>
         `).join('')}
       </div>
     </div>
 
+    <!-- ===== Mobile "More" sheet ===== -->
     <div class="more-sheet-backdrop" id="moreSheetBackdrop"></div>
     <div class="more-sheet" id="moreSheet">
       <div class="more-sheet-handle"></div>
@@ -343,88 +361,242 @@ export async function renderNav(profile) {
       `).join('') || '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">No additional pages</div>'}
       <div class="more-sheet-divider"></div>
       <button class="more-sheet-item" id="moreThemeToggle">
-        <i class="fas fa-moon"></i>
-        <span>Toggle theme</span>
+        <i class="fas fa-moon"></i><span>Toggle theme</span>
       </button>
       <button class="more-sheet-item" id="moreSignOut" style="color:var(--danger)">
         <i class="fas fa-right-from-bracket" style="background:var(--danger-soft);color:var(--danger)"></i>
         <span>Sign out</span>
       </button>
     </div>
+
+    <!-- ===== NEW: Mobile account sheet (separate from desktop popover) ===== -->
+    <div class="mobile-account-backdrop" id="mobileAccountBackdrop"></div>
+    <div class="mobile-account-sheet" id="mobileAccountSheet" role="dialog" aria-label="Account menu" aria-modal="true">
+      <div class="mas-handle"></div>
+      <div class="mas-header">
+        <div class="mas-avatar">${escapeHtml(initial)}</div>
+        <div class="mas-info">
+          <div class="mas-name">${escapeHtml(profile.full_name || profile.email)}</div>
+          <div class="mas-email">${escapeHtml(profile.email)}</div>
+          <div class="mas-role">
+            <span class="badge badge-${profile.role}"><i class="fas fa-${roleIcon}"></i>${profile.role}</span>
+          </div>
+        </div>
+      </div>
+      <div class="mas-list">
+        <a href="profile.html" class="mas-item" role="menuitem">
+          <span class="mas-item-icon"><i class="fas fa-user"></i></span>
+          <span class="mas-item-label">Profile</span>
+          <i class="fas fa-chevron-right mas-item-chevron"></i>
+        </a>
+        <button class="mas-item install-app-item" id="masInstallApp" type="button" role="menuitem">
+          <span class="mas-item-icon"><i class="fas fa-download"></i></span>
+          <span class="mas-item-label">Install app</span>
+          <i class="fas fa-chevron-right mas-item-chevron"></i>
+        </button>
+        <button class="mas-item" id="masThemeToggle" type="button" role="menuitem">
+          <span class="mas-item-icon"><i class="fas ${isDark ? 'fa-sun' : 'fa-moon'}"></i></span>
+          <span class="mas-item-label">${isDark ? 'Light mode' : 'Dark mode'}</span>
+        </button>
+      </div>
+      <div class="mas-sep"></div>
+      <div class="mas-list">
+        <button class="mas-item mas-item-danger" id="masSignOut" type="button" role="menuitem">
+          <span class="mas-item-icon"><i class="fas fa-right-from-bracket"></i></span>
+          <span class="mas-item-label">Sign out</span>
+        </button>
+      </div>
+    </div>
   `;
 
-  // -------- Wire up: theme toggle --------
+  /* ============================================================
+     THEME TOGGLE (all variants)
+     ============================================================ */
   document.querySelectorAll('[data-theme-toggle]').forEach(btn => { btn.onclick = toggleTheme; });
-  const themeMenuItem = document.getElementById('themeMenuItem');
-  if (themeMenuItem) {
-    const paint = () => {
-      themeMenuItem.innerHTML = getCurrentTheme() === 'dark'
-        ? '<i class="fas fa-sun"></i> Light mode'
-        : '<i class="fas fa-moon"></i> Dark mode';
-    };
-    paint();
-    themeMenuItem.onclick = () => { toggleTheme(); paint(); };
-  }
+  document.getElementById('themeMenuItem')?.addEventListener('click', toggleTheme);
+  document.getElementById('masThemeToggle')?.addEventListener('click', toggleTheme);
+  document.getElementById('moreThemeToggle')?.addEventListener('click', () => {
+    toggleTheme();
+    closeMoreSheet();
+  });
   updateThemeIcons();
 
-  // -------- Wire up: avatar menu --------
+  /* ============================================================
+     AVATAR BUTTON → opens desktop popover OR mobile sheet
+     ============================================================ */
   const avatarBtn = document.getElementById('avatarBtn');
   const avatarMenu = document.getElementById('avatarMenu');
-  if (avatarBtn && avatarMenu) {
-    avatarBtn.onclick = (e) => { e.stopPropagation(); avatarMenu.classList.toggle('open'); };
-    document.addEventListener('click', (e) => {
-      if (!avatarMenu.contains(e.target) && !avatarBtn.contains(e.target)) avatarMenu.classList.remove('open');
-    });
+  const mobileSheet = document.getElementById('mobileAccountSheet');
+  const mobileBackdrop = document.getElementById('mobileAccountBackdrop');
+  const isMobile = () => window.matchMedia('(max-width: 900px)').matches;
+
+  let savedScrollY = 0;
+
+  function openDesktopMenu() {
+    avatarMenu?.classList.add('open');
+  }
+  function closeDesktopMenu() {
+    avatarMenu?.classList.remove('open');
   }
 
-  // -------- Wire up: more sheet --------
+  function openMobileSheet() {
+    if (!mobileSheet || !mobileBackdrop) return;
+    savedScrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${savedScrollY}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+    mobileBackdrop.classList.add('open');
+    mobileSheet.classList.add('open');
+    if (navigator.vibrate) try { navigator.vibrate(8); } catch {}
+  }
+  function closeMobileSheet() {
+    if (!mobileSheet || !mobileBackdrop) return;
+    mobileSheet.classList.remove('open');
+    mobileBackdrop.classList.remove('open');
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    document.body.style.overflow = '';
+    window.scrollTo(0, savedScrollY);
+  }
+
+  if (avatarBtn) {
+    avatarBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (isMobile()) {
+        if (mobileSheet?.classList.contains('open')) closeMobileSheet();
+        else openMobileSheet();
+      } else {
+        if (avatarMenu?.classList.contains('open')) closeDesktopMenu();
+        else openDesktopMenu();
+      }
+    };
+  }
+
+  /* ---- Backdrop click closes mobile sheet ---- */
+  mobileBackdrop?.addEventListener('click', closeMobileSheet);
+
+  /* ---- Escape closes everything ---- */
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeDesktopMenu();
+      closeMobileSheet();
+    }
+  });
+
+  /* ---- Click outside closes desktop popover (desktop only) ---- */
+  document.addEventListener('click', (e) => {
+    if (isMobile()) return;
+    if (avatarMenu && avatarBtn && !avatarMenu.contains(e.target) && !avatarBtn.contains(e.target)) {
+      closeDesktopMenu();
+    }
+  });
+
+  /* ---- Resize → close whatever doesn't belong to the new viewport ---- */
+  window.addEventListener('resize', () => {
+    if (isMobile()) closeDesktopMenu();
+    else closeMobileSheet();
+  });
+
+  /* ---- Mobile sheet: tap nav items closes sheet, then acts ---- */
+  mobileSheet?.querySelectorAll('a.mas-item, button.mas-item').forEach(item => {
+    if (item.id === 'masThemeToggle') return; // theme toggle stays open
+    item.addEventListener('click', () => {
+      closeMobileSheet();
+    });
+  });
+
+  /* ---- Mobile sheet: swipe-down-to-close ---- */
+  if (mobileSheet) {
+    let touchStartY = 0;
+    let touchStartTime = 0;
+    let currentDelta = 0;
+
+    mobileSheet.addEventListener('touchstart', (e) => {
+      touchStartY = e.touches[0].clientY;
+      touchStartTime = Date.now();
+      currentDelta = 0;
+      mobileSheet.style.transition = 'none';
+    }, { passive: true });
+
+    mobileSheet.addEventListener('touchmove', (e) => {
+      const delta = e.touches[0].clientY - touchStartY;
+      if (delta > 0) {
+        currentDelta = delta;
+        mobileSheet.style.transform = `translateY(${delta}px)`;
+      }
+    }, { passive: true });
+
+    mobileSheet.addEventListener('touchend', (e) => {
+      mobileSheet.style.transition = '';
+      mobileSheet.style.transform = '';
+      const deltaTime = Date.now() - touchStartTime;
+      const shouldClose = currentDelta > 120 || (currentDelta > 50 && deltaTime < 300);
+      if (shouldClose) closeMobileSheet();
+    }, { passive: true });
+  }
+
+  /* ============================================================
+     MORE SHEET (mobile bottom nav)
+     ============================================================ */
   const moreBtn = document.getElementById('moreBtn');
   const moreSheet = document.getElementById('moreSheet');
   const moreBackdrop = document.getElementById('moreSheetBackdrop');
-  if (moreBtn && moreSheet && moreBackdrop) {
-    const openMore = () => {
-      moreSheet.classList.add('open');
-      moreBackdrop.classList.add('open');
-      if (navigator.vibrate) try { navigator.vibrate(10); } catch {}
-    };
-    const closeMore = () => {
-      moreSheet.classList.remove('open');
-      moreBackdrop.classList.remove('open');
-    };
-    moreBtn.onclick = openMore;
-    moreBackdrop.onclick = closeMore;
-    document.getElementById('moreThemeToggle')?.addEventListener('click', () => {
-      toggleTheme();
-      closeMore();
-    });
-    document.getElementById('moreSignOut')?.addEventListener('click', signOut);
+
+  function openMoreSheet() {
+    moreSheet?.classList.add('open');
+    moreBackdrop?.classList.add('open');
+    if (navigator.vibrate) try { navigator.vibrate(8); } catch {}
+  }
+  function closeMoreSheet() {
+    moreSheet?.classList.remove('open');
+    moreBackdrop?.classList.remove('open');
   }
 
-  // -------- Wire up: logout --------
+  moreBtn?.addEventListener('click', openMoreSheet);
+  moreBackdrop?.addEventListener('click', closeMoreSheet);
+  document.getElementById('moreSignOut')?.addEventListener('click', signOut);
+
+  /* ============================================================
+     SIGN OUT
+     ============================================================ */
   document.getElementById('logoutBtn')?.addEventListener('click', signOut);
+  document.getElementById('masSignOut')?.addEventListener('click', signOut);
 
-  // -------- PWA install button --------
-  const installBtn = document.getElementById('installAppBtn');
-  if (installBtn) {
+  /* ============================================================
+     PWA INSTALL — wire up desktop + mobile buttons
+     ============================================================ */
+  const installBtnDesktop = document.getElementById('installAppBtn');
+  const installBtnMobile = document.getElementById('masInstallApp');
+
+  function refreshInstallButtons() {
     if (window.deferredInstallPrompt) {
-      installBtn.classList.add('available');
+      installBtnDesktop?.classList.add('available');
+      installBtnMobile?.classList.add('available');
     }
-    window.addEventListener('pwainstallready', () => {
-      installBtn.classList.add('available');
-    });
-    installBtn.onclick = async () => {
-      const p = window.deferredInstallPrompt;
-      if (!p) return;
-      p.prompt();
-      const { outcome } = await p.userChoice;
-      if (outcome === 'accepted') {
-        installBtn.classList.remove('available');
-      }
-      window.deferredInstallPrompt = null;
-    };
+  }
+  refreshInstallButtons();
+  window.addEventListener('pwainstallready', refreshInstallButtons);
+
+  async function triggerInstall() {
+    const p = window.deferredInstallPrompt;
+    if (!p) return;
+    p.prompt();
+    const { outcome } = await p.userChoice;
+    if (outcome === 'accepted') {
+      installBtnDesktop?.classList.remove('available');
+      installBtnMobile?.classList.remove('available');
+    }
+    window.deferredInstallPrompt = null;
   }
 
-  // -------- Mobile nav haptic --------
+  installBtnDesktop?.addEventListener('click', triggerInstall);
+  installBtnMobile?.addEventListener('click', triggerInstall);
+
+  /* ============================================================
+     HAPTIC FEEDBACK
+     ============================================================ */
   document.querySelectorAll('.mobile-nav-item').forEach(item => {
     item.addEventListener('touchstart', () => {
       if (navigator.vibrate) try { navigator.vibrate(8); } catch {}
@@ -433,18 +605,16 @@ export async function renderNav(profile) {
 }
 
 /* ============================================================
-   PWA — register service worker + handle install prompt
+   PWA — service worker + install prompt + offline banner
    ============================================================ */
 let _pwaInitialized = false;
 export function initPWA() {
   if (_pwaInitialized) return;
   _pwaInitialized = true;
 
-  // Register service worker (only in http/https, not file://)
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js').then(reg => {
-        // Check for updates periodically
         setInterval(() => { reg.update().catch(() => {}); }, 60 * 60 * 1000);
       }).catch(err => {
         console.warn('[PWA] SW registration failed:', err);
@@ -452,21 +622,18 @@ export function initPWA() {
     });
   }
 
-  // Capture install prompt
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     window.deferredInstallPrompt = e;
-    window.dispatchEvent(new Event('pwainstallready'));
     document.querySelectorAll('.install-app-item').forEach(el => el.classList.add('available'));
+    window.dispatchEvent(new Event('pwainstallready'));
   });
 
-  // Hide install button after install
   window.addEventListener('appinstalled', () => {
     window.deferredInstallPrompt = null;
     document.querySelectorAll('.install-app-item').forEach(el => el.classList.remove('available'));
   });
 
-  // Online / offline indicator
   function updateOnlineStatus() {
     let bar = document.querySelector('.offline-banner');
     if (navigator.onLine) {
@@ -486,5 +653,4 @@ export function initPWA() {
   updateOnlineStatus();
 }
 
-// Auto-init on import (safe: guards against double-init)
 initPWA();
