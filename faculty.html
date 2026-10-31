@@ -49,15 +49,68 @@
 .req-reason{font-size:12px;color:var(--text-secondary);margin-top:8px;padding:8px 10px;background:var(--surface-hover);border-radius:6px;border-left:3px solid var(--border-strong);line-height:1.5}
 .req-actions{display:flex;gap:6px;align-items:flex-start;flex-shrink:0;flex-wrap:wrap}
 
-@keyframes pwSlideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-.pw-reminder{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;max-width:560px;width:calc(100vw - 32px);padding:16px 20px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:12px;box-shadow:var(--shadow-xl);display:flex;align-items:center;gap:14px;font-size:13px;color:var(--warning-text);animation:pwSlideUp 400ms ease}
-.pw-reminder i{font-size:20px;flex-shrink:0;color:var(--warning)}
-.pw-reminder-body{flex:1;line-height:1.5}
-.pw-reminder-body strong{display:block;margin-bottom:2px}
-.pw-reminder .btn{flex-shrink:0}
-.pw-reminder-x{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;font-size:16px;padding:4px;border-radius:6px}
-.pw-reminder-x:hover{opacity:1;background:rgba(0,0,0,.05)}
-@media(max-width:640px){.pw-reminder{flex-direction:column;align-items:stretch;gap:10px}.pw-reminder .btn{width:100%;justify-content:center}}
+/* ═══════════ Booking modal — advanced ═══════════ */
+.bk-section{margin-bottom:20px}
+.bk-section:last-child{margin-bottom:0}
+.bk-section-title{font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.bk-section-title .num{width:22px;height:22px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.bk-section-title .hint{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:500;color:var(--text-secondary);font-size:11.5px}
+
+/* Slot grid */
+.slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.slot-card{padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font:inherit;color:var(--text);transition:all 140ms ease}
+.slot-card:hover{border-color:var(--border-strong);background:var(--surface-hover)}
+.slot-card.selected{border-color:var(--brand);background:var(--brand-soft);box-shadow:0 0 0 3px var(--brand-soft)}
+.slot-card:disabled{opacity:.4;cursor:not-allowed;background:var(--bg-subtle)}
+.slot-card-time{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--text)}
+.slot-card.selected .slot-card-time{color:var(--brand-text)}
+.slot-card-label{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.slot-card-avail{font-size:10.5px;margin-top:6px;display:inline-flex;align-items:center;gap:4px;color:var(--success);font-weight:600}
+.slot-card-avail.none{color:var(--danger)}
+.slot-card-avail i{font-size:9px}
+
+/* Missed classes */
+.missed-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;padding:4px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.missed-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background 120ms ease}
+.missed-item:hover{background:var(--surface-hover)}
+.missed-item input[type=checkbox]{width:16px;height:16px;margin-top:2px;accent-color:var(--brand);flex-shrink:0;cursor:pointer}
+.missed-item-body{flex:1;min-width:0}
+.missed-item-title{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.missed-item-code{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--brand);font-weight:700}
+.missed-item-meta{font-size:11px;color:var(--text-secondary);margin-top:2px}
+.missed-empty{padding:20px;text-align:center;color:var(--text-muted);font-size:12.5px;line-height:1.5}
+.missed-empty i{display:block;font-size:24px;opacity:.5;margin-bottom:8px}
+
+/* Date warning */
+.date-warn{display:none;margin-top:8px;padding:10px 12px;background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:8px;color:var(--warning-text);font-size:12px;line-height:1.5}
+.date-warn.show{display:flex;gap:8px;align-items:flex-start}
+.date-warn i{flex-shrink:0;margin-top:1px}
+
+/* Summary */
+.bk-summary{padding:16px 18px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:12px}
+.bk-summary-title{font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.bk-summary-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.bk-summary-row:last-child{border-bottom:none}
+.bk-summary-label{color:var(--text-secondary);flex-shrink:0}
+.bk-summary-value{color:var(--text);font-weight:500;text-align:right}
+.bk-summary-total{padding-top:12px;margin-top:8px;border-top:2px solid var(--border-strong);font-size:14px;font-weight:600;color:var(--text)}
+.bk-summary-total .brand{color:var(--brand)}
+
+.bk-progress{display:flex;gap:6px;margin-bottom:20px}
+.bk-progress-step{flex:1;height:4px;border-radius:2px;background:var(--border)}
+.bk-progress-step.done{background:var(--brand)}
+
+/* Room availability hint */
+.room-hint{margin-top:6px;font-size:11.5px;color:var(--text-secondary);line-height:1.5}
+.room-hint.ok{color:var(--success-text);font-weight:500}
+.room-hint.warn{color:var(--warning-text);font-weight:500}
+
+@media (max-width:640px){
+  .slot-grid{grid-template-columns:repeat(2,1fr)}
+  .bk-section-title{flex-wrap:wrap}
+  .bk-summary-row{flex-direction:column;gap:4px}
+  .bk-summary-value{text-align:left}
+}
 </style>
 </head>
 <body>
@@ -98,8 +151,8 @@
 <script type="module">
 import {
   requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, formatTime,
-  dayOfWeekNum, humanDate, loadBaseData, currentSlot, minutesUntilStart,
-  toast, formatRelativeTime, getSettings, bookingTypeAllowed
+  dayOfWeekNum, humanDate, loadBaseData, loadDataForDate, classifyCell,
+  currentSlot, minutesUntilStart, toast, formatRelativeTime, getSettings, bookingTypeAllowed
 } from './js/core.js';
 
 (async () => {
@@ -153,7 +206,11 @@ import {
     const list = myTeaching.filter(t => t.day_of_week === dow)
       .sort((a, b) => (slotById.get(a.slot_id)?.start_time || '').localeCompare(slotById.get(b.slot_id)?.start_time || ''));
     if (!list.length) {
-      $('todayView').innerHTML = `<div class="card"><div class="empty-action"><div class="empty-action-icon"><i class="fas fa-mug-hot"></i></div><div class="empty-action-title">No classes today</div><div class="empty-action-sub">Use "New booking" to reserve a room.</div></div></div>`;
+      $('todayView').innerHTML = `<div class="card"><div class="empty-action">
+        <div class="empty-action-icon"><i class="fas fa-mug-hot"></i></div>
+        <div class="empty-action-title">No classes today</div>
+        <div class="empty-action-sub">Use "New booking" to reserve a room.</div>
+      </div></div>`;
       return;
     }
     const nowSlot = currentSlot(base.slots);
@@ -180,7 +237,11 @@ import {
 
   function renderTimetable() {
     if (!myTeaching.length) {
-      $('timetableView').innerHTML = `<div class="card"><div class="empty-action"><div class="empty-action-icon"><i class="fas fa-table"></i></div><div class="empty-action-title">No classes assigned yet</div><div class="empty-action-sub">Ask your admin to add your timetable, or use "New booking" to reserve rooms directly.</div></div></div>`;
+      $('timetableView').innerHTML = `<div class="card"><div class="empty-action">
+        <div class="empty-action-icon"><i class="fas fa-table"></i></div>
+        <div class="empty-action-title">No classes assigned yet</div>
+        <div class="empty-action-sub">Ask your admin to add your timetable, or use "New booking" to reserve rooms directly.</div>
+      </div></div>`;
       return;
     }
     const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
@@ -227,7 +288,12 @@ import {
         <div class="card-title"><i class="fas fa-list"></i> Upcoming leave</div>
         ${myLeave.length ? myLeave.map(l => {
           const slot = base.slots.find(s => s.slot_id === l.slot_id);
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:8px;background:var(--surface-hover);margin-bottom:6px;gap:12px;flex-wrap:wrap"><div><div style="font-weight:500;font-size:13px">${humanDate(l.date)}</div><div style="font-size:11px;color:var(--text-secondary);margin-top:2px">${slot ? escapeHtml(slot.label || slot.slot_id) + ' · ' + slot.start_time.slice(0,5) + '–' + slot.end_time.slice(0,5) : 'Whole day'}${l.reason ? ' · ' + escapeHtml(l.reason) : ''}</div></div><button class="btn btn-sm btn-danger" data-del-leave="${l.id}"><i class="fas fa-trash"></i></button></div>`;
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:8px;background:var(--surface-hover);margin-bottom:6px;gap:12px;flex-wrap:wrap">
+            <div><div style="font-weight:500;font-size:13px">${humanDate(l.date)}</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">${slot ? escapeHtml(slot.label || slot.slot_id) + ' · ' + slot.start_time.slice(0,5) + '–' + slot.end_time.slice(0,5) : 'Whole day'}${l.reason ? ' · ' + escapeHtml(l.reason) : ''}</div>
+            </div>
+            <button class="btn btn-sm btn-danger" data-del-leave="${l.id}"><i class="fas fa-trash"></i></button>
+          </div>`;
         }).join('') : '<div class="empty" style="padding:20px"><i class="fas fa-inbox"></i>No leave marked</div>'}
       </div>`;
     $('lvDate').value = todayISO(new Date(Date.now() + 86400000));
@@ -265,7 +331,11 @@ import {
       return b.book_date.localeCompare(a.book_date);
     });
     if (!filtered.length) {
-      $('requestsList').innerHTML = `<div class="card"><div class="empty-action"><div class="empty-action-icon"><i class="fas fa-paper-plane"></i></div><div class="empty-action-title">No ${reqFilter === 'all' ? '' : reqFilter + ' '}bookings</div><div class="empty-action-sub">Use "New booking" to request a makeup, event, or exam.</div></div></div>`;
+      $('requestsList').innerHTML = `<div class="card"><div class="empty-action">
+        <div class="empty-action-icon"><i class="fas fa-paper-plane"></i></div>
+        <div class="empty-action-title">No ${reqFilter === 'all' ? '' : reqFilter + ' '}bookings</div>
+        <div class="empty-action-sub">Use "New booking" to request a makeup, event, or exam.</div>
+      </div></div>`;
       return;
     }
     $('requestsList').innerHTML = filtered.map(r => {
@@ -273,13 +343,21 @@ import {
       const room = roomById.get(r.room_id);
       const iconMap = { pending:'fa-hourglass-half', approved:'fa-circle-check', rejected:'fa-circle-xmark', cancelled:'fa-ban' };
       const actions = [];
-      if (r.status === 'pending' || r.status === 'approved') actions.push(`<button class="btn btn-sm btn-danger" data-cancel="${r.id}"><i class="fas fa-times"></i> Cancel</button>`);
+      if (r.status === 'pending' || r.status === 'approved') {
+        actions.push(`<button class="btn btn-sm btn-danger" data-cancel="${r.id}"><i class="fas fa-times"></i> Cancel</button>`);
+      }
       const typeLabel = r.type ? r.type.charAt(0).toUpperCase() + r.type.slice(1) : 'Booking';
       return `<div class="req-card">
         <div class="req-icon ${r.status}"><i class="fas ${iconMap[r.status] || 'fa-question'}"></i></div>
         <div class="req-body">
-          <div class="req-title">${escapeHtml(typeLabel)} · ${escapeHtml(room?.display_name || r.room_id)}<span class="req-badge ${r.status}">${r.status}</span></div>
-          <div class="req-meta"><span><i class="fas fa-calendar"></i>${humanDate(r.book_date)}</span><span><i class="fas fa-clock"></i>${escapeHtml(slot?.label || r.slot_id)}</span><span><i class="fas fa-paper-plane"></i>${formatRelativeTime(r.created_at)}</span></div>
+          <div class="req-title">${escapeHtml(typeLabel)} · ${escapeHtml(room?.display_name || r.room_id)}
+            <span class="req-badge ${r.status}">${r.status}</span>
+          </div>
+          <div class="req-meta">
+            <span><i class="fas fa-calendar"></i>${humanDate(r.book_date)}</span>
+            <span><i class="fas fa-clock"></i>${escapeHtml(slot?.label || r.slot_id)}</span>
+            <span><i class="fas fa-paper-plane"></i>${formatRelativeTime(r.created_at)}</span>
+          </div>
           ${r.reason ? `<div class="req-reason">${escapeHtml(r.reason)}</div>` : ''}
         </div>
         <div class="req-actions">${actions.join('')}</div>
@@ -313,131 +391,526 @@ import {
   function tick() { $('liveTime').textContent = formatTime(nowDate()).slice(0,5); }
   setInterval(tick, 1000); tick();
 
+  /* ══════════════════════════════════════════════════════════
+     ADVANCED BOOKING MODAL
+     ══════════════════════════════════════════════════════════ */
   $('bookBtn').onclick = () => openBooking();
 
   function openBooking() {
-    if (!base.slots.length || !base.rooms.length) return toast('Admin must configure rooms and slots first', 'error');
+    if (!base.slots.length || !base.rooms.length) {
+      return toast('Admin must configure rooms and slots first', 'error');
+    }
     const allowed = ['makeup','exam','event'].filter(t => bookingTypeAllowed(settings, t));
     if (!allowed.length) return toast('No booking types enabled — ask admin', 'error');
 
-    const typeOpts = allowed.map(t => `<option value="${t}">${t.charAt(0).toUpperCase() + t.slice(1)}</option>`).join('');
-    const slotOpts = base.slots.map(s => `<option value="${escapeHtml(s.slot_id)}">${escapeHtml(s.label || s.slot_id)} (${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)})</option>`).join('');
-    const roomOpts = base.rooms.map(r => `<option value="${escapeHtml(r.room_id)}">${escapeHtml(r.display_name)}</option>`).join('');
     const autoApprove = !!settings['booking_auto_approve'];
+
+    // Working state
+    const state = {
+      type: allowed[0],
+      date: todayISO(new Date(Date.now() + 86400000)),
+      selectedSlots: new Set(),
+      roomId: null,
+      missedClassKeys: new Set(),   // "slotId|dow"
+      missedDate: todayISO(),
+      courseCode: '',
+      reason: '',
+      availability: null, // { perSlot: Map<slotId, Set<roomId>>, calendarEntry, timetable, bookings }
+    };
 
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
-    dialog.innerHTML = `<div class="modal-content modal-wide">
-      <div class="modal-header">
-        <div><div class="modal-title">Book a room</div><div class="modal-sub">${autoApprove ? 'Auto-approved — booked instantly.' : 'Sent to admin for approval.'}</div></div>
-        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
-      </div>
-      <div class="modal-body">
-        <label class="field"><span>Type *</span><select class="input" id="bkType">${typeOpts}</select></label>
-        <div id="makeupSection" style="display:none">
-          <div style="padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);line-height:1.55;margin-bottom:12px"><i class="fas fa-info-circle" style="margin-right:6px"></i>Makeup ties to a class you're missing. The original slot will be marked as <strong>Free</strong> automatically.</div>
-          <label class="field"><span>Which class is being missed? *</span>
-            <select class="input" id="bkOriginalSlot">
-              <option value="">— Select a class from your timetable —</option>
-              ${myTeaching.map(t => {
-                const slot = base.slots.find(s => s.slot_id === t.slot_id);
-                const day = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][t.day_of_week];
-                return `<option value="${escapeHtml(t.slot_id)}|${t.day_of_week}">${escapeHtml(t.course_code || 'Class')} — ${day} ${escapeHtml(slot?.label || t.slot_id)}</option>`;
-              }).join('')}
-            </select>
-          </label>
-          <label class="field"><span>Date of the missed class *</span><input class="input" type="date" id="bkOriginalDate" value="${todayISO()}"></label>
+    dialog.innerHTML = `
+      <div class="modal-content modal-wide">
+        <div class="modal-header">
+          <div>
+            <div class="modal-title"><i class="fas fa-plus"></i> New booking</div>
+            <div class="modal-sub">${autoApprove ? 'Auto-approved — booked instantly.' : 'Sent to admin for approval.'}</div>
+          </div>
+          <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
         </div>
-        <label class="field"><span>Makeup / new booking date *</span><input class="input" type="date" id="bkDate" min="${todayISO()}" value="${todayISO(new Date(Date.now() + 86400000))}"></label>
-        <label class="field"><span>Period *</span><select class="input" id="bkSlot">${slotOpts}</select></label>
-        <label class="field"><span>Room *</span><select class="input" id="bkRoom">${roomOpts}</select></label>
-        <label class="field"><span>Course code</span><input class="input" id="bkCode" placeholder="CS401"></label>
-        <label class="field"><span>Reason (optional)</span><input class="input" id="bkReason" placeholder="e.g. Doubt session before mid-terms"></label>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" data-close>Cancel</button>
-        <button class="btn btn-primary" id="bkSubmit"><i class="fas fa-check"></i> Book</button>
-      </div>
-    </div>`;
-    document.body.appendChild(dialog); dialog.showModal();
-    const close = () => { dialog.close(); dialog.remove(); };
-    dialog.querySelectorAll('[data-close]').forEach(b => b.onclick = close);
-    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
-    dialog.onclick = e => { if (e.target === dialog) close(); };
+        <div class="modal-body" id="bkBody">
 
-    const typeSel = dialog.querySelector('#bkType');
-    const makeupSection = dialog.querySelector('#makeupSection');
-    typeSel.onchange = () => { makeupSection.style.display = typeSel.value === 'makeup' ? 'block' : 'none'; };
+          <div class="bk-progress">
+            <div class="bk-progress-step done"></div>
+            <div class="bk-progress-step" id="prog2"></div>
+            <div class="bk-progress-step" id="prog3"></div>
+            <div class="bk-progress-step" id="prog4"></div>
+          </div>
 
-    dialog.querySelector('#bkSubmit').onclick = async () => {
-      const type = typeSel.value;
-      const date = dialog.querySelector('#bkDate').value;
-      const slot = dialog.querySelector('#bkSlot').value;
-      const room = dialog.querySelector('#bkRoom').value;
-      const code = dialog.querySelector('#bkCode').value.trim();
-      const reason = dialog.querySelector('#bkReason').value.trim();
-      if (!date || !slot || !room) return toast('Fill date, period, and room', 'error');
+          <!-- 1. Type -->
+          <div class="bk-section">
+            <div class="bk-section-title"><span class="num">1</span> Booking type</div>
+            <div class="chips" id="typeChips">
+              ${allowed.map(t => `<button type="button" class="chip ${t === state.type ? 'on' : ''}" data-type="${t}"><i class="fas fa-${t==='makeup'?'clock-rotate-left':t==='exam'?'file-pen':'users'}"></i> ${t.charAt(0).toUpperCase() + t.slice(1)}</button>`).join('')}
+            </div>
+          </div>
 
-      let origSlotId = null, origDate = null;
-      if (type === 'makeup') {
-        const origVal = dialog.querySelector('#bkOriginalSlot').value;
-        origDate = dialog.querySelector('#bkOriginalDate').value;
-        if (!origVal || !origDate) return toast('Select the missed class and its date', 'error');
-        origSlotId = origVal.split('|')[0];
+          <!-- 2. Date -->
+          <div class="bk-section">
+            <div class="bk-section-title"><span class="num">2</span> Date</div>
+            <input class="input" type="date" id="bkDate" min="${todayISO()}" value="${state.date}">
+            <div class="date-warn" id="dateWarn"></div>
+          </div>
+
+          <!-- 3. Slots (multi) -->
+          <div class="bk-section">
+            <div class="bk-section-title">
+              <span class="num">3</span> Periods
+              <span class="hint" id="slotHint">Select one or more</span>
+            </div>
+            <div class="slot-grid" id="slotGrid"></div>
+          </div>
+
+          <!-- 4. Room -->
+          <div class="bk-section">
+            <div class="bk-section-title"><span class="num">4</span> Room</div>
+            <select class="input" id="bkRoom" disabled><option value="">— Select periods first —</option></select>
+            <div class="room-hint" id="roomHint"></div>
+          </div>
+
+          <!-- 5. If makeup — missed classes -->
+          <div class="bk-section" id="makeupSection" style="display:none">
+            <div class="bk-section-title">
+              <span class="num">5</span> Classes being missed
+              <span class="hint" id="missedHint">Select the classes you're making up for</span>
+            </div>
+            <div class="missed-list" id="missedList"></div>
+            <label class="field" style="margin-top:12px">
+              <span>Date of the missed classes *</span>
+              <input class="input" type="date" id="bkMissedDate" value="${state.missedDate}">
+            </label>
+            <div style="font-size:11.5px;color:var(--text-secondary);margin-top:6px;line-height:1.5">
+              <i class="fas fa-info-circle" style="margin-right:4px"></i>
+              Your original classes on this date will show as <strong>Free</strong> on the room grid, so colleagues can use that room.
+            </div>
+          </div>
+
+          <!-- 6. Course & reason -->
+          <div class="bk-section">
+            <div class="bk-section-title"><span class="num">6</span> Details</div>
+            <label class="field" style="margin-bottom:12px"><span>Course code</span>
+              <input class="input" id="bkCode" placeholder="CS401" maxlength="20">
+            </label>
+            <label class="field" style="margin-bottom:0"><span>Reason (optional)</span>
+              <input class="input" id="bkReason" placeholder="e.g. Doubt session before mid-terms" maxlength="200">
+            </label>
+          </div>
+
+          <!-- Summary -->
+          <div class="bk-summary" id="summaryBox" style="margin-top:20px"></div>
+
+        </div>
+        <div class="modal-footer">
+          <button class="btn" data-close>Cancel</button>
+          <button class="btn btn-primary" id="bkSubmit" disabled><i class="fas fa-check"></i> Book</button>
+        </div>
+      </div>`;
+    document.body.appendChild(dialog);
+    dialog.showModal();
+
+    const refs = {
+      body: dialog.querySelector('#bkBody'),
+      dateInput: dialog.querySelector('#bkDate'),
+      dateWarn: dialog.querySelector('#dateWarn'),
+      slotGrid: dialog.querySelector('#slotGrid'),
+      slotHint: dialog.querySelector('#slotHint'),
+      roomSelect: dialog.querySelector('#bkRoom'),
+      roomHint: dialog.querySelector('#roomHint'),
+      makeupSection: dialog.querySelector('#makeupSection'),
+      missedList: dialog.querySelector('#missedList'),
+      missedHint: dialog.querySelector('#missedHint'),
+      missedDate: dialog.querySelector('#bkMissedDate'),
+      code: dialog.querySelector('#bkCode'),
+      reason: dialog.querySelector('#bkReason'),
+      submit: dialog.querySelector('#bkSubmit'),
+      summary: dialog.querySelector('#summaryBox'),
+      prog2: dialog.querySelector('#prog2'),
+      prog3: dialog.querySelector('#prog3'),
+      prog4: dialog.querySelector('#prog4'),
+    };
+
+    /* ---------- Type chips ---------- */
+    dialog.querySelectorAll('[data-type]').forEach(btn => {
+      btn.onclick = () => {
+        state.type = btn.dataset.type;
+        dialog.querySelectorAll('[data-type]').forEach(b => b.classList.toggle('on', b === btn));
+        refs.makeupSection.style.display = state.type === 'makeup' ? 'block' : 'none';
+        if (state.type === 'makeup') renderMissedClasses();
+        updateSummary();
+      };
+    });
+    if (state.type === 'makeup') {
+      refs.makeupSection.style.display = 'block';
+      renderMissedClasses();
+    }
+
+    /* ---------- Date handling ---------- */
+    refs.dateInput.onchange = () => {
+      state.date = refs.dateInput.value;
+      state.selectedSlots.clear();
+      state.roomId = null;
+      loadAvailability();
+    };
+
+    /* ---------- Availability loader ---------- */
+    async function loadAvailability() {
+      refs.dateWarn.classList.remove('show');
+      refs.slotGrid.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12.5px;grid-column:1/-1"><i class="fas fa-spinner fa-spin"></i> Checking availability…</div>';
+
+      const data = await loadDataForDate(state.date);
+      const dow = dayOfWeekNum(state.date);
+
+      // Warnings
+      if (data.calendarEntry) {
+        const ce = data.calendarEntry;
+        if (ce.kind === 'holiday') {
+          refs.dateWarn.innerHTML = `<i class="fas fa-triangle-exclamation"></i><div><strong>Holiday:</strong> ${escapeHtml(ce.label || 'Holiday')} — bookings on this date are unusual but allowed.</div>`;
+          refs.dateWarn.classList.add('show');
+        } else if (ce.kind === 'exam_week') {
+          refs.dateWarn.innerHTML = `<i class="fas fa-info-circle"></i><div>Exam week — room availability may be limited.</div>`;
+          refs.dateWarn.classList.add('show');
+        } else if (ce.kind === 'working_saturday') {
+          refs.dateWarn.innerHTML = `<i class="fas fa-info-circle"></i><div>Working Saturday — classes follow the normal schedule.</div>`;
+          refs.dateWarn.classList.add('show');
+        }
+      } else if (dow === 0) {
+        refs.dateWarn.innerHTML = `<i class="fas fa-triangle-exclamation"></i><div><strong>Sunday</strong> — most rooms are closed unless explicitly marked "weekend open".</div>`;
+        refs.dateWarn.classList.add('show');
       }
 
-      const btn = dialog.querySelector('#bkSubmit');
-      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Booking…';
+      // Compute per-slot free rooms
+      const perSlot = new Map();
+      for (const slot of base.slots) {
+        const free = new Set();
+        for (const room of base.rooms) {
+          const cell = classifyCell({
+            roomId: room.room_id, slotId: slot.slot_id, dateStr: state.date,
+            timetable: data.timetable, bookings: data.bookings,
+            calendarEntry: data.calendarEntry, weekendOpen: room.weekend_open,
+            unavailability: data.unavailability,
+          });
+          if (cell.state === 'free') free.add(room.room_id);
+        }
+        perSlot.set(slot.slot_id, free);
+      }
 
-      if (type === 'makeup' && origSlotId && origDate) {
-        const { error: unavailErr } = await supabase.from('faculty_unavailability').insert({
-          faculty_id: myId, date: origDate, slot_id: origSlotId, reason: 'Auto-created by makeup booking',
-        });
-        if (unavailErr && !unavailErr.message.toLowerCase().includes('duplicate')) {
-          btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Book';
-          return toast(unavailErr.message, 'error');
+      state.availability = { perSlot, data, dow };
+
+      // Render slot cards
+      renderSlotGrid();
+      renderRoomOptions();
+      updateSummary();
+    }
+
+    /* ---------- Slot grid ---------- */
+    function renderSlotGrid() {
+      if (!state.availability) return;
+      const isToday = state.date === todayISO();
+      const nowStr = formatTime(nowDate());
+      const nowSlotId = currentSlot(base.slots)?.slot_id;
+
+      refs.slotGrid.innerHTML = base.slots.map(slot => {
+        const free = state.availability.perSlot.get(slot.slot_id);
+        const count = free.size;
+        const ended = isToday && slot.end_time <= nowStr;
+        const disabled = ended || count === 0;
+        const selected = state.selectedSlots.has(slot.slot_id);
+        const isNow = isToday && slot.slot_id === nowSlotId;
+        const availText = ended ? 'Ended' : count === 0 ? 'Fully booked' : `${count} room${count === 1 ? '' : 's'} free`;
+        return `<button type="button" class="slot-card ${selected ? 'selected' : ''}" data-slot="${slot.slot_id}" ${disabled ? 'disabled' : ''}>
+          <div class="slot-card-time">${slot.start_time.slice(0,5)}–${slot.end_time.slice(0,5)}${isNow ? ' ⏱' : ''}</div>
+          <div class="slot-card-label">${escapeHtml(slot.label || slot.slot_id)}</div>
+          <div class="slot-card-avail ${count === 0 || ended ? 'none' : ''}">
+            <i class="fas ${ended ? 'fa-clock' : count === 0 ? 'fa-lock' : 'fa-door-open'}"></i> ${availText}
+          </div>
+        </button>`;
+      }).join('');
+
+      refs.slotGrid.querySelectorAll('[data-slot]').forEach(btn => {
+        btn.onclick = () => {
+          const sid = btn.dataset.slot;
+          if (state.selectedSlots.has(sid)) state.selectedSlots.delete(sid);
+          else state.selectedSlots.add(sid);
+          renderSlotGrid();
+          renderRoomOptions();
+          updateSummary();
+        };
+      });
+
+      const n = state.selectedSlots.size;
+      refs.slotHint.textContent = n === 0 ? 'Select one or more' : `${n} period${n === 1 ? '' : 's'} selected`;
+    }
+
+    /* ---------- Room options (filtered by ALL selected slots) ---------- */
+    function renderRoomOptions() {
+      if (!state.availability) return;
+      const n = state.selectedSlots.size;
+      if (n === 0) {
+        refs.roomSelect.disabled = true;
+        refs.roomSelect.innerHTML = '<option value="">— Select periods first —</option>';
+        refs.roomHint.className = 'room-hint';
+        refs.roomHint.textContent = '';
+        return;
+      }
+
+      // Intersection: room must be free in ALL selected slots
+      const slotsArr = [...state.selectedSlots];
+      let intersection = null;
+      for (const sid of slotsArr) {
+        const free = state.availability.perSlot.get(sid) || new Set();
+        if (intersection === null) intersection = new Set(free);
+        else {
+          for (const r of [...intersection]) if (!free.has(r)) intersection.delete(r);
         }
       }
 
-      const { error } = await supabase.from('bookings').insert({
-        room_id: room, book_date: date, slot_id: slot, type,
-        status: 'pending', faculty_id: myId, created_by: myId,
-        course_code: code || null, reason: reason || null,
-      });
+      const roomList = base.rooms.filter(r => intersection.has(r.room_id));
 
-      if (error) {
-        btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Book';
-        return toast(error.message, 'error');
+      refs.roomSelect.disabled = roomList.length === 0;
+      if (!roomList.length) {
+        refs.roomSelect.innerHTML = '<option value="">— No rooms free in all selected periods —</option>';
+        refs.roomHint.className = 'room-hint warn';
+        refs.roomHint.textContent = 'Try removing a period or picking a different date.';
+        state.roomId = null;
+        return;
       }
 
-      toast(autoApprove ? 'Booked & approved' : 'Request sent — pending approval', 'success');
-      close();
-      await loadAll();
+      refs.roomSelect.innerHTML = '<option value="">— Select a room —</option>' + roomList.map(r =>
+        `<option value="${escapeHtml(r.room_id)}">${escapeHtml(r.display_name)} · ${r.capacity || '?'} seats · ${escapeHtml(r.type)}</option>`
+      ).join('');
+
+      refs.roomHint.className = 'room-hint ok';
+      refs.roomHint.innerHTML = `<i class="fas fa-check-circle" style="margin-right:4px"></i>${roomList.length} room${roomList.length === 1 ? '' : 's'} free in all ${n} selected period${n === 1 ? '' : 's'}`;
+
+      // Restore previous selection if still valid
+      if (state.roomId && !roomList.find(r => r.room_id === state.roomId)) state.roomId = null;
+      if (state.roomId) refs.roomSelect.value = state.roomId;
+    }
+
+    refs.roomSelect.onchange = () => {
+      state.roomId = refs.roomSelect.value || null;
+      updateSummary();
     };
+
+    /* ---------- Missed classes ---------- */
+    function renderMissedClasses() {
+      if (!myTeaching.length) {
+        refs.missedList.innerHTML = `<div class="missed-empty">
+          <i class="fas fa-table"></i>
+          <div style="font-weight:600;color:var(--text);margin-bottom:4px">No timetable rows found</div>
+          <div>Ask your admin to add your classes first, or use <strong>Exam</strong> / <strong>Event</strong> type instead.</div>
+        </div>`;
+        state.missedClassKeys.clear();
+        updateSummary();
+        return;
+      }
+
+      const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
+      const roomById = new Map(base.rooms.map(r => [r.room_id, r]));
+
+      const sorted = [...myTeaching].sort((a, b) => {
+        if (a.day_of_week !== b.day_of_week) return a.day_of_week - b.day_of_week;
+        return (slotById.get(a.slot_id)?.start_time || '').localeCompare(slotById.get(b.slot_id)?.start_time || '');
+      });
+
+      refs.missedList.innerHTML = sorted.map(t => {
+        const key = `${t.slot_id}|${t.day_of_week}`;
+        const checked = state.missedClassKeys.has(key);
+        const slot = slotById.get(t.slot_id);
+        const room = roomById.get(t.room_id);
+        return `<label class="missed-item">
+          <input type="checkbox" data-missed-key="${escapeHtml(key)}" ${checked ? 'checked' : ''}>
+          <div class="missed-item-body">
+            <div class="missed-item-title">
+              <span class="missed-item-code">${escapeHtml(t.course_code || '—')}</span>
+              <span>${escapeHtml(t.course_name || 'Class')}</span>
+            </div>
+            <div class="missed-item-meta">
+              <i class="fas fa-calendar" style="margin-right:3px"></i>${dayNames[t.day_of_week]}
+              · <i class="fas fa-clock" style="margin-right:3px"></i>${escapeHtml(slot?.label || t.slot_id)} ${slot ? slot.start_time.slice(0,5)+'–'+slot.end_time.slice(0,5) : ''}
+              · <i class="fas fa-door-open" style="margin-right:3px"></i>${escapeHtml(room?.display_name || t.room_id)}
+            </div>
+          </div>
+        </label>`;
+      }).join('');
+
+      refs.missedList.querySelectorAll('[data-missed-key]').forEach(cb => {
+        cb.onchange = () => {
+          if (cb.checked) state.missedClassKeys.add(cb.dataset.missedKey);
+          else state.missedClassKeys.delete(cb.dataset.missedKey);
+          const n = state.missedClassKeys.size;
+          refs.missedHint.textContent = n === 0 ? 'Select the classes you\'re making up for' : `${n} class${n === 1 ? '' : 'es'} selected`;
+          updateSummary();
+        };
+      });
+
+      const n = state.missedClassKeys.size;
+      refs.missedHint.textContent = n === 0 ? 'Select the classes you\'re making up for' : `${n} class${n === 1 ? '' : 'es'} selected`;
+    }
+
+    refs.missedDate.onchange = () => {
+      state.missedDate = refs.missedDate.value;
+      updateSummary();
+    };
+
+    /* ---------- Course & reason ---------- */
+    refs.code.oninput = () => { state.courseCode = refs.code.value.trim(); updateSummary(); };
+    refs.reason.oninput = () => { state.reason = refs.reason.value.trim(); };
+
+    /* ---------- Summary ---------- */
+    function updateSummary() {
+      const n = state.selectedSlots.size;
+      const slotsArr = [...state.selectedSlots];
+      const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
+      const room = state.roomId ? base.rooms.find(r => r.room_id === state.roomId) : null;
+      const missedN = state.missedClassKeys.size;
+
+      // Progress bars
+      refs.prog2.classList.toggle('done', n > 0);
+      refs.prog3.classList.toggle('done', !!state.roomId);
+      refs.prog4.classList.toggle('done', state.type !== 'makeup' || missedN > 0);
+
+      // Summary table
+      const rows = [];
+      rows.push(`<div class="bk-summary-row"><span class="bk-summary-label">Type</span><span class="bk-summary-value" style="text-transform:capitalize">${escapeHtml(state.type)}</span></div>`);
+      rows.push(`<div class="bk-summary-row"><span class="bk-summary-label">Date</span><span class="bk-summary-value">${humanDate(state.date)}</span></div>`);
+
+      if (n === 0) {
+        rows.push(`<div class="bk-summary-row"><span class="bk-summary-label">Periods</span><span class="bk-summary-value" style="color:var(--danger)">Not selected</span></div>`);
+      } else {
+        const slotLabels = slotsArr.map(sid => slotById.get(sid)?.start_time.slice(0,5) || sid).join(', ');
+        rows.push(`<div class="bk-summary-row"><span class="bk-summary-label">Periods</span><span class="bk-summary-value">${escapeHtml(slotLabels)} <span style="color:var(--text-secondary)">(${n})</span></span></div>`);
+      }
+
+      if (!room) {
+        rows.push(`<div class="bk-summary-row"><span class="bk-summary-label">Room</span><span class="bk-summary-value" style="color:var(--danger)">Not selected</span></div>`);
+      } else {
+        rows.push(`<div class="bk-summary-row"><span class="bk-summary-label">Room</span><span class="bk-summary-value">${escapeHtml(room.display_name)}</span></div>`);
+      }
+
+      if (state.type === 'makeup') {
+        if (missedN === 0) {
+          rows.push(`<div class="bk-summary-row"><span class="bk-summary-label">Missed classes</span><span class="bk-summary-value" style="color:var(--danger)">Not selected</span></div>`);
+        } else {
+          rows.push(`<div class="bk-summary-row"><span class="bk-summary-label">Missed classes</span><span class="bk-summary-value">${missedN} class${missedN === 1 ? '' : 'es'} on ${humanDate(state.missedDate)}</span></div>`);
+        }
+      }
+
+      if (state.courseCode) {
+        rows.push(`<div class="bk-summary-row"><span class="bk-summary-label">Course</span><span class="bk-summary-value mono">${escapeHtml(state.courseCode)}</span></div>`);
+      }
+
+      if (n > 0 && room) {
+        const auto = !!settings['booking_auto_approve'];
+        rows.push(`<div class="bk-summary-total"><span class="bk-summary-label">Creates</span><span class="bk-summary-value"><span class="brand">${n}</span> booking${n === 1 ? '' : 's'} ${auto ? '· auto-approved' : '· pending approval'}${state.type === 'makeup' && missedN > 0 ? ` + <span class="brand">${missedN}</span> leave entr${missedN === 1 ? 'y' : 'ies'}` : ''}</span></div>`);
+      }
+
+      refs.summary.innerHTML = `<div class="bk-summary-title"><i class="fas fa-clipboard-check"></i> Summary</div>` + rows.join('');
+
+      // Submit validation
+      const canSubmit = (
+        state.type &&
+        state.date &&
+        n > 0 &&
+        state.roomId &&
+        (state.type !== 'makeup' || (missedN > 0 && state.missedDate))
+      );
+      refs.submit.disabled = !canSubmit;
+      refs.submit.innerHTML = `<i class="fas fa-check"></i> Book${n > 1 ? ' ' + n + ' periods' : ''}`;
+    }
+
+    /* ---------- Submit ---------- */
+    refs.submit.onclick = async () => {
+      const n = state.selectedSlots.size;
+      if (n === 0) return toast('Select at least one period', 'error');
+      if (!state.roomId) return toast('Select a room', 'error');
+      if (state.type === 'makeup' && (state.missedClassKeys.size === 0 || !state.missedDate)) {
+        return toast('Select the classes you\'re missing and their date', 'error');
+      }
+
+      refs.submit.disabled = true;
+      refs.submit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Booking…';
+
+      try {
+        const auto = !!settings['booking_auto_approve'];
+        const results = { bookings: 0, leave: 0, failedBookings: [], failedLeave: [] };
+
+        // 1. Create leave entries for missed classes (makeup only)
+        if (state.type === 'makeup' && state.missedClassKeys.size > 0) {
+          for (const key of state.missedClassKeys) {
+            const [slotId, dowStr] = key.split('|');
+            const { error } = await supabase.from('faculty_unavailability').insert({
+              faculty_id: myId,
+              date: state.missedDate,
+              slot_id: slotId,
+              reason: 'Auto-created by makeup booking',
+            });
+            if (error && !error.message.toLowerCase().includes('duplicate')) {
+              results.failedLeave.push(`${slotId}: ${error.message}`);
+            } else if (!error) {
+              results.leave++;
+            }
+          }
+        }
+
+        // 2. Create bookings (one per slot)
+        const slotsToBook = [...state.selectedSlots];
+        for (const slotId of slotsToBook) {
+          const { error } = await supabase.from('bookings').insert({
+            room_id: state.roomId,
+            book_date: state.date,
+            slot_id: slotId,
+            type: state.type,
+            status: 'pending',
+            faculty_id: myId,
+            created_by: myId,
+            course_code: state.courseCode || null,
+            reason: state.reason || null,
+          });
+          if (error) results.failedBookings.push(`${slotId}: ${error.message}`);
+          else results.bookings++;
+        }
+
+        // 3. Report
+        if (results.bookings === 0) {
+          toast('Failed: ' + (results.failedBookings[0] || 'unknown error'), 'error');
+          refs.submit.disabled = false;
+          refs.submit.innerHTML = '<i class="fas fa-check"></i> Book';
+          return;
+        }
+
+        const parts = [`${results.bookings} booking${results.bookings === 1 ? '' : 's'} ${auto ? 'created' : 'submitted'}`];
+        if (results.leave > 0) parts.push(`${results.leave} leave entr${results.leave === 1 ? 'y' : 'ies'}`);
+        if (results.failedBookings.length) parts.push(`${results.failedBookings.length} failed`);
+
+        toast(parts.join(' · '), results.failedBookings.length ? 'info' : 'success');
+
+        dialog.close();
+        dialog.remove();
+        await loadAll();
+      } catch (err) {
+        console.error(err);
+        toast('Booking failed: ' + (err.message || err), 'error');
+        refs.submit.disabled = false;
+        refs.submit.innerHTML = '<i class="fas fa-check"></i> Book';
+      }
+    };
+
+    /* ---------- Close ---------- */
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+
+    /* ---------- Boot ---------- */
+    loadAvailability();
   }
 
   await loadAll();
   setInterval(() => { if (!document.hidden) loadAll(); }, 60_000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadAll(); });
-
-  // ───── First-login password reminder ─────
-  try {
-    const { data: p } = await supabase.from('profiles').select('password_changed_at').eq('id', auth.profile.id).single();
-    if (p && p.password_changed_at === null) {
-      const banner = document.createElement('div');
-      banner.className = 'pw-reminder';
-      banner.innerHTML = `
-        <i class="fas fa-shield-halved"></i>
-        <div class="pw-reminder-body">
-          <strong>Password change required</strong>
-          You're still using the temporary password.
-        </div>
-        <a href="profile.html?first=1" class="btn btn-sm btn-primary">Change now</a>
-        <button class="pw-reminder-x" onclick="this.parentElement.remove()" title="Dismiss">×</button>
-      `;
-      document.body.appendChild(banner);
-    }
-  } catch {}
 })();
 </script>
 </body>
