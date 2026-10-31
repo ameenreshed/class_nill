@@ -22,6 +22,38 @@
   .set-toggle:disabled{opacity:.5;cursor:not-allowed}
   .set-section-title{font-size:15px;font-weight:600;color:var(--text);margin:24px 0 12px;display:flex;align-items:center;gap:8px}
   .set-section-title i{color:var(--brand)}
+
+  /* Banner editor */
+  .bn-types{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px}
+  .bn-type-btn{padding:10px 12px;border:1.5px solid var(--border);background:var(--surface);border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:8px;text-align:left;font:inherit;color:var(--text);transition:all 140ms ease;font-size:13px;font-weight:500}
+  .bn-type-btn:hover{border-color:var(--border-strong);background:var(--surface-hover)}
+  .bn-type-btn.selected{border-color:var(--brand);background:var(--brand-soft);color:var(--brand-text)}
+  .bn-type-btn i{font-size:13px;flex-shrink:0}
+  .bn-type-btn.info.selected{border-color:#3B82F6;background:rgba(59,130,246,0.1);color:#1D4ED8}
+  .bn-type-btn.warning.selected{border-color:#D97706;background:rgba(217,119,6,0.1);color:#92400E}
+  .bn-type-btn.danger.selected{border-color:#DC2626;background:rgba(220,38,38,0.1);color:#991B1B}
+  .bn-type-btn.success.selected{border-color:#16A34A;background:rgba(22,163,74,0.1);color:#166534}
+
+  .bn-preview{
+    margin-top:14px;border-radius:10px;padding:12px 18px;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    color:#fff;font-size:13px;font-weight:500;text-align:center;
+    box-shadow:0 2px 12px rgba(0,0,0,0.15);
+    min-height:48px;
+  }
+  .bn-preview i{font-size:14px;flex-shrink:0}
+  .bn-preview-text{flex:1;overflow-wrap:break-word}
+  .bn-preview-placeholder{opacity:0.6;font-style:italic;font-weight:400}
+
+  .bn-option-row{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:10px;margin-top:10px;cursor:pointer;transition:all 160ms ease}
+  .bn-option-row:hover{background:var(--surface-hover);border-color:var(--border-strong)}
+  .bn-option-row:has(input:checked){background:var(--brand-soft);border-color:var(--brand-soft-border)}
+  .bn-option-row input{width:18px;height:18px;flex-shrink:0;margin-top:2px;accent-color:var(--brand);cursor:pointer}
+  .bn-option-body{flex:1;min-width:0}
+  .bn-option-title{font-weight:600;font-size:13px;color:var(--text)}
+  .bn-option-desc{font-size:12px;color:var(--text-secondary);margin-top:2px;line-height:1.5}
+
+  .bn-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
 </style>
 </head>
 <body>
@@ -50,12 +82,52 @@
   <h2 class="set-section-title"><i class="fas fa-graduation-cap"></i> Faculty permissions</h2>
   <div id="facultyTiles"></div>
 
-  <h2 class="set-section-title"><i class="fas fa-bullhorn"></i> Site banner</h2>
+  <h2 class="set-section-title"><i class="fas fa-bullhorn"></i> Site-wide banner</h2>
   <div class="card">
-    <label class="field"><span>Banner message (shown on free-rooms page)</span>
-      <input class="input" id="bannerInput" placeholder="e.g. Mid-term exams next week — bookings paused on 20th">
+    <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:18px">
+      Shows on <strong>every page</strong> for all logged-in users. Dismissible per session. Great for maintenance notices, launch announcements, or "under construction" warnings.
+    </p>
+
+    <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Banner type</div>
+    <div class="bn-types" id="bnTypes">
+      <button type="button" class="bn-type-btn info" data-type="info"><i class="fas fa-circle-info"></i> Info</button>
+      <button type="button" class="bn-type-btn warning" data-type="warning"><i class="fas fa-triangle-exclamation"></i> Warning</button>
+      <button type="button" class="bn-type-btn danger" data-type="danger"><i class="fas fa-circle-exclamation"></i> Danger</button>
+      <button type="button" class="bn-type-btn success" data-type="success"><i class="fas fa-circle-check"></i> Success</button>
+    </div>
+
+    <label class="field" style="margin-top:16px">
+      <span>Message *</span>
+      <textarea class="input" id="bnMessage" rows="3" maxlength="400" placeholder="e.g. Beta Preview — This system is under active development. Some features may change without notice."></textarea>
+      <div style="font-size:11px;color:var(--text-secondary);margin-top:4px"><span id="bnCharCount">0</span> / 400 characters</div>
     </label>
-    <button class="btn btn-primary btn-sm" id="saveBannerBtn"><i class="fas fa-check"></i> Save banner</button>
+
+    <label class="bn-option-row">
+      <input type="checkbox" id="bnEnabled" checked>
+      <div class="bn-option-body">
+        <div class="bn-option-title">Banner enabled</div>
+        <div class="bn-option-desc">Turn off to hide the banner everywhere without deleting the message.</div>
+      </div>
+    </label>
+
+    <label class="bn-option-row">
+      <input type="checkbox" id="bnDismissible" checked>
+      <div class="bn-option-body">
+        <div class="bn-option-title">Allow users to dismiss</div>
+        <div class="bn-option-desc">When on, users can hide the banner for their session. Turn off for critical notices that must be seen.</div>
+      </div>
+    </label>
+
+    <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em;margin:18px 0 8px">Live preview</div>
+    <div class="bn-preview" id="bnPreview">
+      <i class="fas fa-triangle-exclamation"></i>
+      <div class="bn-preview-text bn-preview-placeholder">Banner message will appear here</div>
+    </div>
+
+    <div class="bn-actions">
+      <button class="btn btn-primary" id="bnSaveBtn"><i class="fas fa-check"></i> Save banner</button>
+      <button class="btn" id="bnClearBtn"><i class="fas fa-xmark"></i> Clear</button>
+    </div>
   </div>
 
   <h2 class="set-section-title"><i class="fas fa-cloud-arrow-down"></i> LPU data import</h2>
@@ -98,6 +170,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   const $ = id => document.getElementById(id);
 
   let settings = {};
+  let bannerState = { enabled: true, type: 'warning', message: '', dismissible: true };
 
   const POLICY_TOGGLES = [
     { key: 'booking_auto_approve', title: 'Auto-approve bookings', icon: 'fa-bolt',
@@ -123,17 +196,15 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       </div>`;
   }
 
+  /* ============ Load everything ============ */
   async function load() {
     const { data } = await supabase.from('system_settings').select('*');
     settings = {};
     (data ?? []).forEach(s => { settings[s.key] = s.value; });
 
+    // Policy + faculty toggles
     $('policyTiles').innerHTML  = POLICY_TOGGLES.map(t => tileHTML(t, !!settings[t.key])).join('');
     $('facultyTiles').innerHTML = FACULTY_TOGGLES.map(t => tileHTML(t, settings[t.key] !== false)).join('');
-
-    $('bannerInput').value = typeof settings['site_banner'] === 'string' ? settings['site_banner'] : '';
-    $('apiUrlInput').value = settings['lpu_api_url'] || '';
-    $('apiKeyInput').value = settings['lpu_api_key'] || '';
 
     document.querySelectorAll('.set-toggle').forEach(btn => {
       btn.onclick = async () => {
@@ -151,17 +222,128 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         settings[key] = next;
       };
     });
+
+    // Load banner (accept string or object)
+    const raw = settings['site_banner'];
+    if (typeof raw === 'string') {
+      bannerState = { enabled: !!raw.trim(), type: 'warning', message: raw, dismissible: true };
+    } else if (raw && typeof raw === 'object') {
+      bannerState = {
+        enabled: raw.enabled !== false,
+        type: ['info','warning','danger','success'].includes(raw.type) ? raw.type : 'warning',
+        message: raw.message || '',
+        dismissible: raw.dismissible !== false,
+      };
+    }
+
+    // Populate banner editor
+    $('bnMessage').value = bannerState.message;
+    $('bnEnabled').checked = bannerState.enabled;
+    $('bnDismissible').checked = bannerState.dismissible;
+    document.querySelectorAll('[data-type]').forEach(b => {
+      b.classList.toggle('selected', b.dataset.type === bannerState.type);
+    });
+    updatePreview();
+    updateCharCount();
+
+    // API credentials
+    $('apiUrlInput').value = settings['lpu_api_url'] || '';
+    $('apiKeyInput').value = settings['lpu_api_key'] || '';
   }
 
-  $('saveBannerBtn').onclick = async () => {
-    const msg = $('bannerInput').value.trim();
-    const { error } = await supabase.rpc('admin_set_setting', {
-      p_key: 'site_banner', p_value: JSON.stringify(msg),
-    });
-    if (error) return toast(error.message, 'error');
-    toast('Banner saved', 'success');
+  /* ============ Banner editor ============ */
+  const PALETTE = {
+    info:    { bg: 'linear-gradient(90deg,#3B82F6,#2563EB)', icon: 'fa-circle-info' },
+    warning: { bg: 'linear-gradient(90deg,#F59E0B,#D97706)', icon: 'fa-triangle-exclamation' },
+    danger:  { bg: 'linear-gradient(90deg,#EF4444,#DC2626)', icon: 'fa-circle-exclamation' },
+    success: { bg: 'linear-gradient(90deg,#22C55E,#16A34A)', icon: 'fa-circle-check' },
   };
 
+  function updatePreview() {
+    const p = PALETTE[bannerState.type] || PALETTE.warning;
+    const preview = $('bnPreview');
+    preview.style.background = p.bg;
+    const msg = bannerState.message.trim();
+    if (!msg) {
+      preview.innerHTML = `<i class="fas ${p.icon}"></i><div class="bn-preview-text bn-preview-placeholder">Banner message will appear here</div>`;
+    } else {
+      preview.innerHTML = `<i class="fas ${p.icon}"></i><div class="bn-preview-text">${escapeHtml(msg)}</div>`;
+    }
+    if (!bannerState.enabled) preview.style.opacity = '0.4';
+    else preview.style.opacity = '1';
+  }
+
+  function updateCharCount() {
+    $('bnCharCount').textContent = $('bnMessage').value.length;
+  }
+
+  document.querySelectorAll('[data-type]').forEach(btn => {
+    btn.onclick = () => {
+      bannerState.type = btn.dataset.type;
+      document.querySelectorAll('[data-type]').forEach(b => b.classList.toggle('selected', b === btn));
+      updatePreview();
+    };
+  });
+
+  $('bnMessage').oninput = () => {
+    bannerState.message = $('bnMessage').value;
+    updatePreview();
+    updateCharCount();
+  };
+
+  $('bnEnabled').onchange = () => {
+    bannerState.enabled = $('bnEnabled').checked;
+    updatePreview();
+  };
+
+  $('bnDismissible').onchange = () => {
+    bannerState.dismissible = $('bnDismissible').checked;
+  };
+
+  $('bnSaveBtn').onclick = async () => {
+    const msg = $('bnMessage').value.trim();
+    if (msg && msg.length < 3) return toast('Message must be at least 3 characters', 'error');
+
+    const cfg = {
+      enabled: $('bnEnabled').checked && msg.length > 0,
+      type: bannerState.type,
+      message: msg,
+      dismissible: $('bnDismissible').checked,
+    };
+
+    const btn = $('bnSaveBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+
+    const { error } = await supabase.rpc('admin_set_setting', {
+      p_key: 'site_banner',
+      p_value: JSON.stringify(cfg),
+    });
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check"></i> Save banner';
+
+    if (error) return toast(error.message, 'error');
+    toast(cfg.enabled ? 'Banner saved — visible on all pages' : 'Banner saved (disabled)', 'success');
+  };
+
+  $('bnClearBtn').onclick = async () => {
+    if (!confirm('Clear the banner message everywhere?')) return;
+    $('bnMessage').value = '';
+    $('bnEnabled').checked = false;
+    bannerState.message = '';
+    updatePreview();
+    updateCharCount();
+
+    const { error } = await supabase.rpc('admin_set_setting', {
+      p_key: 'site_banner',
+      p_value: JSON.stringify({ enabled: false, type: 'warning', message: '', dismissible: true }),
+    });
+    if (error) return toast(error.message, 'error');
+    toast('Banner cleared', 'success');
+  };
+
+  /* ============ API credentials ============ */
   $('saveApiBtn').onclick = async () => {
     const url = $('apiUrlInput').value.trim();
     const key = $('apiKeyInput').value;
