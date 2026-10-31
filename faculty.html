@@ -51,7 +51,6 @@
 .req-reason{font-size:12px;color:var(--text-secondary);margin-top:8px;padding:8px 10px;background:var(--surface-hover);border-radius:6px;border-left:3px solid var(--border-strong);line-height:1.5}
 .req-actions{display:flex;gap:6px;align-items:flex-start;flex-shrink:0;flex-wrap:wrap}
 
-/* Auto-leave section in bookings tab */
 .leave-details{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden}
 .leave-details summary{padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--text);list-style:none;background:var(--bg-subtle);transition:background 120ms}
 .leave-details summary:hover{background:var(--surface-hover)}
@@ -68,7 +67,6 @@
 .leave-date{font-weight:500;font-size:13px;color:var(--text)}
 .leave-meta{font-size:11px;color:var(--text-secondary);margin-top:2px;line-height:1.4}
 
-/* ═══════════ Booking modal ═══════════ */
 .bk-section{margin-bottom:20px}
 .bk-section:last-child{margin-bottom:0}
 .bk-section-title{font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
@@ -191,7 +189,6 @@ import {
     renderStats(); renderToday(); renderTimetable(); renderLeaveSection(); renderRequests(); updateReqCount();
   }
 
-  /* ============ Stats ============ */
   function renderStats() {
     const today = todayISO(); const dow = dayOfWeekNum(today);
     const todayClasses = myTeaching.filter(t => t.day_of_week === dow);
@@ -212,7 +209,6 @@ import {
       <div class="stat"><i class="fas fa-calendar-check stat-icon" style="color:var(--success)"></i><div class="stat-value" style="color:var(--success)">${monthApproved}</div><div class="stat-label">Approved this month</div></div>`;
   }
 
-  /* ============ Today ============ */
   function renderToday() {
     const today = todayISO(); const dow = dayOfWeekNum(today);
     const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
@@ -223,7 +219,7 @@ import {
       $('todayView').innerHTML = `<div class="card"><div class="empty-action">
         <div class="empty-action-icon"><i class="fas fa-mug-hot"></i></div>
         <div class="empty-action-title">No classes today</div>
-        <div class="empty-action-sub">Use "New booking" to reserve a room, or mark a makeup if you missed a class.</div>
+        <div class="empty-action-sub">Use "New booking" to reserve a room.</div>
       </div></div>`;
       return;
     }
@@ -249,7 +245,6 @@ import {
     }).join('');
   }
 
-  /* ============ Timetable ============ */
   function renderTimetable() {
     if (!myTeaching.length) {
       $('timetableView').innerHTML = `<div class="card"><div class="empty-action">
@@ -281,7 +276,6 @@ import {
       </div>`).join('');
   }
 
-  /* ============ Auto-leave section (inside My bookings) ============ */
   function renderLeaveSection() {
     const el = $('leaveSection');
     if (!myLeave.length) { el.innerHTML = ''; return; }
@@ -327,7 +321,6 @@ import {
     const rc = $('reqCount'); rc.textContent = pending || ''; rc.style.display = pending ? 'inline-flex' : 'none';
   }
 
-  /* ============ Requests list ============ */
   function renderRequests() {
     const slotById = new Map(base.slots.map(s => [s.slot_id, s]));
     const roomById = new Map(base.rooms.map(r => [r.room_id, r]));
@@ -372,7 +365,7 @@ import {
     }).join('');
     document.querySelectorAll('[data-cancel]').forEach(btn => {
       btn.onclick = async () => {
-        if (!confirm('Cancel this booking?\n\nNote: If this was a makeup, you may want to also remove the auto-leave entry from above.')) return;
+        if (!confirm('Cancel this booking?\n\nNote: If this was a makeup, you may want to also remove the auto-leave entry.')) return;
         btn.disabled = true;
         const { error } = await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', btn.dataset.cancel);
         if (error) { toast(error.message, 'error'); btn.disabled = false; return; }
@@ -381,7 +374,6 @@ import {
     });
   }
 
-  /* ============ Tab switching ============ */
   document.querySelectorAll('[data-tab]').forEach(btn => {
     btn.onclick = () => {
       document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b === btn));
@@ -409,14 +401,10 @@ import {
       return toast('Admin must configure rooms and slots first', 'error');
     }
     let allowed = ['makeup','exam','event'].filter(t => bookingTypeAllowed(settings, t));
-
-    // Makeup requires timetable rows — nothing to make up otherwise
-    if (myTeaching.length === 0) {
-      allowed = allowed.filter(t => t !== 'makeup');
-    }
+    if (myTeaching.length === 0) allowed = allowed.filter(t => t !== 'makeup');
     if (!allowed.length) {
       const msg = myTeaching.length === 0
-        ? 'No booking types available. Ask admin to add your timetable or enable Exam/Event types.'
+        ? 'No booking types available. Ask admin to add your timetable or enable Exam/Event.'
         : 'No booking types enabled — ask admin';
       return toast(msg, 'error');
     }
@@ -448,28 +436,25 @@ import {
         </div>
         <div class="modal-body" id="bkBody">
 
-          <!-- 1. Type -->
           <div class="bk-section">
             <div class="bk-section-title"><span class="num">1</span> Booking type</div>
             <div class="chips" id="typeChips">
               ${allowed.map(t => `<button type="button" class="chip ${t === state.type ? 'on' : ''}" data-type="${t}"><i class="fas fa-${t==='makeup'?'clock-rotate-left':t==='exam'?'file-pen':'users'}"></i> ${t.charAt(0).toUpperCase() + t.slice(1)}</button>`).join('')}
             </div>
-            ${myTeaching.length === 0 && allowed.length > 0 ? `
+            ${myTeaching.length === 0 ? `
               <div class="auto-leave-note" style="background:var(--warning-soft);border-color:var(--warning-soft-border);color:var(--warning-text);margin-top:12px">
                 <i class="fas fa-triangle-exclamation"></i>
-                <div>Makeup isn't available because you have no timetable rows. Ask your admin, or use <strong>Exam</strong> / <strong>Event</strong> instead.</div>
+                <div>Makeup isn't available — you have no timetable rows. Ask your admin, or use <strong>Exam</strong> / <strong>Event</strong>.</div>
               </div>
             ` : ''}
           </div>
 
-          <!-- 2. Date -->
           <div class="bk-section">
             <div class="bk-section-title"><span class="num">2</span> Date</div>
             <input class="input" type="date" id="bkDate" min="${todayISO()}" value="${state.date}">
             <div class="date-warn" id="dateWarn"></div>
           </div>
 
-          <!-- 3. Slots -->
           <div class="bk-section">
             <div class="bk-section-title">
               <span class="num">3</span> Periods
@@ -478,14 +463,12 @@ import {
             <div class="slot-grid" id="slotGrid"></div>
           </div>
 
-          <!-- 4. Room -->
           <div class="bk-section">
             <div class="bk-section-title"><span class="num">4</span> Room</div>
             <select class="input" id="bkRoom" disabled><option value="">— Select periods first —</option></select>
             <div class="room-hint" id="roomHint"></div>
           </div>
 
-          <!-- 5. Missed classes (makeup only) -->
           <div class="bk-section" id="makeupSection" style="display:none">
             <div class="bk-section-title">
               <span class="num">5</span> Which class are you making up?
@@ -498,11 +481,10 @@ import {
             </label>
             <div class="auto-leave-note">
               <i class="fas fa-info-circle"></i>
-              <div>Your original class slot will show as <strong>Free</strong> on the room grid for this date — so other faculty can use that room. No separate leave needed.</div>
+              <div>Your original class slot will show as <strong>Free</strong> on the room grid for this date.</div>
             </div>
           </div>
 
-          <!-- 6. Details -->
           <div class="bk-section">
             <div class="bk-section-title"><span class="num">6</span> Details</div>
             <label class="field" style="margin-bottom:12px"><span>Course code</span>
@@ -513,7 +495,6 @@ import {
             </label>
           </div>
 
-          <!-- Summary -->
           <div class="bk-summary" id="summaryBox" style="margin-top:20px"></div>
         </div>
         <div class="modal-footer">
@@ -541,7 +522,6 @@ import {
       summary: dialog.querySelector('#summaryBox'),
     };
 
-    /* ---------- Type chips ---------- */
     dialog.querySelectorAll('[data-type]').forEach(btn => {
       btn.onclick = () => {
         state.type = btn.dataset.type;
@@ -556,7 +536,6 @@ import {
       renderMissedClasses();
     }
 
-    /* ---------- Date ---------- */
     refs.dateInput.onchange = () => {
       state.date = refs.dateInput.value;
       state.selectedSlots.clear();
@@ -564,7 +543,6 @@ import {
       loadAvailability();
     };
 
-    /* ---------- Availability loader ---------- */
     async function loadAvailability() {
       refs.dateWarn.classList.remove('show');
       refs.slotGrid.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12.5px;grid-column:1/-1"><i class="fas fa-spinner fa-spin"></i> Checking availability…</div>';
@@ -585,7 +563,7 @@ import {
           refs.dateWarn.classList.add('show');
         }
       } else if (dow === 0) {
-        refs.dateWarn.innerHTML = `<i class="fas fa-triangle-exclamation"></i><div><strong>Sunday</strong> — most rooms are closed unless explicitly marked "weekend open".</div>`;
+        refs.dateWarn.innerHTML = `<i class="fas fa-triangle-exclamation"></i><div><strong>Sunday</strong> — most rooms are closed unless marked "weekend open".</div>`;
         refs.dateWarn.classList.add('show');
       }
 
@@ -610,7 +588,6 @@ import {
       updateSummary();
     }
 
-    /* ---------- Slot grid ---------- */
     function renderSlotGrid() {
       if (!state.availability) return;
       const isToday = state.date === todayISO();
@@ -649,7 +626,6 @@ import {
       refs.slotHint.textContent = n === 0 ? 'Select one or more' : `${n} period${n === 1 ? '' : 's'} selected`;
     }
 
-    /* ---------- Room options ---------- */
     function renderRoomOptions() {
       if (!state.availability) return;
       const n = state.selectedSlots.size;
@@ -698,7 +674,6 @@ import {
       updateSummary();
     };
 
-    /* ---------- Missed classes ---------- */
     function renderMissedClasses() {
       if (!myTeaching.length) {
         refs.missedList.innerHTML = `<div class="missed-empty">
@@ -760,11 +735,9 @@ import {
       updateSummary();
     };
 
-    /* ---------- Course & reason ---------- */
     refs.code.oninput = () => { state.courseCode = refs.code.value.trim(); updateSummary(); };
     refs.reason.oninput = () => { state.reason = refs.reason.value.trim(); };
 
-    /* ---------- Summary ---------- */
     function updateSummary() {
       const n = state.selectedSlots.size;
       const slotsArr = [...state.selectedSlots];
@@ -820,7 +793,9 @@ import {
       refs.submit.innerHTML = `<i class="fas fa-check"></i> Book${n > 1 ? ' ' + n + ' periods' : ''}`;
     }
 
-    /* ---------- Submit ---------- */
+    /* ══════════════════════════════════════════════════════════
+       SUBMIT — BOOKINGS FIRST, LEAVE SECOND (atomic-safe)
+       ══════════════════════════════════════════════════════════ */
     refs.submit.onclick = async () => {
       const n = state.selectedSlots.size;
       if (n === 0) return toast('Select at least one period', 'error');
@@ -832,32 +807,16 @@ import {
       refs.submit.disabled = true;
       refs.submit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Booking…';
 
+      const auto = !!settings['booking_auto_approve'];
+      const slotsToBook = [...state.selectedSlots];
+
       try {
-        const auto = !!settings['booking_auto_approve'];
-        const results = { bookings: 0, leave: 0, failedBookings: [], failedLeave: [] };
+        // ─────── STEP 1: Create ALL bookings first ───────
+        const createdBookings = [];   // { id, slot_id }
+        const failedBookings = [];    // { slot_id, error }
 
-        // 1. Create leave entries for missed classes (makeup only)
-        if (state.type === 'makeup' && state.missedClassKeys.size > 0) {
-          for (const key of state.missedClassKeys) {
-            const [slotId] = key.split('|');
-            const { error } = await supabase.from('faculty_unavailability').insert({
-              faculty_id: myId,
-              date: state.missedDate,
-              slot_id: slotId,
-              reason: 'Auto-created by makeup booking',
-            });
-            if (error && !error.message.toLowerCase().includes('duplicate')) {
-              results.failedLeave.push(`${slotId}: ${error.message}`);
-            } else if (!error) {
-              results.leave++;
-            }
-          }
-        }
-
-        // 2. Create bookings (one per slot)
-        const slotsToBook = [...state.selectedSlots];
         for (const slotId of slotsToBook) {
-          const { error } = await supabase.from('bookings').insert({
+          const { data, error } = await supabase.from('bookings').insert({
             room_id: state.roomId,
             book_date: state.date,
             slot_id: slotId,
@@ -867,29 +826,74 @@ import {
             created_by: myId,
             course_code: state.courseCode || null,
             reason: state.reason || null,
-          });
-          if (error) results.failedBookings.push(`${slotId}: ${error.message}`);
-          else results.bookings++;
+          }).select().single();
+
+          if (error) {
+            failedBookings.push({ slot_id: slotId, error: error.message });
+          } else {
+            createdBookings.push({ id: data.id, slot_id: slotId });
+          }
         }
 
-        if (results.bookings === 0) {
-          toast('Failed: ' + (results.failedBookings[0] || 'unknown error'), 'error');
+        // ─────── STEP 2: Abort if NO booking succeeded ───────
+        if (createdBookings.length === 0) {
+          const firstErr = failedBookings[0]?.error || 'unknown error';
+          const slot = base.slots.find(s => s.slot_id === failedBookings[0]?.slot_id);
+          toast(`Booking failed${slot ? ' for ' + (slot.label || slot.slot_id) : ''}: ${firstErr}`, 'error');
           refs.submit.disabled = false;
           refs.submit.innerHTML = '<i class="fas fa-check"></i> Book';
           return;
         }
 
-        const parts = [`${results.bookings} booking${results.bookings === 1 ? '' : 's'} ${auto ? 'created' : 'submitted'}`];
-        if (results.leave > 0) parts.push(`${results.leave} auto-leave`);
-        if (results.failedBookings.length) parts.push(`${results.failedBookings.length} failed`);
+        // ─────── STEP 3: Create leave entries (only for successful bookings) ───────
+        let leaveCreated = 0;
+        const failedLeaves = [];
 
-        toast(parts.join(' · '), results.failedBookings.length ? 'info' : 'success');
+        if (state.type === 'makeup' && state.missedClassKeys.size > 0) {
+          for (const key of state.missedClassKeys) {
+            const [slotId] = key.split('|');
+            const { error } = await supabase.from('faculty_unavailability').insert({
+              faculty_id: myId,
+              date: state.missedDate,
+              slot_id: slotId,
+              reason: 'Auto-created by makeup booking',
+            });
+
+            if (error && !error.message.toLowerCase().includes('duplicate')) {
+              failedLeaves.push(`${slotId}: ${error.message}`);
+            } else {
+              leaveCreated++;
+            }
+          }
+        }
+
+        // ─────── STEP 4: Report ───────
+        const parts = [];
+        parts.push(`${createdBookings.length}/${slotsToBook.length} booking${createdBookings.length === 1 ? '' : 's'} ${auto ? 'created' : 'submitted'}`);
+        if (state.type === 'makeup' && leaveCreated > 0) parts.push(`${leaveCreated} auto-leave entr${leaveCreated === 1 ? 'y' : 'ies'}`);
+        if (failedBookings.length) parts.push(`${failedBookings.length} booking${failedBookings.length === 1 ? '' : 's'} failed`);
+        if (failedLeaves.length) parts.push(`${failedLeaves.length} leave entr${failedLeaves.length === 1 ? 'y' : 'ies'} failed`);
+
+        const kind = (failedBookings.length || failedLeaves.length) ? 'info' : 'success';
+        toast(parts.join(' · '), kind);
+
+        // Show detail if anything failed
+        if (failedBookings.length || failedLeaves.length) {
+          const detail = [];
+          if (failedBookings.length) {
+            detail.push('Booking failures:\n' + failedBookings.map(f => `  • ${f.slot_id}: ${f.error}`).join('\n'));
+          }
+          if (failedLeaves.length) {
+            detail.push('Leave failures:\n' + failedLeaves.map(f => `  • ${f}`).join('\n'));
+          }
+          console.warn('[booking] partial failures:', { failedBookings, failedLeaves });
+        }
 
         dialog.close();
         dialog.remove();
         await loadAll();
       } catch (err) {
-        console.error(err);
+        console.error('[booking] exception:', err);
         toast('Booking failed: ' + (err.message || err), 'error');
         refs.submit.disabled = false;
         refs.submit.innerHTML = '<i class="fas fa-check"></i> Book';

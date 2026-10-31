@@ -23,24 +23,16 @@
   .set-section-title{font-size:15px;font-weight:600;color:var(--text);margin:24px 0 12px;display:flex;align-items:center;gap:8px}
   .set-section-title i{color:var(--brand)}
 
-  /* Banner editor */
   .bn-types{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px}
   .bn-type-btn{padding:10px 12px;border:1.5px solid var(--border);background:var(--surface);border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:8px;text-align:left;font:inherit;color:var(--text);transition:all 140ms ease;font-size:13px;font-weight:500}
   .bn-type-btn:hover{border-color:var(--border-strong);background:var(--surface-hover)}
-  .bn-type-btn.selected{border-color:var(--brand);background:var(--brand-soft);color:var(--brand-text)}
-  .bn-type-btn i{font-size:13px;flex-shrink:0}
   .bn-type-btn.info.selected{border-color:#3B82F6;background:rgba(59,130,246,0.1);color:#1D4ED8}
   .bn-type-btn.warning.selected{border-color:#D97706;background:rgba(217,119,6,0.1);color:#92400E}
   .bn-type-btn.danger.selected{border-color:#DC2626;background:rgba(220,38,38,0.1);color:#991B1B}
   .bn-type-btn.success.selected{border-color:#16A34A;background:rgba(22,163,74,0.1);color:#166534}
+  .bn-type-btn i{font-size:13px;flex-shrink:0}
 
-  .bn-preview{
-    margin-top:14px;border-radius:10px;padding:12px 18px;
-    display:flex;align-items:center;justify-content:center;gap:10px;
-    color:#fff;font-size:13px;font-weight:500;text-align:center;
-    box-shadow:0 2px 12px rgba(0,0,0,0.15);
-    min-height:48px;
-  }
+  .bn-preview{margin-top:14px;border-radius:10px;padding:12px 18px;display:flex;align-items:center;justify-content:center;gap:10px;color:#fff;font-size:13px;font-weight:500;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.15);min-height:48px}
   .bn-preview i{font-size:14px;flex-shrink:0}
   .bn-preview-text{flex:1;overflow-wrap:break-word}
   .bn-preview-placeholder{opacity:0.6;font-style:italic;font-weight:400}
@@ -163,6 +155,45 @@
 <script type="module">
 import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.js';
 
+/* Normalize any stored banner value into a proper config object */
+function normalizeBanner(raw) {
+  if (raw == null) return null;
+  if (typeof raw === 'object') {
+    return {
+      enabled: raw.enabled !== false,
+      type: ['info','warning','danger','success'].includes(raw.type) ? raw.type : 'warning',
+      message: typeof raw.message === 'string' ? raw.message : '',
+      dismissible: raw.dismissible !== false,
+    };
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        if ('message' in parsed || 'enabled' in parsed || 'type' in parsed) {
+          return {
+            enabled: parsed.enabled !== false,
+            type: ['info','warning','danger','success'].includes(parsed.type) ? parsed.type : 'warning',
+            message: typeof parsed.message === 'string' ? parsed.message : '',
+            dismissible: parsed.dismissible !== false,
+          };
+        }
+      }
+    } catch {}
+    return { enabled: true, type: 'warning', message: trimmed, dismissible: true };
+  }
+  return null;
+}
+
+/* Normalize a stored toggle value into a boolean */
+function normalizeBool(v) {
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';
+  return Boolean(v);
+}
+
 (async () => {
   const auth = await requireRole(['admin']);
   if (!auth) return;
@@ -170,7 +201,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   const $ = id => document.getElementById(id);
 
   let settings = {};
-  let bannerState = { enabled: true, type: 'warning', message: '', dismissible: true };
+  let bannerState = { enabled: false, type: 'warning', message: '', dismissible: true };
 
   const POLICY_TOGGLES = [
     { key: 'booking_auto_approve', title: 'Auto-approve bookings', icon: 'fa-bolt',
@@ -196,15 +227,15 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       </div>`;
   }
 
-  /* ============ Load everything ============ */
+  /* ============ Load ============ */
   async function load() {
     const { data } = await supabase.from('system_settings').select('*');
     settings = {};
     (data ?? []).forEach(s => { settings[s.key] = s.value; });
 
     // Policy + faculty toggles
-    $('policyTiles').innerHTML  = POLICY_TOGGLES.map(t => tileHTML(t, !!settings[t.key])).join('');
-    $('facultyTiles').innerHTML = FACULTY_TOGGLES.map(t => tileHTML(t, settings[t.key] !== false)).join('');
+    $('policyTiles').innerHTML  = POLICY_TOGGLES.map(t => tileHTML(t, normalizeBool(settings[t.key]))).join('');
+    $('facultyTiles').innerHTML = FACULTY_TOGGLES.map(t => tileHTML(t, settings[t.key] === undefined ? true : normalizeBool(settings[t.key]))).join('');
 
     document.querySelectorAll('.set-toggle').forEach(btn => {
       btn.onclick = async () => {
@@ -212,7 +243,8 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
         const next = !btn.classList.contains('on');
         btn.disabled = true;
         const { error } = await supabase.rpc('admin_set_setting', {
-          p_key: key, p_value: JSON.stringify(next),
+          p_key: key,
+          p_value: next,     // ← pass boolean directly, not stringified
         });
         btn.disabled = false;
         if (error) return toast(error.message, 'error');
@@ -223,20 +255,14 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
       };
     });
 
-    // Load banner (accept string or object)
-    const raw = settings['site_banner'];
-    if (typeof raw === 'string') {
-      bannerState = { enabled: !!raw.trim(), type: 'warning', message: raw, dismissible: true };
-    } else if (raw && typeof raw === 'object') {
-      bannerState = {
-        enabled: raw.enabled !== false,
-        type: ['info','warning','danger','success'].includes(raw.type) ? raw.type : 'warning',
-        message: raw.message || '',
-        dismissible: raw.dismissible !== false,
-      };
+    // Banner
+    const parsed = normalizeBanner(settings['site_banner']);
+    if (parsed) {
+      bannerState = parsed;
+    } else {
+      bannerState = { enabled: false, type: 'warning', message: '', dismissible: true };
     }
 
-    // Populate banner editor
     $('bnMessage').value = bannerState.message;
     $('bnEnabled').checked = bannerState.enabled;
     $('bnDismissible').checked = bannerState.dismissible;
@@ -247,8 +273,8 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     updateCharCount();
 
     // API credentials
-    $('apiUrlInput').value = settings['lpu_api_url'] || '';
-    $('apiKeyInput').value = settings['lpu_api_key'] || '';
+    $('apiUrlInput').value = typeof settings['lpu_api_url'] === 'string' ? settings['lpu_api_url'] : (settings['lpu_api_url'] || '');
+    $('apiKeyInput').value = typeof settings['lpu_api_key'] === 'string' ? settings['lpu_api_key'] : (settings['lpu_api_key'] || '');
   }
 
   /* ============ Banner editor ============ */
@@ -263,14 +289,13 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     const p = PALETTE[bannerState.type] || PALETTE.warning;
     const preview = $('bnPreview');
     preview.style.background = p.bg;
-    const msg = bannerState.message.trim();
+    const msg = (bannerState.message || '').trim();
     if (!msg) {
       preview.innerHTML = `<i class="fas ${p.icon}"></i><div class="bn-preview-text bn-preview-placeholder">Banner message will appear here</div>`;
     } else {
       preview.innerHTML = `<i class="fas ${p.icon}"></i><div class="bn-preview-text">${escapeHtml(msg)}</div>`;
     }
-    if (!bannerState.enabled) preview.style.opacity = '0.4';
-    else preview.style.opacity = '1';
+    preview.style.opacity = bannerState.enabled ? '1' : '0.4';
   }
 
   function updateCharCount() {
@@ -317,7 +342,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
 
     const { error } = await supabase.rpc('admin_set_setting', {
       p_key: 'site_banner',
-      p_value: JSON.stringify(cfg),
+      p_value: cfg,    // ← pass object directly, NOT JSON.stringify
     });
 
     btn.disabled = false;
@@ -332,12 +357,13 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
     $('bnMessage').value = '';
     $('bnEnabled').checked = false;
     bannerState.message = '';
+    bannerState.enabled = false;
     updatePreview();
     updateCharCount();
 
     const { error } = await supabase.rpc('admin_set_setting', {
       p_key: 'site_banner',
-      p_value: JSON.stringify({ enabled: false, type: 'warning', message: '', dismissible: true }),
+      p_value: { enabled: false, type: 'warning', message: '', dismissible: true },
     });
     if (error) return toast(error.message, 'error');
     toast('Banner cleared', 'success');
@@ -347,9 +373,9 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   $('saveApiBtn').onclick = async () => {
     const url = $('apiUrlInput').value.trim();
     const key = $('apiKeyInput').value;
-    const r1 = await supabase.rpc('admin_set_setting', { p_key: 'lpu_api_url', p_value: JSON.stringify(url) });
+    const r1 = await supabase.rpc('admin_set_setting', { p_key: 'lpu_api_url', p_value: url });
     if (r1.error) return toast(r1.error.message, 'error');
-    const r2 = await supabase.rpc('admin_set_setting', { p_key: 'lpu_api_key', p_value: JSON.stringify(key) });
+    const r2 = await supabase.rpc('admin_set_setting', { p_key: 'lpu_api_key', p_value: key });
     if (r2.error) return toast(r2.error.message, 'error');
     toast('LPU API credentials saved', 'success');
   };
@@ -361,5 +387,8 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
   await load();
 })();
 </script>
+
+<!-- Centralized site banner -->
+<script type="module" src="js/banner.js"></script>
 </body>
 </html>

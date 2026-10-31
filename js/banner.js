@@ -1,9 +1,56 @@
 // ============================================================
 // LPU Scheduler — Centralized site-wide banner
-// Loads the message from system_settings.site_banner
-// Works with both string (legacy) and object formats
+// Loads message from system_settings.site_banner
+// Handles: proper object, plain string, or double-encoded JSON string
 // ============================================================
 import { supabase, escapeHtml } from './core.js';
+
+/* Normalizes any stored value into a banner config object */
+function normalizeBanner(raw) {
+  if (raw == null) return null;
+
+  // Already an object
+  if (typeof raw === 'object') {
+    return {
+      enabled: raw.enabled !== false,
+      type: ['info','warning','danger','success'].includes(raw.type) ? raw.type : 'warning',
+      message: typeof raw.message === 'string' ? raw.message : '',
+      dismissible: raw.dismissible !== false,
+    };
+  }
+
+  // Plain string — could be legacy message OR double-encoded JSON
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+
+    // Try parse as JSON
+    try {
+      const parsed = JSON.parse(trimmed);
+      // If the parsed value is an object that looks like a banner config, use it
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        if ('message' in parsed || 'enabled' in parsed || 'type' in parsed) {
+          return {
+            enabled: parsed.enabled !== false,
+            type: ['info','warning','danger','success'].includes(parsed.type) ? parsed.type : 'warning',
+            message: typeof parsed.message === 'string' ? parsed.message : '',
+            dismissible: parsed.dismissible !== false,
+          };
+        }
+      }
+    } catch { /* not JSON — fall through */ }
+
+    // Legacy plain-string banner
+    return {
+      enabled: true,
+      type: 'warning',
+      message: trimmed,
+      dismissible: true,
+    };
+  }
+
+  return null;
+}
 
 (async () => {
   try {
@@ -13,40 +60,31 @@ import { supabase, escapeHtml } from './core.js';
       .eq('key', 'site_banner')
       .maybeSingle();
 
-    if (!data || data.value == null) return;
+    if (!data) return;
 
-    let cfg = data.value;
+    const cfg = normalizeBanner(data.value);
+    if (!cfg) return;
+    if (!cfg.enabled) return;
+    if (!cfg.message || !cfg.message.trim()) return;
 
-    // ---- Normalize: string → object ----
-    if (typeof cfg === 'string') {
-      if (!cfg.trim()) return;
-      cfg = { enabled: true, type: 'warning', message: cfg, dismissible: true };
-    }
-
-    // ---- Validate ----
-    if (!cfg || cfg.enabled === false) return;
-    if (!cfg.message || !String(cfg.message).trim()) return;
-
-    const type = ['info', 'warning', 'danger', 'success'].includes(cfg.type) ? cfg.type : 'warning';
-    const dismissible = cfg.dismissible !== false;
+    const type = cfg.type;
+    const dismissible = cfg.dismissible;
 
     // Session-scoped dismissal key — different message = shows again
-    const sessionKey = 'sb-dismissed-' + String(cfg.message).slice(0, 80).replace(/\s+/g, '_');
+    const sessionKey = 'sb-dismissed-' + cfg.message.slice(0, 80).replace(/\s+/g, '_');
 
-    if (dismissible && sessionStorage.getItem(sessionKey) === '1') {
-      return; // User dismissed this exact message this session
-    }
+    if (dismissible && sessionStorage.getItem(sessionKey) === '1') return;
 
-    // ---- Palette ----
+    // Palette
     const palette = {
       info:    { bg: 'linear-gradient(90deg,#3B82F6,#2563EB)', shadow: 'rgba(37,99,235,0.35)',  icon: 'fa-circle-info' },
       warning: { bg: 'linear-gradient(90deg,#F59E0B,#D97706)', shadow: 'rgba(217,119,6,0.35)',  icon: 'fa-triangle-exclamation' },
       danger:  { bg: 'linear-gradient(90deg,#EF4444,#DC2626)', shadow: 'rgba(220,38,38,0.35)',  icon: 'fa-circle-exclamation' },
       success: { bg: 'linear-gradient(90deg,#22C55E,#16A34A)', shadow: 'rgba(22,163,74,0.35)',  icon: 'fa-circle-check' },
     };
-    const p = palette[type];
+    const p = palette[type] || palette.warning;
 
-    // ---- Inject styles (once) ----
+    // Inject styles once
     if (!document.getElementById('sbGlobalStyles')) {
       const style = document.createElement('style');
       style.id = 'sbGlobalStyles';
@@ -66,7 +104,6 @@ import { supabase, escapeHtml } from './core.js';
           animation: sbPulse 2s ease-in-out infinite;
         }
         .sb-global .sb-text { flex: 1; max-width: 900px; overflow-wrap: break-word; }
-        .sb-global .sb-text strong { font-weight: 700; }
         .sb-global .sb-close {
           background: rgba(255,255,255,0.2);
           border: 1px solid rgba(255,255,255,0.35);
@@ -94,7 +131,7 @@ import { supabase, escapeHtml } from './core.js';
       document.head.appendChild(style);
     }
 
-    // ---- Create banner ----
+    // Create banner
     const banner = document.createElement('div');
     banner.className = 'sb-global';
     banner.style.background = p.bg;
@@ -107,17 +144,13 @@ import { supabase, escapeHtml } from './core.js';
     document.body.appendChild(banner);
     document.body.classList.add('has-sb');
 
-    // ---- Measure actual rendered height (varies with message length) ----
     function syncHeight() {
-      const h = banner.offsetHeight;
-      document.body.style.setProperty('--sb-h', h + 'px');
+      document.body.style.setProperty('--sb-h', banner.offsetHeight + 'px');
     }
     requestAnimationFrame(syncHeight);
     window.addEventListener('resize', syncHeight);
-    // Also re-sync once fonts/images settle
     setTimeout(syncHeight, 300);
 
-    // ---- Dismiss ----
     if (dismissible) {
       banner.querySelector('.sb-close').onclick = () => {
         banner.remove();
@@ -128,7 +161,6 @@ import { supabase, escapeHtml } from './core.js';
       };
     }
   } catch (err) {
-    // Silent fail — banner is not critical
     console.warn('[banner] load failed:', err);
   }
 })();
