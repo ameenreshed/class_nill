@@ -41,10 +41,34 @@
   .zip-progress.show{display:block}
   .zip-progress-bar{height:4px;background:var(--surface-active);border-radius:999px;overflow:hidden;margin-top:6px}
   .zip-progress-bar > div{height:100%;background:var(--info);width:0;transition:width 200ms ease}
+
+  /* ── Submissions viewer ── */
+  .subs-toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .subs-toolbar .search-wrap{flex:1;min-width:200px;max-width:none}
+  .subs-list{display:flex;flex-direction:column;gap:12px}
+  .subs-student{background:var(--bg-subtle);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+  .subs-student-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+  .subs-student-avatar{width:36px;height:36px;border-radius:50%;background:var(--brand);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+  .subs-student-info{flex:1;min-width:0}
+  .subs-student-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3}
+  .subs-student-id{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-secondary);margin-top:2px}
+  .subs-student-id .no-name{color:var(--text-muted);font-family:'Inter',sans-serif;font-style:italic;font-weight:400}
+  .subs-file-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+  .subs-file{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px}
+  .subs-file i.file-ico{color:var(--text-muted);font-size:14px;flex-shrink:0}
+  .subs-file-body{flex:1;min-width:0}
+  .subs-file-name{font-size:12.5px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .subs-file-size{font-size:10.5px;color:var(--text-muted);margin-top:1px}
+  .subs-file-actions{display:flex;gap:4px;flex-shrink:0}
+  .subs-file-actions .btn{padding:5px 8px;min-height:28px;font-size:11px}
+  .subs-delete-all{padding:6px 12px;background:var(--danger-soft);border:1px solid var(--danger-soft-border);color:var(--danger-text);border-radius:8px;font-size:11.5px;font-weight:600;cursor:pointer;transition:all 140ms ease}
+  .subs-delete-all:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
+
   @media (max-width:640px){
     .asn-grid{grid-template-columns:1fr}
     .asn-stats{padding:10px}
     .asn-stat-val{font-size:15px}
+    .subs-file{flex-wrap:wrap}
   }
 </style>
 </head>
@@ -54,7 +78,7 @@
   <div class="page-header">
     <div>
       <h1 class="page-title"><i class="fas fa-file-pen"></i> Assignments</h1>
-      <p class="page-subtitle">Create assignment collections, share links, and download all submissions as a ZIP.</p>
+      <p class="page-subtitle">Create assignment collections, view/delete submissions, and download all as a ZIP.</p>
     </div>
     <button class="btn btn-primary" id="createBtn"><i class="fas fa-plus"></i> New assignment</button>
   </div>
@@ -80,7 +104,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
     if (error) { toast(error.message, 'error'); return; }
     assignments = data ?? [];
 
-    // Aggregate stats per assignment
     stats = {};
     if (assignments.length) {
       const ids = assignments.map(a => a.id);
@@ -132,7 +155,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
       const fCount = st.files;
       const totalSize = st.bytes;
       const hasSuperseded = st.superseded > 0;
-      const deadlinePassed = a.deadline && new Date(a.deadline) < new Date();
       return `<div class="asn-card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
           <div class="asn-title">${escapeHtml(a.title)}</div>
@@ -160,10 +182,13 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
         </div>
 
         <div class="asn-actions">
-          <button class="btn btn-sm btn-primary" data-zip="${a.id}" ${fCount === 0 ? 'disabled' : ''}>
-            <i class="fas fa-file-zipper"></i> Download ZIP
+          <button class="btn btn-sm btn-primary" data-view="${a.id}" ${fCount === 0 ? 'disabled' : ''}>
+            <i class="fas fa-eye"></i> View
           </button>
-          <button class="btn btn-sm" data-edit="${a.id}"><i class="fas fa-pen"></i></button>
+          <button class="btn btn-sm" data-zip="${a.id}" ${fCount === 0 ? 'disabled' : ''}>
+            <i class="fas fa-file-zipper"></i> ZIP
+          </button>
+          <button class="btn btn-sm" data-edit="${a.id}" title="Edit"><i class="fas fa-pen"></i></button>
           ${hasSuperseded ? `<button class="btn btn-sm" data-clean="${a.id}" title="Delete old superseded files"><i class="fas fa-broom"></i></button>` : ''}
           <button class="btn btn-sm btn-danger" data-del="${a.id}" title="Delete assignment and all files"><i class="fas fa-trash"></i></button>
         </div>
@@ -172,6 +197,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
 
     document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () =>
       navigator.clipboard.writeText(b.dataset.copy).then(() => toast('Link copied', 'success')));
+    document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => openSubmissions(b.dataset.view));
     document.querySelectorAll('[data-zip]').forEach(b => b.onclick = () => downloadZip(b.dataset.zip, b));
     document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openForm(b.dataset.edit));
     document.querySelectorAll('[data-clean]').forEach(b => b.onclick = () => cleanupSuperseded(b.dataset.clean));
@@ -180,13 +206,17 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
 
   $('createBtn').onclick = () => openForm();
 
+  /* ════════════════════════════════════════════════════════
+     CREATE / EDIT FORM
+     ════════════════════════════════════════════════════════ */
   function openForm(id) {
     const existing = id ? assignments.find(x => x.id === id) : null;
     const isEdit = !!existing;
     const a = existing || {
       title: '', description: '', course_code: '', batch: '',
       drive_link: '', deadline: null,
-      submission_policy: 'single', max_files: 1, max_size_mb: 25,
+      submission_policy: 'single', name_required: true,
+      max_files: 1, max_size_mb: 25,
       allowed_types: ['pdf','doc','docx','ppt','pptx','txt','zip'],
       is_active: true,
     };
@@ -241,7 +271,15 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
           </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <label class="field" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg-subtle);border-radius:10px;cursor:pointer">
+          <input type="checkbox" data-field="name_required" ${a.name_required?'checked':''}>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">Require student name</div>
+            <div style="font-size:11.5px;color:var(--text-secondary);margin-top:2px;line-height:1.4">If unchecked, students can submit with just their ID. Their name will show as "(not provided)" in your submissions view.</div>
+          </div>
+        </label>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
           <label class="field" style="margin-bottom:0"><span>Max files per student</span>
             <input class="input" type="number" min="1" max="20" data-field="max_files" value="${a.max_files}"></label>
           <label class="field" style="margin-bottom:0"><span>Max size per file (MB)</span>
@@ -303,6 +341,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
       const maxSize = Math.max(1, Math.min(100, parseInt(get('max_size_mb').value) || 25));
       const types = [...dialog.querySelectorAll('[data-type]:checked')].map(x => x.dataset.type);
       const dlVal = get('deadline').value;
+      const nameReq = get('name_required').checked;
 
       if (!title) return toast('Title required', 'error');
       if (!batch) return toast('Batch required', 'error');
@@ -317,6 +356,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
         drive_link: get('drive_link').value.trim() || null,
         deadline: dlVal ? new Date(dlVal).toISOString() : null,
         submission_policy: policy,
+        name_required: nameReq,
         max_files: maxFiles, max_size_mb: maxSize,
         allowed_types: types,
       };
@@ -334,18 +374,19 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
     };
   }
 
+  /* ════════════════════════════════════════════════════════
+     DELETE ASSIGNMENT
+     ════════════════════════════════════════════════════════ */
   async function deleteAssignment(id) {
     const a = assignments.find(x => x.id === id);
     if (!a) return;
     const st = stats[a.id] || { files: 0, students: new Set() };
     if (!confirm(`Delete "${a.title}"?\n\nThis will PERMANENTLY delete:\n• The assignment record\n• All ${st.files} file(s) from storage\n• All submission records\n\nThis cannot be undone.`)) return;
 
-    // 1. Get all file paths
     const { data: all } = await supabase.from('submissions')
       .select('file_path').eq('assignment_id', id);
     const paths = (all ?? []).map(s => s.file_path);
 
-    // 2. Delete files from storage first
     if (paths.length) {
       const { error: stErr } = await supabase.storage.from('assignment-submissions').remove(paths);
       if (stErr) {
@@ -353,7 +394,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
       }
     }
 
-    // 3. Delete assignment row (cascades to submissions)
     const { error } = await supabase.from('assignments').delete().eq('id', id);
     if (error) return toast(error.message, 'error');
     toast('Assignment and all files deleted', 'success');
@@ -376,30 +416,223 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
     await load();
   }
 
-  async function downloadZip(id, btn) {
+  /* ════════════════════════════════════════════════════════
+     VIEW SUBMISSIONS (per-student, with individual download/delete)
+     ════════════════════════════════════════════════════════ */
+  async function openSubmissions(id) {
     const a = assignments.find(x => x.id === id);
     if (!a) return;
 
-    btn.disabled = true;
-    const original = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading…';
-
-    // Progress UI
-    const progressEl = document.createElement('div');
-    progressEl.className = 'zip-progress show';
-    progressEl.innerHTML = `
-      <div style="display:flex;justify-content:space-between;gap:8px">
-        <span id="zipStatus">Fetching file list…</span>
-        <span id="zipCount">0/0</span>
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content modal-wide">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title"><i class="fas fa-inbox"></i> Submissions</div>
+          <div class="modal-sub">${escapeHtml(a.title)} · ${escapeHtml(a.batch)}${a.course_code ? ' · ' + escapeHtml(a.course_code) : ''}</div>
+        </div>
+        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
-      <div class="zip-progress-bar"><div id="zipBar"></div></div>`;
-    btn.closest('.asn-card').appendChild(progressEl);
+      <div class="modal-body">
+        <div class="subs-toolbar">
+          <div class="search-wrap">
+            <i class="fas fa-search search-icon"></i>
+            <input class="input" id="subsSearch" placeholder="Search by student ID or name…">
+          </div>
+          <button class="btn btn-sm" id="subsRefresh" title="Refresh"><i class="fas fa-rotate-right"></i></button>
+        </div>
+        <div id="subsContent"><div style="text-align:center;padding:32px;color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i> Loading…</div></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" id="subsZip" style="margin-right:auto"><i class="fas fa-file-zipper"></i> Download all as ZIP</button>
+        <button class="btn" data-close>Close</button>
+      </div>
+    </div>`;
+
+    document.body.appendChild(dialog); dialog.showModal();
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+
+    let allSubs = [];
+    let searchTerm = '';
+
+    async function fetchSubs() {
+      const { data, error } = await supabase.from('submissions')
+        .select('*').eq('assignment_id', id)
+        .eq('is_superseded', false)
+        .order('student_id', { ascending: true })
+        .order('submitted_at', { ascending: true });
+      if (error) {
+        dialog.querySelector('#subsContent').innerHTML = `<div class="empty"><i class="fas fa-triangle-exclamation"></i>${escapeHtml(error.message)}</div>`;
+        return;
+      }
+      allSubs = data ?? [];
+      renderSubs();
+    }
+
+    function renderSubs() {
+      const content = dialog.querySelector('#subsContent');
+      if (!allSubs.length) {
+        content.innerHTML = `<div class="empty" style="padding:32px"><i class="fas fa-inbox"></i><div style="margin-top:8px;font-weight:600">No submissions yet</div><div style="font-size:12px;margin-top:4px">Share the link with students to start receiving files.</div></div>`;
+        return;
+      }
+
+      // Group by student_id
+      const byStudent = new Map();
+      allSubs.forEach(s => {
+        if (!byStudent.has(s.student_id)) byStudent.set(s.student_id, { name: s.student_name, files: [] });
+        byStudent.get(s.student_id).files.push(s);
+        if (s.student_name) byStudent.get(s.student_id).name = s.student_name;
+      });
+
+      // Filter by search
+      let entries = [...byStudent.entries()];
+      if (searchTerm) {
+        const q = searchTerm.toLowerCase();
+        entries = entries.filter(([sid, info]) =>
+          sid.toLowerCase().includes(q) || (info.name || '').toLowerCase().includes(q)
+        );
+      }
+
+      if (!entries.length) {
+        content.innerHTML = `<div class="empty" style="padding:32px"><i class="fas fa-search"></i><div style="margin-top:8px">No students match "${escapeHtml(searchTerm)}"</div></div>`;
+        return;
+      }
+
+      content.innerHTML = `<div class="subs-list">
+        ${entries.map(([sid, info]) => {
+          const initial = (info.name || sid).trim()[0]?.toUpperCase() || '?';
+          const filesHtml = info.files.map(s => `
+            <div class="subs-file">
+              <i class="fas fa-file file-ico"></i>
+              <div class="subs-file-body">
+                <div class="subs-file-name" title="${escapeHtml(s.file_name)}">${escapeHtml(s.file_name)}</div>
+                <div class="subs-file-size">${fmtSize(Number(s.file_size)||0)} · ${new Date(s.submitted_at).toLocaleString()}</div>
+              </div>
+              <div class="subs-file-actions">
+                <button class="btn btn-sm" data-dl="${s.id}" title="Download"><i class="fas fa-download"></i></button>
+                <button class="btn btn-sm btn-danger" data-delfile="${s.id}" title="Delete this file"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>
+          `).join('');
+
+          return `<div class="subs-student" data-student="${escapeHtml(sid)}">
+            <div class="subs-student-head">
+              <div class="subs-student-avatar">${escapeHtml(initial)}</div>
+              <div class="subs-student-info">
+                <div class="subs-student-name">${info.name ? escapeHtml(info.name) : '<span style="color:var(--text-muted);font-style:italic">(not provided)</span>'}</div>
+                <div class="subs-student-id">${escapeHtml(sid)} · ${info.files.length} file${info.files.length===1?'':'s'}</div>
+              </div>
+              <button class="subs-delete-all" data-delstudent="${escapeHtml(sid)}" title="Delete all files from this student">
+                <i class="fas fa-trash-can"></i> Delete all
+              </button>
+            </div>
+            <div class="subs-file-list">${filesHtml}</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+
+      // Wire up download buttons
+      content.querySelectorAll('[data-dl]').forEach(b => b.onclick = async () => {
+        const subId = b.dataset.dl;
+        const s = allSubs.find(x => x.id === subId);
+        if (!s) return;
+        b.disabled = true; b.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        const { data, error } = await supabase.storage
+          .from('assignment-submissions')
+          .createSignedUrl(s.file_path, 3600, { download: s.file_name });
+        b.disabled = false; b.innerHTML = '<i class="fas fa-download"></i>';
+        if (error) return toast(error.message, 'error');
+        const link = document.createElement('a');
+        link.href = data.signedUrl;
+        link.download = s.file_name;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+      });
+
+      // Delete single file
+      content.querySelectorAll('[data-delfile]').forEach(b => b.onclick = async () => {
+        const subId = b.dataset.delfile;
+        const s = allSubs.find(x => x.id === subId);
+        if (!s) return;
+        if (!confirm(`Delete "${s.file_name}" from ${s.student_id}?\n\nThis cannot be undone.`)) return;
+        b.disabled = true; b.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        const { error: stErr } = await supabase.storage
+          .from('assignment-submissions').remove([s.file_path]);
+        if (stErr) toast('Storage: ' + stErr.message, 'warning');
+
+        const { error } = await supabase.from('submissions').delete().eq('id', subId);
+        if (error) { b.disabled = false; b.innerHTML = '<i class="fas fa-trash"></i>'; return toast(error.message, 'error'); }
+        toast('File deleted', 'success');
+        await fetchSubs();
+        await load();  // refresh card stats
+      });
+
+      // Delete all files for one student
+      content.querySelectorAll('[data-delstudent]').forEach(b => b.onclick = async () => {
+        const sid = b.dataset.delstudent;
+        const info = byStudent.get(sid);
+        if (!info) return;
+        if (!confirm(`Delete ALL ${info.files.length} file(s) from student ${sid}?\n\nThis cannot be undone. The student will be able to submit again.`)) return;
+        b.disabled = true; b.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        const paths = info.files.map(f => f.file_path);
+        const { error: stErr } = await supabase.storage
+          .from('assignment-submissions').remove(paths);
+        if (stErr) toast('Storage: ' + stErr.message, 'warning');
+
+        const { error } = await supabase.from('submissions')
+          .delete().eq('assignment_id', id).eq('student_id', sid).eq('is_superseded', false);
+        if (error) { b.disabled = false; b.innerHTML = '<i class="fas fa-trash-can"></i> Delete all'; return toast(error.message, 'error'); }
+        toast(`Deleted submission from ${sid}`, 'success');
+        await fetchSubs();
+        await load();
+      });
+    }
+
+    dialog.querySelector('#subsSearch').oninput = e => {
+      searchTerm = e.target.value.trim();
+      renderSubs();
+    };
+    dialog.querySelector('#subsRefresh').onclick = fetchSubs;
+    dialog.querySelector('#subsZip').onclick = () => downloadZip(id, null, dialog.querySelector('#subsZip'));
+
+    await fetchSubs();
+  }
+
+  /* ════════════════════════════════════════════════════════
+     ZIP DOWNLOAD
+     ════════════════════════════════════════════════════════ */
+  async function downloadZip(id, btn, btnEl = null) {
+    const a = assignments.find(x => x.id === id);
+    if (!a) return;
+    const button = btnEl || btn;
+    if (button) {
+      button.disabled = true;
+      button.dataset.original = button.innerHTML;
+      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing…';
+    }
+
+    let progressEl = document.querySelector('.zip-progress');
+    if (!progressEl) {
+      progressEl = document.createElement('div');
+      progressEl.className = 'zip-progress show';
+      progressEl.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:8px">
+          <span id="zipStatus">Fetching file list…</span>
+          <span id="zipCount">0/0</span>
+        </div>
+        <div class="zip-progress-bar"><div id="zipBar"></div></div>`;
+      document.querySelector('.container').appendChild(progressEl);
+    }
+    progressEl.classList.add('show');
     const statusEl = progressEl.querySelector('#zipStatus');
     const countEl = progressEl.querySelector('#zipCount');
     const barEl = progressEl.querySelector('#zipBar');
 
     try {
-      // Get current (non-superseded) files
       const { data: subs, error } = await supabase.from('submissions')
         .select('student_id, student_name, file_path, file_name')
         .eq('assignment_id', id)
@@ -408,7 +641,8 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
       if (error) throw error;
       if (!subs || !subs.length) {
         toast('No files to download', 'info');
-        progressEl.remove(); btn.disabled = false; btn.innerHTML = original;
+        progressEl.remove();
+        if (button) { button.disabled = false; button.innerHTML = button.dataset.original || '<i class="fas fa-file-zipper"></i> ZIP'; }
         return;
       }
 
@@ -416,7 +650,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
       countEl.textContent = `0/${total}`;
       statusEl.textContent = 'Creating signed URLs…';
 
-      // Batch signed URLs
       const paths = subs.map(s => s.file_path);
       const { data: urls, error: urlErr } = await supabase.storage
         .from('assignment-submissions')
@@ -426,7 +659,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
       const urlMap = new Map();
       (urls ?? []).forEach(u => { if (u.signedUrl) urlMap.set(u.path, u.signedUrl); });
 
-      // Build zip
       const zip = new JSZip();
       let done = 0;
       for (const s of subs) {
@@ -467,7 +699,10 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
       toast(e.message || 'Download failed', 'error');
       progressEl.remove();
     }
-    btn.disabled = false; btn.innerHTML = original;
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = button.dataset.original || '<i class="fas fa-file-zipper"></i> ZIP';
+    }
   }
 
   await load();

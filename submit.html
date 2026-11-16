@@ -59,6 +59,9 @@
   .error-card i.big{font-size:42px;color:var(--danger);margin-bottom:14px;display:block}
   .error-card h2{font-size:17px;font-weight:700;color:var(--danger-text);margin-bottom:6px}
   .error-card p{font-size:13px;color:var(--danger-text);opacity:.85;line-height:1.55}
+
+  .req-star{color:var(--danger);font-weight:600;margin-left:2px}
+  .opt-label{color:var(--text-muted);font-weight:400;font-size:11px;margin-left:4px}
 </style>
 </head>
 <body>
@@ -107,14 +110,14 @@
 
     <div class="card" style="padding:20px">
       <form id="form" autocomplete="off">
-        <label class="field"><span>Student ID *</span>
+        <label class="field"><span>Student ID <span class="req-star">*</span></span>
           <input class="input" id="studentId" required
                  inputmode="numeric" pattern="[0-9]*" maxlength="20"
                  placeholder="Numbers only, e.g. 12001234"
                  autocomplete="off"></label>
 
-        <label class="field"><span>Full name *</span>
-          <input class="input" id="studentName" required maxlength="100"
+        <label class="field"><span>Full name<span id="nameReqStar"></span><span id="nameOptLabel"></span></span>
+          <input class="input" id="studentName" maxlength="100"
                  placeholder="Your full name"
                  autocomplete="off"></label>
 
@@ -209,6 +212,20 @@ function renderAssignment() {
     pol.innerHTML = '<i class="fas fa-rotate"></i> Re-submit until deadline';
     pol.className = 'policy-badge';
   }
+
+  // Name field: required vs optional
+  if (assignment.name_required) {
+    $('studentName').required = true;
+    $('nameReqStar').textContent = '*';
+    $('nameReqStar').className = 'req-star';
+    $('nameOptLabel').textContent = '';
+  } else {
+    $('studentName').required = false;
+    $('nameReqStar').textContent = '';
+    $('nameOptLabel').textContent = '(optional)';
+    $('nameOptLabel').className = 'opt-label';
+  }
+
   const types = assignment.allowed_types.map(t => '.'+t).join(', ');
   $('fileTypes').textContent = `${types} · max ${assignment.max_files} file${assignment.max_files>1?'s':''} · max ${assignment.max_size_mb} MB each`;
   $('fileInput').accept = assignment.allowed_types.map(t => '.'+t).join(',');
@@ -300,12 +317,12 @@ function renderFiles() {
   counter.textContent = selectedFiles.length ? `(${selectedFiles.length}/${assignment.max_files})` : '';
 }
 
-// ── Submit button gating: ID numeric 3-20, name ≥ 2 chars, files in range ──
+// Submit button gating: numeric ID, name (if required), files in range
 function updateSubmitBtn() {
   const sid = $('studentId').value.trim();
   const name = $('studentName').value.trim();
-  const sidOk  = /^[0-9]{3,20}$/.test(sid);
-  const nameOk = name.length >= 2;
+  const sidOk = /^[0-9]{3,20}$/.test(sid);
+  const nameOk = !assignment.name_required || name.length >= 2;
   const filesOk = selectedFiles.length > 0 && selectedFiles.length <= assignment.max_files;
   const blocked = assignment.submission_policy === 'single' && existingFiles.length > 0;
   $('submitBtn').disabled = !(sidOk && nameOk && filesOk) || blocked;
@@ -320,7 +337,7 @@ $('form').onsubmit = async (e) => {
   if (!/^[0-9]{3,20}$/.test(studentId)) {
     return toast('Student ID must be 3-20 digits (numbers only)', 'error');
   }
-  if (studentName.length < 2) {
+  if (assignment.name_required && studentName.length < 2) {
     return toast('Your full name is required', 'error');
   }
 
@@ -349,7 +366,7 @@ $('form').onsubmit = async (e) => {
     const { data: rec, error: recErr } = await supabase.rpc('commit_submission', {
       p_token: token,
       p_student_id: studentId,
-      p_student_name: studentName,
+      p_student_name: studentName || null,
       p_files: uploaded,
     });
     if (recErr) throw new Error(recErr.message);

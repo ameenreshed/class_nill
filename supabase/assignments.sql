@@ -1,5 +1,5 @@
 -- ============================================================
--- ASSIGNMENT COLLECTION SYSTEM (Supabase-only, hybrid-ready)
+-- ASSIGNMENT COLLECTION SYSTEM (Supabase-only)
 -- Run after schema.sql. Fully idempotent.
 -- ============================================================
 
@@ -20,10 +20,11 @@ create table assignments (
   description       text,
   course_code       text,
   batch             text not null,
-  drive_link        text,                                     -- optional reference material
+  drive_link        text,
   deadline          timestamptz,
   submission_policy text not null default 'single'
                     check (submission_policy in ('single','overwrite')),
+  name_required     boolean not null default true,
   max_files         int  not null default 1  check (max_files between 1 and 20),
   max_size_mb       int  not null default 25 check (max_size_mb between 1 and 100),
   allowed_types     text[] not null default array['pdf','doc','docx','ppt','pptx','txt','zip'],
@@ -38,7 +39,7 @@ create table submissions (
   id            uuid primary key default gen_random_uuid(),
   assignment_id uuid not null references assignments(id) on delete cascade,
   student_id    text not null,
-  student_name  text,
+  student_name  text,                              -- nullable (only required when name_required = true)
   file_path     text not null,
   file_name     text not null,
   file_size     bigint,
@@ -146,6 +147,7 @@ begin
     'course_code', v_a.course_code, 'batch', v_a.batch,
     'drive_link', v_a.drive_link, 'deadline', v_a.deadline,
     'submission_policy', v_a.submission_policy,
+    'name_required', v_a.name_required,
     'max_files', v_a.max_files, 'max_size_mb', v_a.max_size_mb,
     'allowed_types', v_a.allowed_types
   );
@@ -158,7 +160,7 @@ declare v_a_id uuid; v_files jsonb;
 begin
   select id into v_a_id from assignments where share_token = p_token and is_active = true;
   if v_a_id is null then return jsonb_build_object('error', 'Invalid link'); end if;
-  if p_student_id is null or length(trim(p_student_id)) = 0 then
+  if p_student_id is null or p_student_id !~ '^[0-9]{3,20}$' then
     return jsonb_build_object('exists', false);
   end if;
   select coalesce(jsonb_agg(jsonb_build_object(
@@ -167,7 +169,7 @@ begin
     into v_files
     from submissions
     where assignment_id = v_a_id
-      and lower(student_id) = lower(trim(p_student_id))
+      and student_id = trim(p_student_id)
       and is_superseded = false;
   return jsonb_build_object('exists', jsonb_array_length(v_files) > 0, 'files', v_files);
 end; $$;
@@ -183,14 +185,23 @@ declare
   v_count int;
   v_path text;
   v_ext text;
+  v_name text;
 begin
-  -- Lock assignment row to serialize concurrent submissions
   select * into v_a from assignments
     where share_token = p_token and is_active = true for update;
   if not found then return jsonb_build_object('error', 'Invalid or expired link'); end if;
 
-  if p_student_id is null or p_student_id !~ '^[A-Za-z0-9_-]{3,30}$' then
-    return jsonb_build_object('error', 'Student ID must be 3-30 letters/numbers/dashes');
+  -- Student ID: digits only, 3-20 characters
+  if p_student_id is null or p_student_id !~ '^[0-9]{3,20}$' then
+    return jsonb_build_object('error', 'Student ID must be 3-20 digits (numbers only)');
+  end if;
+
+  -- Student name: required only if the assignment says so
+  v_name := nullif(trim(coalesce(p_student_name, '')), '');
+  if v_a.name_required then
+    if v_name is null or length(v_name) < 2 then
+      return jsonb_build_object('error', 'Student name is required');
+    end if;
   end if;
 
   if v_a.deadline is not null and now() > v_a.deadline then
@@ -203,19 +214,17 @@ begin
     return jsonb_build_object('error', 'Too many files (max ' || v_a.max_files || ')');
   end if;
 
-  -- Single mode: reject if already submitted
   if v_a.submission_policy = 'single' then
     if exists(
       select 1 from submissions
       where assignment_id = v_a.id
-        and lower(student_id) = lower(trim(p_student_id))
+        and student_id = trim(p_student_id)
         and is_superseded = false
     ) then
       return jsonb_build_object('error', 'Already submitted — re-submission is not allowed');
     end if;
   end if;
 
-  -- Validate each file
   for v_file in select * from jsonb_array_elements(p_files) loop
     v_path := v_file->>'path';
     if split_part(v_path, '/', 1) <> p_token then
@@ -230,22 +239,19 @@ begin
     end if;
   end loop;
 
-  -- Overwrite mode: supersede previous files
   if v_a.submission_policy = 'overwrite' then
     update submissions set is_superseded = true, superseded_at = now()
       where assignment_id = v_a.id
-        and lower(student_id) = lower(trim(p_student_id))
+        and student_id = trim(p_student_id)
         and is_superseded = false;
   end if;
 
-  -- Insert new files
   for v_file in select * from jsonb_array_elements(p_files) loop
     insert into submissions (
       assignment_id, student_id, student_name,
       file_path, file_name, file_size, mime_type
     ) values (
-      v_a.id, trim(p_student_id),
-      nullif(trim(coalesce(p_student_name,'')), ''),
+      v_a.id, trim(p_student_id), v_name,
       v_file->>'path', v_file->>'name',
       (v_file->>'size')::bigint, v_file->>'type'
     );
