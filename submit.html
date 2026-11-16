@@ -40,9 +40,6 @@
   .file-item-size{font-size:11px;color:var(--success-text);opacity:.75;margin-top:2px}
   .file-item-x{background:transparent;border:none;color:var(--success-text);opacity:.6;cursor:pointer;padding:4px;font-size:14px;flex-shrink:0}
   .file-item-x:hover{opacity:1}
-  .file-item.uploading{background:var(--info-soft);border-color:var(--info-soft-border)}
-  .file-item.uploading .file-item-name,.file-item.uploading .file-item-size{color:var(--info-text)}
-  .file-item.uploading i.file-ico{color:var(--info)}
 
   .existing-box{background:var(--warning-soft);border:1px solid var(--warning-soft-border);border-radius:14px;padding:16px 18px;margin-bottom:16px}
   .existing-box h3{font-size:14px;font-weight:700;color:var(--warning-text);margin-bottom:8px;display:flex;align-items:center;gap:8px}
@@ -109,11 +106,17 @@
     </div>
 
     <div class="card" style="padding:20px">
-      <form id="form">
+      <form id="form" autocomplete="off">
         <label class="field"><span>Student ID *</span>
-          <input class="input" id="studentId" required placeholder="e.g. 12001234" autocomplete="off" autocapitalize="characters"></label>
-        <label class="field"><span>Full name (optional)</span>
-          <input class="input" id="studentName" placeholder="Your name" autocomplete="name"></label>
+          <input class="input" id="studentId" required
+                 inputmode="numeric" pattern="[0-9]*" maxlength="20"
+                 placeholder="Numbers only, e.g. 12001234"
+                 autocomplete="off"></label>
+
+        <label class="field"><span>Full name *</span>
+          <input class="input" id="studentName" required maxlength="100"
+                 placeholder="Your full name"
+                 autocomplete="off"></label>
 
         <div class="field">
           <span>Files <span id="fileCounter" style="font-weight:400;color:var(--text-muted)"></span></span>
@@ -211,14 +214,19 @@ function renderAssignment() {
   $('fileInput').accept = assignment.allowed_types.map(t => '.'+t).join(',');
 }
 
-$('studentId').oninput = checkExisting;
-$('studentId').onblur = checkExisting;
-$('studentName').oninput = updateSubmitBtn;
+// ── Student ID: strip everything except digits, max 20 ──
+$('studentId').addEventListener('input', (e) => {
+  const cleaned = e.target.value.replace(/\D/g, '').slice(0, 20);
+  if (e.target.value !== cleaned) e.target.value = cleaned;
+  checkExisting();
+});
+$('studentId').addEventListener('blur', checkExisting);
+$('studentName').addEventListener('input', updateSubmitBtn);
 
 async function checkExisting() {
   const sid = $('studentId').value.trim();
   const box = $('existingBox');
-  if (sid.length < 3) {
+  if (!/^[0-9]{3,20}$/.test(sid)) {
     box.style.display = 'none';
     existingFiles = [];
     updateSubmitBtn();
@@ -292,12 +300,15 @@ function renderFiles() {
   counter.textContent = selectedFiles.length ? `(${selectedFiles.length}/${assignment.max_files})` : '';
 }
 
+// ── Submit button gating: ID numeric 3-20, name ≥ 2 chars, files in range ──
 function updateSubmitBtn() {
   const sid = $('studentId').value.trim();
-  const sidOk = /^[A-Za-z0-9_-]{3,30}$/.test(sid);
+  const name = $('studentName').value.trim();
+  const sidOk  = /^[0-9]{3,20}$/.test(sid);
+  const nameOk = name.length >= 2;
   const filesOk = selectedFiles.length > 0 && selectedFiles.length <= assignment.max_files;
   const blocked = assignment.submission_policy === 'single' && existingFiles.length > 0;
-  $('submitBtn').disabled = !(sidOk && filesOk) || blocked;
+  $('submitBtn').disabled = !(sidOk && nameOk && filesOk) || blocked;
 }
 
 $('form').onsubmit = async (e) => {
@@ -306,8 +317,11 @@ $('form').onsubmit = async (e) => {
   const studentId = $('studentId').value.trim();
   const studentName = $('studentName').value.trim();
 
-  if (!/^[A-Za-z0-9_-]{3,30}$/.test(studentId)) {
-    return toast('Student ID must be 3-30 letters/numbers/dashes', 'error');
+  if (!/^[0-9]{3,20}$/.test(studentId)) {
+    return toast('Student ID must be 3-20 digits (numbers only)', 'error');
+  }
+  if (studentName.length < 2) {
+    return toast('Your full name is required', 'error');
   }
 
   $('submitBtn').disabled = true;
@@ -320,7 +334,6 @@ $('form').onsubmit = async (e) => {
   try {
     for (let i = 0; i < selectedFiles.length; i++) {
       const f = selectedFiles[i];
-      const ext = f.name.split('.').pop().toLowerCase();
       const safe = f.name.replace(/[^A-Za-z0-9._-]/g, '_');
       const uuid = crypto.randomUUID();
       const path = `${token}/${uuid}_${safe}`;
@@ -328,16 +341,15 @@ $('form').onsubmit = async (e) => {
         .from('assignment-submissions')
         .upload(path, f, { contentType: f.type || 'application/octet-stream', upsert: false });
       if (upErr) throw new Error(`Upload failed for ${f.name}: ${upErr.message}`);
-      uploaded.push({
-        path, name: f.name, size: f.size, type: f.type,
-      });
+      uploaded.push({ path, name: f.name, size: f.size, type: f.type });
       $('progressBar').style.width = `${5 + ((i+1)/selectedFiles.length) * 80}%`;
     }
 
     $('progressBar').style.width = '90%';
     const { data: rec, error: recErr } = await supabase.rpc('commit_submission', {
-      p_token: token, p_student_id: studentId,
-      p_student_name: studentName || null,
+      p_token: token,
+      p_student_id: studentId,
+      p_student_name: studentName,
       p_files: uploaded,
     });
     if (recErr) throw new Error(recErr.message);
@@ -349,7 +361,6 @@ $('form').onsubmit = async (e) => {
     $('successCard').style.display = 'block';
     if (navigator.vibrate) try { navigator.vibrate([20, 40, 20]); } catch {}
   } catch (e) {
-    // Cleanup partial uploads on failure
     if (uploaded.length) {
       await supabase.storage.from('assignment-submissions').remove(uploaded.map(u => u.path));
     }
