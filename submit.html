@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Submit assignment · LPU Scheduler</title>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/mobile-app.css">
+<style>
+  .sub-shell{max-width:640px;margin:0 auto;padding:24px 16px 48px;min-height:100dvh}
+  .sub-brand{display:flex;align-items:center;gap:10px;margin-bottom:24px;font-weight:600;font-size:16px}
+  .sub-brand-icon{width:38px;height:38px;border-radius:10px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .asn-info{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:16px}
+  .asn-info h1{font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px;line-height:1.3}
+  .asn-info .meta{font-size:13px;color:var(--text-secondary);display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .asn-info .desc{font-size:14px;color:var(--text);line-height:1.6;padding-top:12px;border-top:1px solid var(--border);margin-top:12px;white-space:pre-wrap}
+  .drive-btn{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--info-soft);border:1px solid var(--info-soft-border);color:var(--info-text);border-radius:10px;text-decoration:none;font-size:13px;font-weight:500;margin-top:12px;transition:all 140ms ease}
+  .drive-btn:hover{background:var(--info);color:#fff;border-color:var(--info)}
+  .file-drop{border:2px dashed var(--border-strong);border-radius:14px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 160ms ease;background:var(--surface)}
+  .file-drop:hover,.file-drop.drag{border-color:var(--brand);background:var(--brand-soft)}
+  .file-drop i{font-size:32px;color:var(--brand);margin-bottom:10px;display:block}
+  .file-drop .title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+  .file-drop .sub{font-size:12px;color:var(--text-secondary)}
+  .file-chosen{display:none;align-items:center;gap:12px;padding:14px 16px;background:var(--success-soft);border:1px solid var(--success-soft-border);border-radius:12px;margin-top:12px}
+  .file-chosen.show{display:flex}
+  .file-chosen i{font-size:20px;color:var(--success);flex-shrink:0}
+  .file-chosen .name{font-size:13px;font-weight:600;color:var(--success-text);word-break:break-all}
+  .file-chosen .size{font-size:11px;color:var(--success-text);opacity:.75;margin-top:2px}
+  .upload-progress{height:6px;background:var(--surface-active);border-radius:999px;overflow:hidden;margin-top:12px;display:none}
+  .upload-progress.show{display:block}
+  .upload-progress > div{height:100%;background:var(--brand);width:0;transition:width 200ms ease}
+  .success-card{background:var(--success-soft);border:1px solid var(--success-soft-border);border-radius:16px;padding:32px 24px;text-align:center}
+  .success-card i.big{font-size:48px;color:var(--success);margin-bottom:16px;display:block}
+  .success-card h2{font-size:19px;font-weight:700;color:var(--success-text);margin-bottom:8px}
+  .success-card p{font-size:13px;color:var(--success-text);opacity:.85;line-height:1.55}
+  .error-card{background:var(--danger-soft);border:1px solid var(--danger-soft-border);border-radius:16px;padding:32px 24px;text-align:center}
+  .error-card i.big{font-size:42px;color:var(--danger);margin-bottom:14px;display:block}
+  .error-card h2{font-size:17px;font-weight:700;color:var(--danger-text);margin-bottom:6px}
+  .error-card p{font-size:13px;color:var(--danger-text);opacity:.85;line-height:1.55}
+  .deadline-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:600}
+  .deadline-pill.ok{background:var(--success-soft);color:var(--success-text)}
+  .deadline-pill.warn{background:var(--warning-soft);color:var(--warning-text)}
+  .deadline-pill.expired{background:var(--danger-soft);color:var(--danger-text)}
+  .deadline-pill.none{background:var(--surface-active);color:var(--text-muted)}
+</style>
+</head>
+<body>
+<div class="sub-shell">
+  <div class="sub-brand">
+    <div class="sub-brand-icon"><i class="fas fa-file-pen"></i></div>
+    <div>LPU<span style="color:var(--brand)">.</span>Scheduler</div>
+  </div>
+
+  <div id="loading" class="card" style="text-align:center;padding:32px"><i class="fas fa-spinner fa-spin" style="font-size:22px;color:var(--brand)"></i></div>
+
+  <div id="error" class="error-card" style="display:none">
+    <i class="fas fa-triangle-exclamation big"></i>
+    <h2 id="errorTitle">Link invalid</h2>
+    <p id="errorMsg">This assignment link is invalid or has expired. Contact your faculty for a new link.</p>
+  </div>
+
+  <div id="alreadyCard" class="success-card" style="display:none">
+    <i class="fas fa-circle-check big"></i>
+    <h2>Already submitted</h2>
+    <p id="alreadyMsg">You have already submitted a file for this assignment.</p>
+  </div>
+
+  <div id="successCard" class="success-card" style="display:none">
+    <i class="fas fa-circle-check big"></i>
+    <h2>Submission received</h2>
+    <p id="successMsg">Your file has been uploaded successfully. You can close this page.</p>
+  </div>
+
+  <div id="main" style="display:none">
+    <div class="asn-info">
+      <h1 id="asnTitle"></h1>
+      <div class="meta">
+        <span class="badge badge-gray" id="asnBatch"></span>
+        <span class="badge badge-admin" id="asnCourse" style="display:none"></span>
+        <span class="deadline-pill ok" id="asnDeadline"></span>
+      </div>
+      <div class="desc" id="asnDesc" style="display:none"></div>
+      <a id="driveBtn" class="drive-btn" target="_blank" rel="noopener" style="display:none">
+        <i class="fab fa-google-drive" style="font-size:18px"></i>
+        <span style="flex:1">Open reference material (Google Drive)</span>
+        <i class="fas fa-arrow-up-right-from-square" style="font-size:11px;opacity:.7"></i>
+      </a>
+    </div>
+
+    <div class="card" style="padding:20px">
+      <form id="form">
+        <label class="field"><span>Student ID *</span><input class="input" id="studentId" required placeholder="e.g. 12001234 or REG-2024-001" autocomplete="off" autocapitalize="characters"></label>
+        <label class="field"><span>Full name</span><input class="input" id="studentName" placeholder="Your name (optional)" autocomplete="name"></label>
+        <label class="field"><span>File *</span>
+          <div class="file-drop" id="dropZone">
+            <i class="fas fa-cloud-arrow-up"></i>
+            <div class="title">Click to choose a file</div>
+            <div class="sub" id="fileTypes">PDF, DOC, DOCX, PPT, PPTX…</div>
+          </div>
+          <input type="file" id="fileInput" style="display:none">
+          <div class="file-chosen" id="fileChosen">
+            <i class="fas fa-file-circle-check"></i>
+            <div style="flex:1;min-width:0">
+              <div class="name" id="chosenName"></div>
+              <div class="size" id="chosenSize"></div>
+            </div>
+            <button type="button" class="btn btn-sm" id="clearFile"><i class="fas fa-xmark"></i></button>
+          </div>
+        </label>
+        <div class="upload-progress" id="progress"><div id="progressBar"></div></div>
+        <button type="submit" class="btn btn-primary btn-block" id="submitBtn" style="margin-top:8px;min-height:48px;font-size:15px" disabled>
+          <i class="fas fa-cloud-arrow-up"></i> Submit file
+        </button>
+      </form>
+    </div>
+    <div style="text-align:center;margin-top:16px;font-size:11.5px;color:var(--text-muted);line-height:1.5">
+      <i class="fas fa-lock"></i> Your file is uploaded securely. Only your faculty can access it.<br>
+      You can submit <strong>only once</strong>. Choose your file carefully.
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { supabase, escapeHtml, toast } from './js/core.js';
+
+const params = new URLSearchParams(location.search);
+const token = params.get('token');
+const $ = id => document.getElementById(id);
+let assignment = null;
+let selectedFile = null;
+
+function hideAll() {
+  ['loading','error','main','successCard','alreadyCard'].forEach(x => { const el = $(x); if (el) el.style.display = 'none'; });
+}
+
+(async () => {
+  if (!token) return showErr('Invalid link', 'No token in the URL.');
+  const { data, error } = await supabase.rpc('get_assignment_by_token', { p_token: token });
+  if (error || !data || data.error) {
+    return showErr('Link invalid', data?.error || error?.message || 'This link is invalid or has been revoked.');
+  }
+  assignment = data;
+  renderAssignment();
+  hideAll(); $('main').style.display = 'block';
+})();
+
+function renderAssignment() {
+  $('asnTitle').textContent = assignment.title;
+  $('asnBatch').textContent = assignment.batch;
+  if (assignment.course_code) { $('asnCourse').textContent = assignment.course_code; $('asnCourse').style.display = ''; }
+  if (assignment.description) { $('asnDesc').textContent = assignment.description; $('asnDesc').style.display = ''; }
+  if (assignment.drive_link) {
+    $('driveBtn').href = assignment.drive_link;
+    $('driveBtn').style.display = '';
+  }
+  const dl = $('asnDeadline');
+  if (assignment.deadline) {
+    const d = new Date(assignment.deadline);
+    const diff = d - new Date();
+    dl.textContent = diff > 0 ? `Due ${d.toLocaleString()}` : `Closed ${d.toLocaleDateString()}`;
+    dl.className = 'deadline-pill ' + (diff <= 0 ? 'expired' : diff < 86400000 ? 'warn' : 'ok');
+  } else {
+    dl.textContent = 'No deadline'; dl.className = 'deadline-pill none';
+  }
+  $('fileTypes').textContent = 'Allowed: ' + assignment.allowed_types.map(t => '.'+t).join(', ') + ` · max ${assignment.max_size_mb} MB`;
+  $('fileInput').accept = assignment.allowed_types.map(t => '.'+t).join(',');
+}
+
+function showErr(title, msg) {
+  hideAll();
+  $('errorTitle').textContent = title;
+  $('errorMsg').textContent = msg;
+  $('error').style.display = 'block';
+}
+
+$('dropZone').onclick = () => $('fileInput').click();
+$('fileInput').onchange = e => pickFile(e.target.files[0]);
+$('dropZone').ondragover = e => { e.preventDefault(); $('dropZone').classList.add('drag'); };
+$('dropZone').ondragleave = () => $('dropZone').classList.remove('drag');
+$('dropZone').ondrop = e => {
+  e.preventDefault(); $('dropZone').classList.remove('drag');
+  if (e.dataTransfer.files[0]) pickFile(e.dataTransfer.files[0]);
+};
+$('clearFile').onclick = () => {
+  selectedFile = null; $('fileInput').value = '';
+  $('fileChosen').classList.remove('show');
+  $('dropZone').style.display = '';
+  updateSubmitBtn();
+};
+
+function pickFile(f) {
+  if (!f) return;
+  const ext = f.name.split('.').pop().toLowerCase();
+  if (!assignment.allowed_types.includes(ext)) {
+    return toast(`.${ext} not allowed. Use: ${assignment.allowed_types.map(t=>'.'+t).join(', ')}`, 'error');
+  }
+  if (f.size > assignment.max_size_mb * 1024 * 1024) {
+    return toast(`File too large (max ${assignment.max_size_mb} MB)`, 'error');
+  }
+  selectedFile = f;
+  $('chosenName').textContent = f.name;
+  $('chosenSize').textContent = (f.size/1024/1024).toFixed(2) + ' MB';
+  $('fileChosen').classList.add('show');
+  $('dropZone').style.display = 'none';
+  updateSubmitBtn();
+}
+
+$('studentId').oninput = updateSubmitBtn;
+
+function updateSubmitBtn() {
+  const ok = selectedFile && $('studentId').value.trim().length >= 3;
+  $('submitBtn').disabled = !ok;
+}
+
+$('form').onsubmit = async (e) => {
+  e.preventDefault();
+  if (!selectedFile || !assignment) return;
+  const studentId = $('studentId').value.trim();
+  const studentName = $('studentName').value.trim();
+
+  if (!/^[A-Za-z0-9_-]{3,30}$/.test(studentId)) {
+    return toast('Student ID must be 3-30 letters/numbers/dashes', 'error');
+  }
+
+  $('submitBtn').disabled = true;
+  $('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking…';
+
+  const { data: chk } = await supabase.rpc('check_student_submission', { p_token: token, p_student_id: studentId });
+  if (chk?.exists) {
+    hideAll();
+    $('alreadyMsg').textContent = `A file (${chk.file_name}) was already submitted under this ID. Contact your faculty if you need to resubmit.`;
+    $('alreadyCard').style.display = 'block';
+    return;
+  }
+
+  $('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading…';
+  $('progress').classList.add('show');
+  $('progressBar').style.width = '15%';
+
+  const ext = selectedFile.name.split('.').pop().toLowerCase();
+  const safeFilename = selectedFile.name.replace(/[^A-Za-z0-9._-]/g, '_');
+  const ts = Date.now();
+  const path = `${token}/${studentId}_${ts}.${ext}`;
+
+  const { error: upErr } = await supabase.storage
+    .from('assignment-submissions')
+    .upload(path, selectedFile, { contentType: selectedFile.type, upsert: false });
+
+  if (upErr) {
+    $('progress').classList.remove('show');
+    $('submitBtn').disabled = false;
+    $('submitBtn').innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Submit file';
+    return toast(upErr.message, 'error');
+  }
+
+  $('progressBar').style.width = '75%';
+
+  const { data: rec, error: recErr } = await supabase.rpc('record_submission', {
+    p_token: token, p_student_id: studentId, p_student_name: studentName || null,
+    p_file_path: path, p_file_name: safeFilename,
+    p_file_size: selectedFile.size, p_mime_type: selectedFile.type || null,
+  });
+
+  $('progressBar').style.width = '100%';
+
+  if (recErr || rec?.error) {
+    await supabase.storage.from('assignment-submissions').remove([path]);
+    $('progress').classList.remove('show');
+    $('submitBtn').disabled = false;
+    $('submitBtn').innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Submit file';
+    return toast(rec?.error || recErr?.message || 'Upload failed', 'error');
+  }
+
+  hideAll();
+  $('successCard').style.display = 'block';
+  $('successMsg').textContent = `Your file "${selectedFile.name}" has been submitted under ID ${studentId}. You can close this page.`;
+};
+</script>
+</body>
+</html>

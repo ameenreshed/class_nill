@@ -4,9 +4,10 @@ export { SUPABASE_URL, SUPABASE_ANON_KEY };
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export const BASE = new URL('.', location.href).href;
 
-if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(r => r.forEach(x => x.unregister())).catch(() => {});
-}
+// NOTE: The old "unregister every service worker on load" block was removed.
+// It raced with initPWA()'s registration and caused the SW to die.
+// Registration is handled exclusively by initPWA() (bottom of this file)
+// and pwa.js (for pages that don't import core.js).
 
 export async function waitForSession(maxMs = 2500) {
   const start = Date.now();
@@ -189,7 +190,6 @@ function updateThemeIcons() {
   document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
     btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
   });
-  // Update mobile sheet theme label if present
   const masThemeLabel = document.querySelector('#masThemeToggle .mas-item-label');
   const masThemeIcon = document.querySelector('#masThemeToggle .mas-item-icon i');
   if (masThemeLabel) {
@@ -198,7 +198,6 @@ function updateThemeIcons() {
       masThemeIcon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
     }
   }
-  // Update desktop theme menu item
   const themeMenuItem = document.getElementById('themeMenuItem');
   if (themeMenuItem) {
     themeMenuItem.innerHTML = isDark
@@ -269,31 +268,33 @@ export async function renderNav(profile) {
     { href:'free-rooms.html',      label:'Free rooms', icon:'fa-building',       active: currentPage === 'free-rooms.html' },
     { href:'admin-settings.html',  label:'Settings',   icon:'fa-gear',           active: currentPage === 'admin-settings.html' },
   ] : [
-    { href:'faculty.html',   label:'Dashboard',  icon:'fa-gauge-high', active: currentPage === 'faculty.html' },
-    { href:'free-rooms.html',label:'Free rooms', icon:'fa-building',   active: currentPage === 'free-rooms.html' },
-    { href:'profile.html',   label:'Profile',    icon:'fa-user',       active: currentPage === 'profile.html' },
+    { href:'faculty.html',             label:'Dashboard',   icon:'fa-gauge-high', active: currentPage === 'faculty.html' },
+    { href:'faculty-assignments.html', label:'Assignments', icon:'fa-file-pen',   active: currentPage === 'faculty-assignments.html' },
+    { href:'free-rooms.html',          label:'Free rooms',  icon:'fa-building',   active: currentPage === 'free-rooms.html' },
+    { href:'profile.html',             label:'Profile',     icon:'fa-user',       active: currentPage === 'profile.html' },
   ];
 
   const bottomItems = profile.role === 'admin' ? [
-    { href:'admin.html',          label:'Home',      icon:'fa-house',          active: currentPage === 'admin.html' },
-    { href:'admin-timetable.html',label:'Schedule',  icon:'fa-table',          active: currentPage === 'admin-timetable.html' },
-    { href:'admin-bookings.html', label:'Bookings',  icon:'fa-calendar-check', active: currentPage === 'admin-bookings.html' },
-    { href:'admin-faculty.html',  label:'Users',     icon:'fa-users',          active: currentPage === 'admin-faculty.html' },
-    { more: true,                 label:'More',      icon:'fa-ellipsis' },
+    { href:'admin.html',           label:'Home',      icon:'fa-house',          active: currentPage === 'admin.html' },
+    { href:'admin-timetable.html', label:'Schedule',  icon:'fa-table',          active: currentPage === 'admin-timetable.html' },
+    { href:'admin-bookings.html',  label:'Bookings',  icon:'fa-calendar-check', active: currentPage === 'admin-bookings.html' },
+    { href:'admin-faculty.html',   label:'Users',     icon:'fa-users',          active: currentPage === 'admin-faculty.html' },
+    { more: true,                  label:'More',      icon:'fa-ellipsis' },
   ] : [
-    { href:'faculty.html',   label:'Home',    icon:'fa-house',       active: currentPage === 'faculty.html' },
-    { href:'free-rooms.html',label:'Rooms',   icon:'fa-building',    active: currentPage === 'free-rooms.html' },
-    { href:'profile.html',   label:'Profile', icon:'fa-circle-user', active: currentPage === 'profile.html' },
+    { href:'faculty.html',             label:'Home',        icon:'fa-house',       active: currentPage === 'faculty.html' },
+    { href:'faculty-assignments.html', label:'Assignments', icon:'fa-file-pen',    active: currentPage === 'faculty-assignments.html' },
+    { href:'free-rooms.html',          label:'Rooms',       icon:'fa-building',    active: currentPage === 'free-rooms.html' },
+    { href:'profile.html',             label:'Profile',     icon:'fa-circle-user', active: currentPage === 'profile.html' },
   ];
 
   const moreItems = profile.role === 'admin' ? [
-    { href:'admin-import.html',   label:'Import CSV',       icon:'fa-file-import' },
-    { href:'free-rooms.html',     label:'Free rooms',       icon:'fa-building' },
-    { href:'admin-rooms.html',    label:'Rooms & buildings',icon:'fa-door-open' },
-    { href:'admin-slots.html',    label:'Time slots',       icon:'fa-clock' },
-    { href:'admin-calendar.html', label:'Calendar',         icon:'fa-calendar-days' },
-    { href:'profile.html',        label:'Profile',          icon:'fa-user' },
-    { href:'admin-settings.html', label:'Settings',         icon:'fa-gear' },
+    { href:'admin-import.html',   label:'Import CSV',        icon:'fa-file-import' },
+    { href:'free-rooms.html',     label:'Free rooms',        icon:'fa-building' },
+    { href:'admin-rooms.html',    label:'Rooms & buildings', icon:'fa-door-open' },
+    { href:'admin-slots.html',    label:'Time slots',        icon:'fa-clock' },
+    { href:'admin-calendar.html', label:'Calendar',          icon:'fa-calendar-days' },
+    { href:'profile.html',        label:'Profile',           icon:'fa-user' },
+    { href:'admin-settings.html', label:'Settings',          icon:'fa-gear' },
   ] : [];
 
   el.innerHTML = `
@@ -311,7 +312,6 @@ export async function renderNav(profile) {
         </div>
       </div>
 
-      <!-- ===== Desktop popover (hidden on mobile via CSS) ===== -->
       <div class="avatar-menu" id="avatarMenu" role="menu">
         <div class="avatar-menu-header">
           <div class="avatar-menu-avatar">${escapeHtml(initial)}</div>
@@ -332,7 +332,6 @@ export async function renderNav(profile) {
       </div>
     </div>
 
-    <!-- ===== Mobile bottom nav ===== -->
     <div class="mobile-bottom-nav" id="mobileBottomNav">
       <div class="mobile-bottom-nav-items">
         ${bottomItems.map(l => l.more ? `
@@ -349,7 +348,6 @@ export async function renderNav(profile) {
       </div>
     </div>
 
-    <!-- ===== Mobile "More" sheet ===== -->
     <div class="more-sheet-backdrop" id="moreSheetBackdrop"></div>
     <div class="more-sheet" id="moreSheet">
       <div class="more-sheet-handle"></div>
@@ -369,7 +367,6 @@ export async function renderNav(profile) {
       </button>
     </div>
 
-    <!-- ===== NEW: Mobile account sheet (separate from desktop popover) ===== -->
     <div class="mobile-account-backdrop" id="mobileAccountBackdrop"></div>
     <div class="mobile-account-sheet" id="mobileAccountSheet" role="dialog" aria-label="Account menu" aria-modal="true">
       <div class="mas-handle"></div>
@@ -409,9 +406,6 @@ export async function renderNav(profile) {
     </div>
   `;
 
-  /* ============================================================
-     THEME TOGGLE (all variants)
-     ============================================================ */
   document.querySelectorAll('[data-theme-toggle]').forEach(btn => { btn.onclick = toggleTheme; });
   document.getElementById('themeMenuItem')?.addEventListener('click', toggleTheme);
   document.getElementById('masThemeToggle')?.addEventListener('click', toggleTheme);
@@ -421,9 +415,6 @@ export async function renderNav(profile) {
   });
   updateThemeIcons();
 
-  /* ============================================================
-     AVATAR BUTTON → opens desktop popover OR mobile sheet
-     ============================================================ */
   const avatarBtn = document.getElementById('avatarBtn');
   const avatarMenu = document.getElementById('avatarMenu');
   const mobileSheet = document.getElementById('mobileAccountSheet');
@@ -432,12 +423,8 @@ export async function renderNav(profile) {
 
   let savedScrollY = 0;
 
-  function openDesktopMenu() {
-    avatarMenu?.classList.add('open');
-  }
-  function closeDesktopMenu() {
-    avatarMenu?.classList.remove('open');
-  }
+  function openDesktopMenu() { avatarMenu?.classList.add('open'); }
+  function closeDesktopMenu() { avatarMenu?.classList.remove('open'); }
 
   function openMobileSheet() {
     if (!mobileSheet || !mobileBackdrop) return;
@@ -474,10 +461,8 @@ export async function renderNav(profile) {
     };
   }
 
-  /* ---- Backdrop click closes mobile sheet ---- */
   mobileBackdrop?.addEventListener('click', closeMobileSheet);
 
-  /* ---- Escape closes everything ---- */
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeDesktopMenu();
@@ -485,7 +470,6 @@ export async function renderNav(profile) {
     }
   });
 
-  /* ---- Click outside closes desktop popover (desktop only) ---- */
   document.addEventListener('click', (e) => {
     if (isMobile()) return;
     if (avatarMenu && avatarBtn && !avatarMenu.contains(e.target) && !avatarBtn.contains(e.target)) {
@@ -493,21 +477,16 @@ export async function renderNav(profile) {
     }
   });
 
-  /* ---- Resize → close whatever doesn't belong to the new viewport ---- */
   window.addEventListener('resize', () => {
     if (isMobile()) closeDesktopMenu();
     else closeMobileSheet();
   });
 
-  /* ---- Mobile sheet: tap nav items closes sheet, then acts ---- */
   mobileSheet?.querySelectorAll('a.mas-item, button.mas-item').forEach(item => {
-    if (item.id === 'masThemeToggle') return; // theme toggle stays open
-    item.addEventListener('click', () => {
-      closeMobileSheet();
-    });
+    if (item.id === 'masThemeToggle') return;
+    item.addEventListener('click', () => { closeMobileSheet(); });
   });
 
-  /* ---- Mobile sheet: swipe-down-to-close ---- */
   if (mobileSheet) {
     let touchStartY = 0;
     let touchStartTime = 0;
@@ -528,7 +507,7 @@ export async function renderNav(profile) {
       }
     }, { passive: true });
 
-    mobileSheet.addEventListener('touchend', (e) => {
+    mobileSheet.addEventListener('touchend', () => {
       mobileSheet.style.transition = '';
       mobileSheet.style.transform = '';
       const deltaTime = Date.now() - touchStartTime;
@@ -537,9 +516,6 @@ export async function renderNav(profile) {
     }, { passive: true });
   }
 
-  /* ============================================================
-     MORE SHEET (mobile bottom nav)
-     ============================================================ */
   const moreBtn = document.getElementById('moreBtn');
   const moreSheet = document.getElementById('moreSheet');
   const moreBackdrop = document.getElementById('moreSheetBackdrop');
@@ -558,15 +534,9 @@ export async function renderNav(profile) {
   moreBackdrop?.addEventListener('click', closeMoreSheet);
   document.getElementById('moreSignOut')?.addEventListener('click', signOut);
 
-  /* ============================================================
-     SIGN OUT
-     ============================================================ */
   document.getElementById('logoutBtn')?.addEventListener('click', signOut);
   document.getElementById('masSignOut')?.addEventListener('click', signOut);
 
-  /* ============================================================
-     PWA INSTALL — wire up desktop + mobile buttons
-     ============================================================ */
   const installBtnDesktop = document.getElementById('installAppBtn');
   const installBtnMobile = document.getElementById('masInstallApp');
 
@@ -594,9 +564,6 @@ export async function renderNav(profile) {
   installBtnDesktop?.addEventListener('click', triggerInstall);
   installBtnMobile?.addEventListener('click', triggerInstall);
 
-  /* ============================================================
-     HAPTIC FEEDBACK
-     ============================================================ */
   document.querySelectorAll('.mobile-nav-item').forEach(item => {
     item.addEventListener('touchstart', () => {
       if (navigator.vibrate) try { navigator.vibrate(8); } catch {}
