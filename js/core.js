@@ -4,10 +4,10 @@ export { SUPABASE_URL, SUPABASE_ANON_KEY };
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export const BASE = new URL('.', location.href).href;
 
-// NOTE: The old "unregister every service worker on load" block was removed.
-// It raced with initPWA()'s registration and caused the SW to die.
-// Registration is handled exclusively by initPWA() (bottom of this file)
-// and pwa.js (for pages that don't import core.js).
+// NOTE: Service worker registration is handled exclusively by initPWA()
+// at the bottom of this file (or by pwa.js on pages that don't import
+// core.js). Do NOT unregister on load here — it was racing with initPWA()
+// and killing the SW.
 
 export async function waitForSession(maxMs = 2500) {
   const start = Date.now();
