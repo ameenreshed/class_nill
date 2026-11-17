@@ -260,13 +260,14 @@ export async function renderNav(profile) {
   const isDark = getCurrentTheme() === 'dark';
 
   const topItems = profile.role === 'admin' ? [
-    { href:'admin.html',           label:'Dashboard',  icon:'fa-gauge-high',     active: currentPage === 'admin.html' },
-    { href:'admin-timetable.html', label:'Timetable',  icon:'fa-table',          active: currentPage === 'admin-timetable.html' },
-    { href:'admin-bookings.html',  label:'Bookings',   icon:'fa-calendar-check', active: currentPage === 'admin-bookings.html' },
-    { href:'admin-faculty.html',   label:'Users',      icon:'fa-users',          active: currentPage === 'admin-faculty.html' },
-    { href:'admin-import.html',    label:'Import',     icon:'fa-file-import',    active: currentPage === 'admin-import.html' },
-    { href:'free-rooms.html',      label:'Free rooms', icon:'fa-building',       active: currentPage === 'free-rooms.html' },
-    { href:'admin-settings.html',  label:'Settings',   icon:'fa-gear',           active: currentPage === 'admin-settings.html' },
+    { href:'admin.html',              label:'Dashboard',   icon:'fa-gauge-high',     active: currentPage === 'admin.html' },
+    { href:'admin-timetable.html',    label:'Timetable',   icon:'fa-table',          active: currentPage === 'admin-timetable.html' },
+    { href:'admin-bookings.html',     label:'Bookings',    icon:'fa-calendar-check', active: currentPage === 'admin-bookings.html' },
+    { href:'admin-assignments.html',  label:'Assignments', icon:'fa-file-pen',       active: currentPage === 'admin-assignments.html' },
+    { href:'admin-faculty.html',      label:'Users',       icon:'fa-users',          active: currentPage === 'admin-faculty.html' },
+    { href:'admin-import.html',       label:'Import',      icon:'fa-file-import',    active: currentPage === 'admin-import.html' },
+    { href:'free-rooms.html',         label:'Free rooms',  icon:'fa-building',       active: currentPage === 'free-rooms.html' },
+    { href:'admin-settings.html',     label:'Settings',    icon:'fa-gear',           active: currentPage === 'admin-settings.html' },
   ] : [
     { href:'faculty.html',             label:'Dashboard',   icon:'fa-gauge-high', active: currentPage === 'faculty.html' },
     { href:'faculty-assignments.html', label:'Assignments', icon:'fa-file-pen',   active: currentPage === 'faculty-assignments.html' },
@@ -275,11 +276,11 @@ export async function renderNav(profile) {
   ];
 
   const bottomItems = profile.role === 'admin' ? [
-    { href:'admin.html',           label:'Home',      icon:'fa-house',          active: currentPage === 'admin.html' },
-    { href:'admin-timetable.html', label:'Schedule',  icon:'fa-table',          active: currentPage === 'admin-timetable.html' },
-    { href:'admin-bookings.html',  label:'Bookings',  icon:'fa-calendar-check', active: currentPage === 'admin-bookings.html' },
-    { href:'admin-faculty.html',   label:'Users',     icon:'fa-users',          active: currentPage === 'admin-faculty.html' },
-    { more: true,                  label:'More',      icon:'fa-ellipsis' },
+    { href:'admin.html',             label:'Home',      icon:'fa-house',          active: currentPage === 'admin.html' },
+    { href:'admin-timetable.html',   label:'Schedule',  icon:'fa-table',          active: currentPage === 'admin-timetable.html' },
+    { href:'admin-bookings.html',    label:'Bookings',  icon:'fa-calendar-check', active: currentPage === 'admin-bookings.html' },
+    { href:'admin-assignments.html', label:'Assign',    icon:'fa-file-pen',       active: currentPage === 'admin-assignments.html' },
+    { more: true,                    label:'More',      icon:'fa-ellipsis' },
   ] : [
     { href:'faculty.html',             label:'Home',        icon:'fa-house',       active: currentPage === 'faculty.html' },
     { href:'faculty-assignments.html', label:'Assignments', icon:'fa-file-pen',    active: currentPage === 'faculty-assignments.html' },
@@ -288,13 +289,15 @@ export async function renderNav(profile) {
   ];
 
   const moreItems = profile.role === 'admin' ? [
-    { href:'admin-import.html',   label:'Import CSV',        icon:'fa-file-import' },
-    { href:'free-rooms.html',     label:'Free rooms',        icon:'fa-building' },
-    { href:'admin-rooms.html',    label:'Rooms & buildings', icon:'fa-door-open' },
-    { href:'admin-slots.html',    label:'Time slots',        icon:'fa-clock' },
-    { href:'admin-calendar.html', label:'Calendar',          icon:'fa-calendar-days' },
-    { href:'profile.html',        label:'Profile',           icon:'fa-user' },
-    { href:'admin-settings.html', label:'Settings',          icon:'fa-gear' },
+    { href:'admin-import.html',      label:'Import CSV',        icon:'fa-file-import' },
+    { href:'admin-faculty.html',     label:'Users',             icon:'fa-users' },
+    { href:'free-rooms.html',        label:'Free rooms',        icon:'fa-building' },
+    { href:'admin-rooms.html',       label:'Rooms & buildings', icon:'fa-door-open' },
+    { href:'admin-slots.html',       label:'Time slots',        icon:'fa-clock' },
+    { href:'admin-calendar.html',    label:'Calendar',          icon:'fa-calendar-days' },
+    { href:'admin-assignments.html', label:'Assignments',       icon:'fa-file-pen' },
+    { href:'profile.html',           label:'Profile',           icon:'fa-user' },
+    { href:'admin-settings.html',    label:'Settings',          icon:'fa-gear' },
   ] : [];
 
   el.innerHTML = `

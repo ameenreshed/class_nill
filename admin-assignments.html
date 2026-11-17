@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="LPU Scheduler">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Assignments · LPU Scheduler</title>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+<link rel="stylesheet" href="css/mobile-app.css">
+<style>
+  .a-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+  .a-stat{padding:18px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:all 160ms ease}
+  .a-stat:hover{border-color:var(--border-strong);box-shadow:var(--shadow-sm)}
+  .a-stat-icon{width:36px;height:36px;border-radius:10px;background:var(--brand-soft);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:12px}
+  .a-stat-icon.success{background:var(--success-soft);color:var(--success)}
+  .a-stat-icon.warning{background:var(--warning-soft);color:var(--warning)}
+  .a-stat-icon.info{background:var(--info-soft);color:var(--info)}
+  .a-stat-val{font-size:26px;font-weight:700;letter-spacing:-0.03em;color:var(--text);line-height:1}
+  .a-stat-lbl{font-size:11px;color:var(--text-secondary);margin-top:4px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600}
+  .a-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+  .a-filters .search-wrap{margin-left:auto;max-width:300px}
+  .a-deadline{display:flex;flex-direction:column;gap:2px;font-size:12px}
+  .a-deadline-main{font-weight:500;color:var(--text)}
+  .a-deadline-sub{font-size:11px;color:var(--text-muted)}
+  .a-deadline-sub.urgent{color:var(--danger);font-weight:600}
+  .a-deadline-sub.soon{color:var(--warning);font-weight:600}
+  .a-deadline-sub.past{color:var(--danger);opacity:.7}
+  .a-sub-count{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--brand-soft);color:var(--brand-text);border-radius:999px;font-size:12px;font-weight:600}
+  .a-sub-count.zero{background:var(--bg-subtle);color:var(--text-muted)}
+  .a-status{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+  .a-status.active{background:var(--success-soft);color:var(--success-text)}
+  .a-status.inactive{background:var(--surface-active);color:var(--text-muted)}
+  .a-status.past{background:var(--warning-soft);color:var(--warning-text)}
+  .a-status i{font-size:8px}
+  .a-actions{display:inline-flex;gap:4px;justify-content:flex-end}
+  .a-action-btn{width:30px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);cursor:pointer;transition:all 140ms ease;font-size:12px;flex-shrink:0}
+  .a-action-btn:hover{background:var(--surface-hover);border-color:var(--border-strong);color:var(--text)}
+  .a-action-btn.danger:hover{background:var(--danger-soft);border-color:var(--danger-soft-border);color:var(--danger)}
+  .a-action-btn.success:hover{background:var(--success-soft);border-color:var(--success-soft-border);color:var(--success)}
+  .a-action-btn.primary{background:var(--brand-soft);border-color:var(--brand-soft-border);color:var(--brand)}
+  .a-action-btn.primary:hover{background:var(--brand);border-color:var(--brand);color:white}
+  .a-bulk-bar{display:none;align-items:center;gap:12px;padding:12px 18px;background:var(--brand);color:white;border-radius:12px;box-shadow:var(--shadow-lg);margin-bottom:16px;flex-wrap:wrap}
+  .a-bulk-bar.show{display:flex}
+  .a-bulk-bar-count{font-weight:600;font-size:13.5px;display:inline-flex;align-items:center;gap:8px}
+  .a-bulk-bar-actions{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+  .a-bulk-bar .btn{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.25);color:white;min-height:34px;font-size:12.5px;padding:7px 14px}
+  .a-bulk-bar .btn:hover{background:rgba(255,255,255,.3);border-color:rgba(255,255,255,.45)}
+  .a-empty{padding:60px 24px;text-align:center;color:var(--text-muted)}
+  .a-empty i{display:block;font-size:36px;opacity:.4;margin-bottom:14px}
+  .a-empty-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+  .a-empty-sub{font-size:12.5px;color:var(--text-secondary)}
+  .sub-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);gap:12px}
+  .sub-row:last-child{border-bottom:none}
+  .sub-row:nth-child(even){background:var(--bg-subtle)}
+  .sub-info{min-width:0;flex:1}
+  .sub-student{font-weight:600;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .sub-id{font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 8px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--text-secondary)}
+  .sub-meta{font-size:11px;color:var(--text-muted);margin-top:4px}
+  .sub-file{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text);margin-top:4px;display:flex;align-items:center;gap:6px}
+  .sub-file i{color:var(--brand);font-size:11px}
+  .sub-actions{display:flex;gap:6px;flex-shrink:0}
+  .sub-superseded{opacity:.5;text-decoration:line-through}
+  .a-role-note{padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);line-height:1.55;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  @media (max-width:900px){.a-filters .search-wrap{max-width:none;margin-left:0;width:100%}}
+  @media (max-width:640px){.a-stats{grid-template-columns:repeat(2,1fr)}.sub-row{flex-wrap:wrap}.sub-actions{width:100%}}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fas fa-file-pen"></i> Assignments</h1>
+      <p class="page-subtitle">All assignments across every faculty. Full control — edit, deactivate, view submissions, delete.</p>
+    </div>
+    <button class="btn btn-primary" id="addBtn"><i class="fas fa-plus"></i> New assignment</button>
+  </div>
+
+  <div class="admin-tabs">
+    <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
+    <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
+    <a href="admin-import.html" class="admin-tab"><i class="fas fa-file-import"></i> Import</a>
+    <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a><a href="admin-assignments.html" class="admin-tab"><i class="fas fa-file-pen"></i> Assignments</a>
+    <a href="admin-assignments.html" class="admin-tab active"><i class="fas fa-file-pen"></i> Assignments</a>
+    <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
+    <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
+    <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
+    <a href="admin-settings.html" class="admin-tab"><i class="fas fa-gear"></i> Settings</a>
+  </div>
+
+  <div class="a-stats" id="stats"></div>
+
+  <div class="a-filters">
+    <div class="chips" id="statusFilters">
+      <button class="chip" data-f="all">All</button>
+      <button class="chip" data-f="active">Active</button>
+      <button class="chip" data-f="past">Past deadline</button>
+      <button class="chip" data-f="inactive">Inactive</button>
+    </div>
+    <select class="input" id="facultyFilter" style="max-width:200px"><option value="">All faculty</option></select>
+    <select class="input" id="courseFilter" style="max-width:160px"><option value="">All courses</option></select>
+    <div class="search-wrap">
+      <i class="fas fa-search search-icon"></i>
+      <input class="input" id="search" placeholder="Search title, course, batch…">
+    </div>
+  </div>
+
+  <div class="a-bulk-bar" id="bulkBar">
+    <span class="a-bulk-bar-count"><i class="fas fa-check-circle"></i><span id="bulkCount">0 selected</span></span>
+    <div class="a-bulk-bar-actions">
+      <button class="btn btn-sm" data-bulk="activate"><i class="fas fa-toggle-on"></i> Activate</button>
+      <button class="btn btn-sm" data-bulk="deactivate"><i class="fas fa-toggle-off"></i> Deactivate</button>
+      <button class="btn btn-sm" data-bulk="delete"><i class="fas fa-trash"></i> Delete</button>
+      <button class="btn btn-sm" data-bulk="clear"><i class="fas fa-xmark"></i> Clear</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:36px"><input type="checkbox" id="selectAll" style="cursor:pointer;accent-color:var(--brand)"></th>
+          <th>Assignment</th>
+          <th>Faculty</th>
+          <th>Course · Batch</th>
+          <th>Deadline</th>
+          <th>Submissions</th>
+          <th>Status</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="body"></tbody>
+    </table>
+  </div>
+</div>
+
+<script type="module">
+import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime, nowDate } from './js/core.js';
+
+// ── Update these two constants if your project differs ──
+const SUBMIT_PAGE = 'submit.html';
+const BUCKET = 'assignment-submissions';
+
+(async () => {
+  const auth = await requireRole(['admin']);
+  if (!auth) return;
+  renderNav(auth.profile);
+
+  const $ = id => document.getElementById(id);
+
+  // ── URL param support (?status=active etc.) ──
+  const params = new URLSearchParams(location.search);
+  let statusFilter = ['all','active','past','inactive'].includes(params.get('status'))
+    ? params.get('status') : 'all';
+  let facultyFilter = '';
+  let courseFilter  = '';
+  let search        = '';
+  let selected      = new Set();
+  let assignments   = [];
+  let submissions   = [];
+  let faculty       = [];
+  let subCountMap   = new Map();
+
+  document.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x.dataset.f === statusFilter));
+
+  // ───────────────────────────────────────────────
+  async function load() {
+    const [aRes, sRes, fRes] = await Promise.all([
+      supabase.from('assignments').select('*').order('created_at', { ascending: false }),
+      supabase.from('submissions').select('*').eq('is_superseded', false),
+      supabase.from('profiles').select('id, full_name, email, role').in('role', ['faculty','admin']).order('full_name'),
+    ]);
+    if (aRes.error) return toast(aRes.error.message, 'error');
+    assignments = aRes.data ?? [];
+    submissions = sRes.data ?? [];
+    faculty     = fRes.data ?? [];
+    subCountMap = new Map();
+    submissions.forEach(s => {
+      subCountMap.set(s.assignment_id, (subCountMap.get(s.assignment_id) || 0) + 1);
+    });
+    selected.clear();
+    renderStats();
+    renderFilters();
+    render();
+    updateBulkBar();
+  }
+
+  function renderStats() {
+    const total   = assignments.length;
+    const active  = assignments.filter(a => a.is_active && (!a.deadline || new Date(a.deadline) > nowDate())).length;
+    const past    = assignments.filter(a => a.is_active && a.deadline && new Date(a.deadline) <= nowDate()).length;
+    const totalSub= submissions.length;
+    const students= new Set(submissions.map(s => s.student_id)).size;
+
+    $('stats').innerHTML = `
+      <div class="a-stat"><div class="a-stat-icon"><i class="fas fa-file-pen"></i></div><div class="a-stat-val">${total}</div><div class="a-stat-lbl">Total assignments</div></div>
+      <div class="a-stat"><div class="a-stat-icon success"><i class="fas fa-toggle-on"></i></div><div class="a-stat-val" style="color:var(--success)">${active}</div><div class="a-stat-lbl">Active</div></div>
+      <div class="a-stat"><div class="a-stat-icon warning"><i class="fas fa-clock"></i></div><div class="a-stat-val" style="color:var(--warning)">${past}</div><div class="a-stat-lbl">Past deadline</div></div>
+      <div class="a-stat"><div class="a-stat-icon info"><i class="fas fa-inbox"></i></div><div class="a-stat-val" style="color:var(--info)">${totalSub}</div><div class="a-stat-lbl">Submissions</div></div>
+      <div class="a-stat"><div class="a-stat-icon"><i class="fas fa-user-graduate"></i></div><div class="a-stat-val">${students}</div><div class="a-stat-lbl">Students</div></div>
+    `;
+  }
+
+  function renderFilters() {
+    const fSel = $('facultyFilter'); const fCur = fSel.value;
+    fSel.innerHTML = '<option value="">All faculty</option>' +
+      faculty.map(f => `<option value="${f.id}">${escapeHtml(f.full_name || f.email)}</option>`).join('');
+    fSel.value = fCur;
+
+    const courses = [...new Set(assignments.map(a => a.course_code).filter(Boolean))].sort();
+    const cSel = $('courseFilter'); const cCur = cSel.value;
+    cSel.innerHTML = '<option value="">All courses</option>' +
+      courses.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    cSel.value = cCur;
+  }
+
+  function statusOf(a) {
+    if (!a.is_active) return 'inactive';
+    if (a.deadline && new Date(a.deadline) <= nowDate()) return 'past';
+    return 'active';
+  }
+
+  function filtered() {
+    let list = assignments;
+    if (statusFilter !== 'all') list = list.filter(a => statusOf(a) === statusFilter);
+    if (facultyFilter) list = list.filter(a => a.faculty_id === facultyFilter);
+    if (courseFilter)  list = list.filter(a => a.course_code === courseFilter);
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(a =>
+        (a.title || '').toLowerCase().includes(q) ||
+        (a.course_code || '').toLowerCase().includes(q) ||
+        (a.batch || '').toLowerCase().includes(q) ||
+        (a.description || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }
+
+  function render() {
+    const list = filtered();
+    if (!list.length) {
+      $('body').innerHTML = `<tr><td colspan="8"><div class="a-empty"><i class="fas fa-file-circle-question"></i><div class="a-empty-title">No assignments match</div><div class="a-empty-sub">Try changing filters or create a new assignment.</div></div></td></tr>`;
+      $('selectAll').checked = false;
+      return;
+    }
+    const facMap = new Map(faculty.map(f => [f.id, f]));
+
+    $('body').innerHTML = list.map(a => {
+      const fac = facMap.get(a.faculty_id);
+      const status = statusOf(a);
+      const count = subCountMap.get(a.id) || 0;
+
+      let deadlineHtml = '<span style="color:var(--text-muted);font-size:12px">No deadline</span>';
+      if (a.deadline) {
+        const d = new Date(a.deadline);
+        const diffMs = d - nowDate();
+        const absDays = Math.abs(diffMs) / 864e5;
+        let cls = '', sub = '';
+        if (diffMs < 0) { cls = 'past'; sub = absDays < 1 ? 'Overdue' : `${Math.ceil(absDays)}d overdue`; }
+        else if (absDays < 1) { cls = 'urgent'; sub = 'Today'; }
+        else if (absDays < 2) { cls = 'urgent'; sub = 'Tomorrow'; }
+        else if (absDays <= 3) { cls = 'soon'; sub = `${Math.ceil(absDays)} days left`; }
+        else { sub = `${Math.ceil(absDays)} days left`; }
+        deadlineHtml = `<div class="a-deadline"><div class="a-deadline-main">${formatDateTime(a.deadline)}</div>${sub ? `<div class="a-deadline-sub ${cls}">${sub}</div>` : ''}</div>`;
+      }
+
+      const badge = {
+        active:   '<span class="a-status active"><i class="fas fa-circle"></i>Active</span>',
+        past:     '<span class="a-status past"><i class="fas fa-clock"></i>Past</span>',
+        inactive: '<span class="a-status inactive"><i class="fas fa-circle"></i>Inactive</span>',
+      }[status];
+
+      return `<tr>
+        <td><input type="checkbox" class="row-select" data-id="${a.id}" ${selected.has(a.id) ? 'checked' : ''} style="cursor:pointer;accent-color:var(--brand)"></td>
+        <td>
+          <div style="font-weight:600;color:var(--text);font-size:13px">${escapeHtml(a.title)}</div>
+          ${a.description ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px">${escapeHtml(a.description)}</div>` : ''}
+        </td>
+        <td style="font-size:12px;color:var(--text-secondary)">${escapeHtml(fac?.full_name || fac?.email || '—')}</td>
+        <td>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--brand);font-weight:600">${escapeHtml(a.course_code || '—')}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${escapeHtml(a.batch || '—')}</div>
+        </td>
+        <td>${deadlineHtml}</td>
+        <td><span class="a-sub-count ${count === 0 ? 'zero' : ''}"><i class="fas fa-inbox"></i>${count}</span></td>
+        <td>${badge}</td>
+        <td style="text-align:right">
+          <div class="a-actions">
+            <button class="a-action-btn primary" data-view="${a.id}" title="View submissions"><i class="fas fa-inbox"></i></button>
+            <button class="a-action-btn" data-edit="${a.id}" title="Edit"><i class="fas fa-pen"></i></button>
+            <button class="a-action-btn" data-copy="${a.id}" title="Copy share link"><i class="fas fa-link"></i></button>
+            <button class="a-action-btn ${a.is_active ? 'danger' : 'success'}" data-toggle="${a.id}" title="${a.is_active ? 'Deactivate' : 'Activate'}"><i class="fas fa-${a.is_active ? 'toggle-off' : 'toggle-on'}"></i></button>
+            <button class="a-action-btn danger" data-del="${a.id}" title="Delete"><i class="fas fa-trash"></i></button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => openSubmissions(b.dataset.view));
+    document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openEditor(b.dataset.edit));
+    document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => copyShareLink(b.dataset.copy));
+    document.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => toggleActive(b.dataset.toggle));
+    document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => deleteAssignment(b.dataset.del));
+    document.querySelectorAll('.row-select').forEach(cb => {
+      cb.onchange = () => {
+        if (cb.checked) selected.add(cb.dataset.id); else selected.delete(cb.dataset.id);
+        updateBulkBar(); syncSelectAll(list);
+      };
+    });
+    syncSelectAll(list);
+  }
+
+  function syncSelectAll(list) {
+    if (!list.length) { $('selectAll').checked = false; return; }
+    const allSel = list.every(a => selected.has(a.id));
+    const someSel = list.some(a => selected.has(a.id));
+    $('selectAll').checked = allSel;
+    $('selectAll').indeterminate = someSel && !allSel;
+  }
+
+  function updateBulkBar() {
+    $('bulkCount').textContent = `${selected.size} selected`;
+    $('bulkBar').classList.toggle('show', selected.size > 0);
+  }
+
+  $('selectAll').onchange = e => {
+    const list = filtered();
+    if (e.target.checked) list.forEach(a => selected.add(a.id));
+    else selected.clear();
+    render(); updateBulkBar();
+  };
+
+  // ───────────────────────────────────────────────
+  async function copyShareLink(id) {
+    const a = assignments.find(x => x.id === id);
+    if (!a) return;
+    const url = new URL(SUBMIT_PAGE, location.href);
+    url.searchParams.set('t', a.share_token);
+    try { await navigator.clipboard.writeText(url.href); toast('Share link copied', 'success'); }
+    catch { prompt('Copy this link:', url.href); }
+  }
+
+  async function toggleActive(id) {
+    const a = assignments.find(x => x.id === id);
+    if (!a) return;
+    const { error } = await supabase.from('assignments').update({ is_active: !a.is_active }).eq('id', id);
+    if (error) return toast(error.message, 'error');
+    toast(a.is_active ? 'Deactivated' : 'Activated', 'success');
+    await load();
+  }
+
+  async function deleteAssignment(id) {
+    const a = assignments.find(x => x.id === id);
+    if (!a) return;
+    const n = subCountMap.get(a.id) || 0;
+    if (!confirm(`Delete "${a.title}"?\n\nThis removes the assignment and ${n} submission${n === 1 ? '' : 's'} from the database. Uploaded files in storage become orphaned — clean them from the Supabase dashboard if needed.`)) return;
+    const { error } = await supabase.from('assignments').delete().eq('id', id);
+    if (error) return toast(error.message, 'error');
+    toast('Assignment deleted', 'success');
+    await load();
+  }
+
+  // ───────────────────────────────────────────────
+  function generateToken() {
+    const b = new Uint8Array(20); crypto.getRandomValues(b);
+    return Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+  }
+
+  function toLocalInput(iso) {
+    if (!iso) return '';
+    const d = new Date(iso); const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+
+  function openEditor(id) {
+    const editing = id ? assignments.find(x => x.id === id) : null;
+    const isNew = !editing;
+    const a = editing || {
+      title: '', description: '', course_code: '', batch: '', drive_link: '',
+      deadline: null, submission_policy: 'single', name_required: true,
+      max_files: 1, max_size_mb: 25,
+      allowed_types: ['pdf','doc','docx','ppt','pptx','txt','zip'],
+      is_active: true, faculty_id: faculty[0]?.id || '',
+    };
+
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content modal-wide">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title"><i class="fas fa-file-pen"></i> ${isNew ? 'New assignment' : 'Edit assignment'}</div>
+          <div class="modal-sub">${isNew ? 'Create for any faculty member.' : escapeHtml(a.title)}</div>
+        </div>
+        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        ${isNew ? '' : `<div class="a-role-note">
+          <i class="fas fa-link"></i>
+          <span style="flex:1;min-width:0">Share link — students submit at <span class="mono">${SUBMIT_PAGE}?t=${a.share_token.slice(0, 8)}…</span></span>
+          <button class="btn btn-sm" id="regenToken"><i class="fas fa-rotate"></i> Regenerate</button>
+        </div>`}
+        <label class="field"><span>Faculty *</span><select class="input" id="eFaculty" ${isNew ? '' : 'disabled'}>
+          ${faculty.map(f => `<option value="${f.id}" ${f.id === a.faculty_id ? 'selected' : ''}>${escapeHtml(f.full_name || f.email)}${f.role === 'admin' ? ' (admin)' : ''}</option>`).join('')}
+        </select>${isNew ? '' : '<div class="pw-hint">Faculty cannot be changed after creation.</div>'}</label>
+        <label class="field"><span>Title *</span><input class="input" id="eTitle" value="${escapeHtml(a.title)}" placeholder="e.g. Assignment 3 — Graph Algorithms"></label>
+        <label class="field"><span>Description</span><textarea class="input" id="eDesc" placeholder="Instructions…">${escapeHtml(a.description || '')}</textarea></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <label class="field" style="margin-bottom:0"><span>Course code</span><input class="input" id="eCourse" value="${escapeHtml(a.course_code || '')}" placeholder="CSE202"></label>
+          <label class="field" style="margin-bottom:0"><span>Batch *</span><input class="input" id="eBatch" value="${escapeHtml(a.batch)}" placeholder="2023"></label>
+        </div>
+        <label class="field"><span>Drive link (optional)</span><input class="input" id="eDrive" value="${escapeHtml(a.drive_link || '')}" placeholder="https://drive.google.com/…"></label>
+        <label class="field"><span>Deadline</span><input class="input" type="datetime-local" id="eDeadline" value="${toLocalInput(a.deadline)}"></label>
+        <label class="field"><span>Submission policy</span><select class="input" id="ePolicy">
+          <option value="single" ${a.submission_policy === 'single' ? 'selected' : ''}>Single — one submission only</option>
+          <option value="overwrite" ${a.submission_policy === 'overwrite' ? 'selected' : ''}>Overwrite — allow re-submission (latest wins)</option>
+        </select></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <label class="field" style="margin-bottom:0"><span>Max files</span><input class="input" type="number" min="1" max="20" id="eMaxFiles" value="${a.max_files}"></label>
+          <label class="field" style="margin-bottom:0"><span>Max size (MB)</span><input class="input" type="number" min="1" max="100" id="eMaxSize" value="${a.max_size_mb}"></label>
+        </div>
+        <label class="field"><span>Allowed file types</span><input class="input" id="eTypes" value="${escapeHtml((a.allowed_types || []).join(', '))}" placeholder="pdf, doc, docx, ppt, pptx, txt, zip"><div class="pw-hint">Comma-separated, no dots.</div></label>
+        <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="eNameReq" ${a.name_required ? 'checked' : ''} style="accent-color:var(--brand)"> Require student name</label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="eActive" ${a.is_active !== false ? 'checked' : ''} style="accent-color:var(--brand)"> Active (accept submissions)</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-primary" id="eSave"><i class="fas fa-check"></i> ${isNew ? 'Create assignment' : 'Save changes'}</button>
+      </div>
+    </div>`;
+
+    document.body.appendChild(dialog);
+    dialog.showModal();
+
+    const regen = dialog.querySelector('#regenToken');
+    if (regen) regen.onclick = async () => {
+      if (!confirm('Regenerate the share link?\n\nThe old link stops working immediately. Existing submissions remain downloadable.')) return;
+      const t = generateToken();
+      const { error } = await supabase.from('assignments').update({ share_token: t }).eq('id', a.id);
+      if (error) return toast(error.message, 'error');
+      toast('Share link regenerated', 'success');
+      dialog.close(); dialog.remove();
+      await load();
+      openEditor(a.id);
+    };
+
+    const save = dialog.querySelector('#eSave');
+    save.onclick = async () => {
+      const g = sel => dialog.querySelector('#' + sel).value.trim();
+      const types = g('eTypes').split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+      if (!g('eTitle')) return toast('Title required', 'error');
+      if (!g('eBatch')) return toast('Batch required', 'error');
+      if (!types.length) return toast('At least one file type required', 'error');
+      const dVal = dialog.querySelector('#eDeadline').value;
+
+      const payload = {
+        title: g('eTitle'),
+        description: g('eDesc') || null,
+        course_code: g('eCourse') || null,
+        batch: g('eBatch'),
+        drive_link: g('eDrive') || null,
+        deadline: dVal ? new Date(dVal).toISOString() : null,
+        submission_policy: dialog.querySelector('#ePolicy').value,
+        name_required: dialog.querySelector('#eNameReq').checked,
+        max_files: parseInt(dialog.querySelector('#eMaxFiles').value) || 1,
+        max_size_mb: parseInt(dialog.querySelector('#eMaxSize').value) || 25,
+        allowed_types: types,
+        is_active: dialog.querySelector('#eActive').checked,
+      };
+      if (isNew) {
+        const fac = dialog.querySelector('#eFaculty').value;
+        if (!fac) return toast('Select faculty', 'error');
+        payload.faculty_id = fac;
+      }
+
+      save.disabled = true; save.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+      const { error } = isNew
+        ? await supabase.from('assignments').insert(payload)
+        : await supabase.from('assignments').update(payload).eq('id', a.id);
+      save.disabled = false; save.innerHTML = `<i class="fas fa-check"></i> ${isNew ? 'Create assignment' : 'Save changes'}`;
+      if (error) return toast(error.message, 'error');
+      toast(isNew ? 'Assignment created' : 'Changes saved', 'success');
+      dialog.close(); dialog.remove();
+      await load();
+    };
+
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+  }
+
+  // ───────────────────────────────────────────────
+  function fmtSize(n) {
+    if (!n) return '—';
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1048576).toFixed(1) + ' MB';
+  }
+
+  async function openSubmissions(id) {
+    const a = assignments.find(x => x.id === id);
+    if (!a) return;
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content modal-wide">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title"><i class="fas fa-inbox"></i> Submissions</div>
+          <div class="modal-sub">${escapeHtml(a.title)} · ${escapeHtml(a.batch)}</div>
+        </div>
+        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div id="subLoading" style="padding:32px;text-align:center;color:var(--text-muted)"><i class="fas fa-spinner fa-spin" style="font-size:24px"></i></div>
+        <div id="subContent" style="display:none"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-close>Close</button>
+        <button class="btn" id="subExport" style="display:none"><i class="fas fa-download"></i> Export CSV</button>
+      </div>
+    </div>`;
+    document.body.appendChild(dialog);
+    dialog.showModal();
+
+    const { data: subs, error } = await supabase
+      .from('submissions').select('*').eq('assignment_id', id)
+      .order('student_id').order('submitted_at', { ascending: false });
+
+    dialog.querySelector('#subLoading').style.display = 'none';
+    const content = dialog.querySelector('#subContent');
+    content.style.display = 'block';
+
+    if (error) {
+      content.innerHTML = `<div class="empty"><i class="fas fa-triangle-exclamation" style="color:var(--danger)"></i>${escapeHtml(error.message)}</div>`;
+    } else if (!subs?.length) {
+      content.innerHTML = `<div class="empty"><i class="fas fa-inbox"></i><div style="margin-top:8px">No submissions yet</div></div>`;
+    } else {
+      const cur = subs.filter(s => !s.is_superseded);
+      const old = subs.filter(s => s.is_superseded);
+      const uniq = new Set(cur.map(s => s.student_id)).size;
+
+      const row = s => {
+        const date = new Date(s.submitted_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return `<div class="sub-row ${s.is_superseded ? 'sub-superseded' : ''}">
+          <div class="sub-info">
+            <div class="sub-student">${escapeHtml(s.student_name || '—')}<span class="sub-id">${escapeHtml(s.student_id)}</span></div>
+            <div class="sub-file"><i class="fas fa-file"></i>${escapeHtml(s.file_name)}<span style="color:var(--text-muted);font-weight:400"> · ${fmtSize(s.file_size)}</span></div>
+            <div class="sub-meta">${date}${s.is_superseded ? ' · Superseded' : ''}</div>
+          </div>
+          <div class="sub-actions">
+            <button class="btn btn-sm" data-dl="${escapeHtml(s.file_path)}" data-name="${escapeHtml(s.file_name)}"><i class="fas fa-download"></i> Download</button>
+          </div>
+        </div>`;
+      };
+
+      content.innerHTML = `
+        <div style="padding:12px 14px;background:var(--brand-soft);border:1px solid var(--brand-soft-border);border-radius:10px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="font-size:13px;color:var(--brand-text)"><strong>${uniq}</strong> student${uniq === 1 ? '' : 's'} · <strong>${cur.length}</strong> current file${cur.length === 1 ? '' : 's'}${old.length ? ` · <span style="opacity:.7">${old.length} superseded</span>` : ''}</div>
+          <div style="font-size:11px;color:var(--brand-text);opacity:.7">Policy: ${a.submission_policy === 'single' ? 'Single' : 'Overwrite'}</div>
+        </div>
+        ${cur.map(row).join('')}
+        ${old.length ? `<details style="margin-top:16px"><summary style="cursor:pointer;padding:8px 0;font-size:12px;color:var(--text-secondary);font-weight:600">Show ${old.length} superseded file${old.length === 1 ? '' : 's'}</summary>${old.map(row).join('')}</details>` : ''}
+      `;
+
+      content.querySelectorAll('[data-dl]').forEach(b => b.onclick = async () => {
+        const path = b.dataset.dl, name = b.dataset.name;
+        b.disabled = true; b.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 300);
+        b.disabled = false; b.innerHTML = '<i class="fas fa-download"></i> Download';
+        if (error) return toast(error.message, 'error');
+        const link = document.createElement('a');
+        link.href = data.signedUrl; link.download = name; link.target = '_blank'; link.click();
+      });
+
+      const exp = dialog.querySelector('#subExport');
+      exp.style.display = 'inline-flex';
+      exp.onclick = () => {
+        const rows = [['Student ID', 'Student Name', 'File', 'Size', 'Submitted At', 'Status']];
+        subs.forEach(s => rows.push([
+          s.student_id, s.student_name || '', s.file_name,
+          s.file_size || '', new Date(s.submitted_at).toISOString(),
+          s.is_superseded ? 'Superseded' : 'Current'
+        ]));
+        const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const safeName = `${a.batch}-${a.course_code || 'assign'}-submissions`.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const link = document.createElement('a');
+        link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+        link.download = `${safeName}.csv`;
+        link.click();
+      };
+    }
+
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+  }
+
+  // ───────────────────────────────────────────────
+  $('addBtn').onclick = () => {
+    if (!faculty.length) return toast('Create a faculty account first', 'error');
+    openEditor(null);
+  };
+
+  document.querySelectorAll('[data-f]').forEach(b => b.onclick = () => {
+    statusFilter = b.dataset.f;
+    document.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === b));
+    render();
+  });
+  $('facultyFilter').onchange = e => { facultyFilter = e.target.value; render(); };
+  $('courseFilter').onchange  = e => { courseFilter  = e.target.value; render(); };
+  $('search').oninput         = e => { search        = e.target.value.trim(); render(); };
+
+  document.querySelectorAll('[data-bulk]').forEach(btn => btn.onclick = async () => {
+    const action = btn.dataset.bulk;
+    if (action === 'clear') { selected.clear(); render(); updateBulkBar(); return; }
+    if (!selected.size) return;
+    const ids = [...selected];
+
+    if (action === 'activate' || action === 'deactivate') {
+      const v = action === 'activate';
+      const { error } = await supabase.from('assignments').update({ is_active: v }).in('id', ids);
+      if (error) return toast(error.message, 'error');
+      toast(`${ids.length} ${v ? 'activated' : 'deactivated'}`, 'success');
+    } else if (action === 'delete') {
+      if (!confirm(`Delete ${ids.length} assignment${ids.length === 1 ? '' : 's'}?\n\nAll their submissions will be deleted too.`)) return;
+      const { error } = await supabase.from('assignments').delete().in('id', ids);
+      if (error) return toast(error.message, 'error');
+      toast(`${ids.length} deleted`, 'success');
+    }
+    selected.clear();
+    await load();
+  });
+
+  await load();
+})();
+</script>
+<script type="module" src="js/banner.js"></script>
+</body>
+</html>
