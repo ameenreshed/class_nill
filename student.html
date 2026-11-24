@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="LPU Scheduler">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Student · LPU Scheduler</title>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/mobile-app.css">
+<style>
+.fac-tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto;scrollbar-width:none}
+.fac-tabs::-webkit-scrollbar{display:none}
+.fac-tab{padding:12px 16px;border:none;background:transparent;color:var(--text-secondary);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;position:relative;white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
+.fac-tab:hover{color:var(--text)}
+.fac-tab.active{color:var(--brand)}
+.fac-tab.active::after{content:'';position:absolute;left:8px;right:8px;bottom:-1px;height:2px;background:var(--brand);border-radius:2px}
+.fac-panel{display:none}
+.fac-panel.active{display:block;animation:facFade 240ms ease}
+@keyframes facFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+.stu-profile{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:20px}
+.stu-profile-avatar{width:60px;height:60px;min-width:60px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand-hover));color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;text-transform:uppercase;box-shadow:0 4px 12px rgba(234,88,12,.3)}
+
+.asg-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:12px;transition:all 160ms ease}
+.asg-card:hover{border-color:var(--border-strong);box-shadow:var(--shadow-sm)}
+.asg-card.is-submitted{border-left:4px solid var(--success)}
+.asg-card.is-late{border-left:4px solid var(--danger)}
+.asg-card.is-pending{border-left:4px solid var(--warning)}
+.asg-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.asg-title{font-size:15px;font-weight:700;color:var(--text)}
+.asg-meta{font-size:12px;color:var(--text-secondary);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap}
+.asg-meta span{display:inline-flex;align-items:center;gap:4px}
+.asg-badge{padding:3px 9px;border-radius:6px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.asg-badge.pending{background:var(--warning-soft);color:var(--warning-text)}
+.asg-badge.submitted{background:var(--success-soft);color:var(--success-text)}
+.asg-badge.late{background:var(--danger-soft);color:var(--danger-text)}
+.asg-desc{font-size:13px;color:var(--text-secondary);line-height:1.55;margin-bottom:12px}
+.asg-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+.file-list{margin-top:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.file-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px}
+.file-item:last-child{border-bottom:none}
+.file-item-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-item-meta{font-size:11px;color:var(--text-secondary);white-space:nowrap}
+
+.drop-zone{border:2px dashed var(--border-strong);border-radius:12px;padding:30px 20px;text-align:center;cursor:pointer;transition:all 160ms ease;background:var(--bg-subtle)}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--brand);background:var(--brand-soft)}
+.drop-zone i{font-size:36px;color:var(--brand);margin-bottom:12px;display:block}
+.drop-zone h4{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.drop-zone p{font-size:12px;color:var(--text-secondary)}
+.selected-files{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fas fa-gauge-high"></i> Student dashboard</h1>
+      <p class="page-subtitle">Welcome back, <strong id="welcomeName">…</strong></p>
+    </div>
+  </div>
+
+  <div class="stu-profile">
+    <div class="stu-profile-avatar" id="avatar">?</div>
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:20px;font-weight:700;color:var(--text)" id="fullName">…</div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-top:2px" id="email">…</div>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap" id="badges"></div>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="fac-tabs" style="margin-top:24px">
+    <button class="fac-tab active" data-tab="assignments"><i class="fas fa-file-pen"></i> Assignments</button>
+    <button class="fac-tab" data-tab="submissions"><i class="fas fa-cloud-upload-alt"></i> My submissions</button>
+    <button class="fac-tab" data-tab="rooms"><i class="fas fa-building"></i> Free rooms</button>
+  </div>
+
+  <div class="fac-panel active" data-panel="assignments"><div id="assignmentsList"></div></div>
+  <div class="fac-panel" data-panel="submissions"><div id="submissionsList"></div></div>
+  <div class="fac-panel" data-panel="rooms">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-building"></i> Free rooms</div>
+      <p style="color:var(--text-secondary);font-size:13px;line-height:1.6;margin-bottom:14px">See which rooms are free right now across campus.</p>
+      <a href="free-rooms.html" class="btn btn-primary"><i class="fas fa-arrow-right"></i> Open free rooms</a>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { requireRole, renderNav, supabase, escapeHtml, toast, humanDate, formatRelativeTime } from './js/core.js';
+
+(async () => {
+  const auth = await requireRole(['student']);
+  if (!auth) return;
+  renderNav(auth.profile);
+  const $ = id => document.getElementById(id);
+  const me = auth.profile;
+  const myRoll = me.roll_number;
+  const myBatch = me.batch;
+
+  const initial = ((me.full_name || me.email || '?').trim()[0] || '?').toUpperCase();
+  $('avatar').textContent = initial;
+  $('fullName').textContent = me.full_name || 'Student';
+  $('email').textContent = me.email || '';
+  $('welcomeName').textContent = (me.full_name || me.email || 'Student').split(' ')[0];
+
+  const badges = [];
+  if (myRoll) badges.push(`<span class="badge badge-admin"><i class="fas fa-id-card"></i>${escapeHtml(myRoll)}</span>`);
+  if (myBatch) badges.push(`<span class="badge badge-gray"><i class="fas fa-users"></i>Batch ${escapeHtml(myBatch)}</span>`);
+  $('badges').innerHTML = badges.join('');
+
+  if (!myRoll || !myBatch) {
+    $('assignmentsList').innerHTML = `<div class="card" style="border-color:var(--warning-soft-border);background:var(--warning-soft)">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <i class="fas fa-triangle-exclamation" style="color:var(--warning);font-size:18px;margin-top:2px"></i>
+        <div>
+          <div style="font-weight:600;color:var(--warning-text);margin-bottom:4px">Profile incomplete</div>
+          <div style="font-size:13px;color:var(--warning-text);line-height:1.55">Your roll number and/or batch is missing. Please contact an administrator to complete your profile setup.</div>
+        </div>
+      </div>
+    </div>`;
+    return;
+  }
+
+  let assignments = [];
+  let mySubmissions = [];
+  const submissionByAssignment = new Map();
+
+  async function loadData() {
+    const { data: asg, error: asgErr } = await supabase
+      .from('assignments')
+      .select('*')
+      .eq('batch', myBatch)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+    if (asgErr) { toast('Failed to load assignments: ' + asgErr.message, 'error'); return; }
+    assignments = asg ?? [];
+
+    const { data: subs } = await supabase
+      .from('submissions')
+      .select('*, assignment:assignments(title, course_code, batch, share_token)')
+      .eq('student_id', myRoll)
+      .eq('is_superseded', false)
+      .order('submitted_at', { ascending: false });
+    mySubmissions = subs ?? [];
+
+    submissionByAssignment.clear();
+    mySubmissions.forEach(s => {
+      if (!submissionByAssignment.has(s.assignment_id)) submissionByAssignment.set(s.assignment_id, []);
+      submissionByAssignment.get(s.assignment_id).push(s);
+    });
+
+    renderStats();
+    renderAssignments();
+    renderSubmissions();
+  }
+
+  function renderStats() {
+    const total = assignments.length;
+    const submitted = assignments.filter(a => submissionByAssignment.has(a.id)).length;
+    const pending = total - submitted;
+    const now = Date.now();
+    const overdue = assignments.filter(a => a.deadline && new Date(a.deadline).getTime() < now && !submissionByAssignment.has(a.id)).length;
+    $('stats').innerHTML = `
+      <div class="stat"><i class="fas fa-file-pen stat-icon"></i><div class="stat-value">${total}</div><div class="stat-label">Active assignments</div></div>
+      <div class="stat"><i class="fas fa-circle-check stat-icon" style="color:var(--success)"></i><div class="stat-value" style="color:var(--success)">${submitted}</div><div class="stat-label">Submitted</div></div>
+      <div class="stat"><i class="fas fa-hourglass-half stat-icon" style="color:var(--warning)"></i><div class="stat-value" style="color:var(--warning)">${pending}</div><div class="stat-label">Pending</div></div>
+      <div class="stat"><i class="fas fa-triangle-exclamation stat-icon" style="color:var(--danger)"></i><div class="stat-value" style="color:var(--danger)">${overdue}</div><div class="stat-label">Overdue</div></div>`;
+  }
+
+  function renderAssignments() {
+    if (!assignments.length) {
+      $('assignmentsList').innerHTML = `<div class="card"><div class="empty-action">
+        <div class="empty-action-icon"><i class="fas fa-file-pen"></i></div>
+        <div class="empty-action-title">No assignments yet</div>
+        <div class="empty-action-sub">Assignments for your batch (${escapeHtml(myBatch)}) will appear here once your faculty publishes them.</div>
+      </div></div>`;
+      return;
+    }
+    const now = Date.now();
+    $('assignmentsList').innerHTML = assignments.map(a => {
+      const subs = submissionByAssignment.get(a.id) || [];
+      const submitted = subs.length > 0;
+      const deadlineMs = a.deadline ? new Date(a.deadline).getTime() : null;
+      const isLate = deadlineMs && deadlineMs < now;
+      const overdue = isLate && !submitted;
+      const statusClass = submitted ? 'submitted' : overdue ? 'late' : 'pending';
+      const statusLabel = submitted ? 'Submitted' : overdue ? 'Overdue' : 'Pending';
+      const cardClass = submitted ? 'is-submitted' : overdue ? 'is-late' : 'is-pending';
+      return `<div class="asg-card ${cardClass}">
+        <div class="asg-head">
+          <div style="flex:1;min-width:200px">
+            <div class="asg-title">${escapeHtml(a.title)}</div>
+            <div class="asg-meta">
+              ${a.course_code ? `<span><i class="fas fa-book"></i>${escapeHtml(a.course_code)}</span>` : ''}
+              <span><i class="fas fa-users"></i>Batch ${escapeHtml(a.batch)}</span>
+              ${a.deadline ? `<span><i class="fas fa-calendar"></i>Due ${humanDate(a.deadline.slice(0,10))} · ${new Date(a.deadline).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>` : ''}
+            </div>
+          </div>
+          <span class="asg-badge ${statusClass}">${statusLabel}</span>
+        </div>
+        ${a.description ? `<div class="asg-desc">${escapeHtml(a.description)}</div>` : ''}
+        ${submitted ? `<div style="font-size:12px;color:var(--success-text);background:var(--success-soft);padding:8px 12px;border-radius:8px;margin-bottom:10px">
+          <i class="fas fa-check-circle"></i> You submitted ${subs.length} file${subs.length === 1 ? '' : 's'} ${formatRelativeTime(subs[0].submitted_at)}
+        </div>` : ''}
+        <div class="asg-actions">
+          ${a.drive_link ? `<a href="${escapeHtml(a.drive_link)}" target="_blank" rel="noopener" class="btn btn-sm"><i class="fas fa-external-link-alt"></i> View on Drive</a>` : ''}
+          ${!submitted && !overdue ? `<button class="btn btn-sm btn-primary" data-submit="${a.id}"><i class="fas fa-cloud-upload-alt"></i> Submit files</button>` : ''}
+          ${submitted && a.submission_policy === 'overwrite' && !overdue ? `<button class="btn btn-sm" data-submit="${a.id}"><i class="fas fa-redo"></i> Re-submit</button>` : ''}
+        </div>
+        ${submitted ? `<div class="file-list">${subs.map(s => `<div class="file-item">
+          <span class="file-item-name"><i class="fas fa-file" style="color:var(--text-muted);margin-right:6px"></i>${escapeHtml(s.file_name)}</span>
+          <span class="file-item-meta">${formatBytes(s.file_size)} · ${formatRelativeTime(s.submitted_at)}</span>
+        </div>`).join('')}</div>` : ''}
+      </div>`;
+    }).join('');
+    document.querySelectorAll('[data-submit]').forEach(btn => {
+      btn.onclick = () => openSubmitModal(assignments.find(a => a.id === btn.dataset.submit));
+    });
+  }
+
+  function renderSubmissions() {
+    if (!mySubmissions.length) {
+      $('submissionsList').innerHTML = `<div class="card"><div class="empty-action">
+        <div class="empty-action-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+        <div class="empty-action-title">No submissions yet</div>
+        <div class="empty-action-sub">Your submitted files will appear here.</div>
+      </div></div>`;
+      return;
+    }
+    const grouped = new Map();
+    mySubmissions.forEach(s => {
+      if (!grouped.has(s.assignment_id)) grouped.set(s.assignment_id, { assignment: s.assignment, files: [] });
+      grouped.get(s.assignment_id).files.push(s);
+    });
+    $('submissionsList').innerHTML = [...grouped.values()].map(g => `
+      <div class="asg-card is-submitted">
+        <div class="asg-head">
+          <div style="flex:1;min-width:200px">
+            <div class="asg-title">${escapeHtml(g.assignment?.title || 'Assignment')}</div>
+            <div class="asg-meta">
+              ${g.assignment?.course_code ? `<span><i class="fas fa-book"></i>${escapeHtml(g.assignment.course_code)}</span>` : ''}
+              <span><i class="fas fa-users"></i>Batch ${escapeHtml(g.assignment?.batch || '')}</span>
+            </div>
+          </div>
+          <span class="asg-badge submitted">${g.files.length} file${g.files.length === 1 ? '' : 's'}</span>
+        </div>
+        <div class="file-list">${g.files.map(s => `<div class="file-item">
+          <span class="file-item-name"><i class="fas fa-file" style="color:var(--text-muted);margin-right:6px"></i>${escapeHtml(s.file_name)}</span>
+          <span class="file-item-meta">${formatBytes(s.file_size)} · ${formatRelativeTime(s.submitted_at)}</span>
+        </div>`).join('')}</div>
+      </div>
+    `).join('');
+  }
+
+  function formatBytes(b) {
+    if (!b) return '—';
+    if (b < 1024) return b + ' B';
+    if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+    return (b / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function openSubmitModal(a) {
+    if (!a) return;
+    const existing = (submissionByAssignment.get(a.id) || []).length;
+    if (a.submission_policy === 'single' && existing > 0) return toast('Re-submission is not allowed', 'error');
+    if (a.deadline && new Date(a.deadline).getTime() < Date.now()) return toast('Deadline has passed', 'error');
+
+    const selectedFiles = [];
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content modal-wide">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title"><i class="fas fa-cloud-upload-alt"></i> Submit: ${escapeHtml(a.title)}</div>
+          <div class="modal-sub">Max ${a.max_files} file${a.max_files === 1 ? '' : 's'} · ${a.max_size_mb} MB each · ${a.allowed_types.join(', ')}</div>
+        </div>
+        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        ${a.name_required ? `<label class="field"><span>Your full name *</span><input class="input" id="subName" value="${escapeHtml(me.full_name || '')}" required></label>` : ''}
+        <label class="field"><span>Student ID (roll number)</span><input class="input" value="${escapeHtml(myRoll)}" disabled></label>
+        <div class="drop-zone" id="dropZone">
+          <i class="fas fa-cloud-arrow-up"></i>
+          <h4>Drop files here or click to browse</h4>
+          <p>Allowed: ${a.allowed_types.map(t => '.' + t).join(', ')}</p>
+        </div>
+        <input type="file" id="fileInput" multiple accept="${a.allowed_types.map(t => '.' + t).join(',')}" style="display:none">
+        <div class="selected-files" id="selectedFiles"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-primary" id="doSubmit" disabled><i class="fas fa-cloud-upload-alt"></i> Upload</button>
+      </div>
+    </div>`;
+    document.body.appendChild(dialog);
+    dialog.showModal();
+
+    const dropZone = dialog.querySelector('#dropZone');
+    const fileInput = dialog.querySelector('#fileInput');
+    const listEl = dialog.querySelector('#selectedFiles');
+    const submitBtn = dialog.querySelector('#doSubmit');
+    const nameInput = dialog.querySelector('#subName');
+
+    function renderFiles() {
+      listEl.innerHTML = selectedFiles.map((f, i) => `<div class="file-item">
+        <span class="file-item-name"><i class="fas fa-file" style="margin-right:6px"></i>${escapeHtml(f.name)}</span>
+        <span class="file-item-meta">${formatBytes(f.size)}</span>
+        <button type="button" class="btn btn-sm" data-rm="${i}"><i class="fas fa-times"></i></button>
+      </div>`).join('');
+      listEl.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { selectedFiles.splice(parseInt(b.dataset.rm), 1); renderFiles(); });
+      updateSubmitState();
+    }
+    function updateSubmitState() {
+      const ok = selectedFiles.length > 0 && selectedFiles.length <= a.max_files
+        && (!a.name_required || (nameInput && nameInput.value.trim().length >= 2));
+      submitBtn.disabled = !ok;
+    }
+    function addFiles(files) {
+      for (const f of files) {
+        if (selectedFiles.length >= a.max_files) { toast(`Max ${a.max_files} files`, 'error'); break; }
+        const ext = f.name.split('.').pop().toLowerCase();
+        if (!a.allowed_types.includes(ext)) { toast(`.${ext} not allowed`, 'error'); continue; }
+        if (f.size > a.max_size_mb * 1024 * 1024) { toast(`${f.name} too large`, 'error'); continue; }
+        selectedFiles.push(f);
+      }
+      renderFiles();
+    }
+
+    dropZone.onclick = () => fileInput.click();
+    dropZone.ondragover = e => { e.preventDefault(); dropZone.classList.add('drag'); };
+    dropZone.ondragleave = () => dropZone.classList.remove('drag');
+    dropZone.ondrop = e => { e.preventDefault(); dropZone.classList.remove('drag'); addFiles(e.dataTransfer.files); };
+    fileInput.onchange = () => { addFiles(fileInput.files); fileInput.value = ''; };
+    nameInput?.addEventListener('input', updateSubmitState);
+
+    submitBtn.onclick = async () => {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading…';
+      const uploadedPaths = [];
+      try {
+        for (const f of selectedFiles) {
+          const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const path = `${a.share_token}/${myRoll}/${Date.now()}-${safeName}`;
+          const { error: upErr } = await supabase.storage.from('assignment-submissions').upload(path, f);
+          if (upErr) throw new Error(`Upload failed for ${f.name}: ${upErr.message}`);
+          uploadedPaths.push({ path, name: f.name, size: f.size, type: f.type });
+        }
+        const { data: result, error: cErr } = await supabase.rpc('commit_submission', {
+          p_token: a.share_token,
+          p_student_id: myRoll,
+          p_student_name: a.name_required ? nameInput.value.trim() : (me.full_name || ''),
+          p_files: uploadedPaths,
+        });
+        if (cErr) throw new Error(cErr.message);
+        if (result?.error) throw new Error(result.error);
+
+        toast('Submitted successfully', 'success');
+        dialog.close(); dialog.remove();
+        await loadData();
+      } catch (err) {
+        console.error(err);
+        toast(err.message || 'Submission failed', 'error');
+        for (const p of uploadedPaths) { try { await supabase.storage.from('assignment-submissions').remove([p.path]); } catch {} }
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Upload';
+      }
+    };
+
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
+  }
+
+  document.querySelectorAll('[data-tab]').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('active', p.dataset.panel === btn.dataset.tab));
+    };
+  });
+
+  await loadData();
+})();
+</script>
+<script type="module" src="js/banner.js"></script>
+</body>
+</html>

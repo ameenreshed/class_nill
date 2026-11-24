@@ -17,61 +17,120 @@
 <link rel="stylesheet" href="css/admin.css">
 <link rel="stylesheet" href="css/mobile-app.css">
 <style>
-  .a-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px}
-  .a-stat{padding:18px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:all 160ms ease}
+  /* Local page tabs (Assignments | Submissions | Storage | Analytics) */
+  .local-tabs{display:inline-flex;padding:4px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:12px;gap:2px;margin-bottom:20px;max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .local-tabs::-webkit-scrollbar{display:none}
+  .local-tab{padding:8px 16px;background:transparent;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:all 140ms ease}
+  .local-tab:hover{color:var(--text);background:var(--surface-hover)}
+  .local-tab.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-xs)}
+  .local-tab i{font-size:12px;opacity:.7}
+  .local-tab.active i{opacity:1;color:var(--brand)}
+  .local-tab .badge{margin-left:4px;font-size:10px;padding:2px 6px;background:var(--surface-active);color:var(--text-secondary);border-radius:999px;font-weight:600}
+  .local-tab.active .badge{background:var(--brand);color:#fff}
+
+  /* Stats cards */
+  .a-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+  .a-stat{padding:16px 18px;background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:all 160ms ease;position:relative}
   .a-stat:hover{border-color:var(--border-strong);box-shadow:var(--shadow-sm)}
-  .a-stat-icon{width:36px;height:36px;border-radius:10px;background:var(--brand-soft);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:12px}
+  .a-stat-icon{width:32px;height:32px;border-radius:9px;background:var(--brand-soft);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:13px;margin-bottom:10px}
   .a-stat-icon.success{background:var(--success-soft);color:var(--success)}
   .a-stat-icon.warning{background:var(--warning-soft);color:var(--warning)}
   .a-stat-icon.info{background:var(--info-soft);color:var(--info)}
-  .a-stat-val{font-size:26px;font-weight:700;letter-spacing:-0.03em;color:var(--text);line-height:1}
-  .a-stat-lbl{font-size:11px;color:var(--text-secondary);margin-top:4px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600}
+  .a-stat-icon.danger{background:var(--danger-soft);color:var(--danger)}
+  .a-stat-val{font-size:22px;font-weight:700;letter-spacing:-0.03em;color:var(--text);line-height:1;font-family:'JetBrains Mono',monospace}
+  .a-stat-lbl{font-size:10.5px;color:var(--text-secondary);margin-top:4px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600}
+  .a-stat-sub{font-size:11px;color:var(--text-muted);margin-top:6px}
+
+  /* Filters */
   .a-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
   .a-filters .search-wrap{margin-left:auto;max-width:300px}
-  .a-deadline{display:flex;flex-direction:column;gap:2px;font-size:12px}
-  .a-deadline-main{font-weight:500;color:var(--text)}
-  .a-deadline-sub{font-size:11px;color:var(--text-muted)}
-  .a-deadline-sub.urgent{color:var(--danger);font-weight:600}
-  .a-deadline-sub.soon{color:var(--warning);font-weight:600}
-  .a-deadline-sub.past{color:var(--danger);opacity:.7}
-  .a-sub-count{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--brand-soft);color:var(--brand-text);border-radius:999px;font-size:12px;font-weight:600}
-  .a-sub-count.zero{background:var(--bg-subtle);color:var(--text-muted)}
-  .a-status{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+  .a-filters select.input{min-height:38px;padding:8px 32px 8px 12px;font-size:13px}
+
+  /* Status pills */
+  .a-status{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:600;white-space:nowrap}
   .a-status.active{background:var(--success-soft);color:var(--success-text)}
   .a-status.inactive{background:var(--surface-active);color:var(--text-muted)}
   .a-status.past{background:var(--warning-soft);color:var(--warning-text)}
+  .a-status.orphan{background:var(--danger-soft);color:var(--danger-text)}
+  .a-status.known{background:var(--success-soft);color:var(--success-text)}
+  .a-status.missing{background:var(--danger-soft);color:var(--danger-text)}
   .a-status i{font-size:8px}
-  .a-actions{display:inline-flex;gap:4px;justify-content:flex-end}
-  .a-action-btn{width:30px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);cursor:pointer;transition:all 140ms ease;font-size:12px;flex-shrink:0}
+
+  /* Row actions */
+  .a-actions{display:inline-flex;gap:3px;justify-content:flex-end;flex-wrap:wrap}
+  .a-action-btn{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);cursor:pointer;transition:all 140ms ease;font-size:11px;flex-shrink:0}
   .a-action-btn:hover{background:var(--surface-hover);border-color:var(--border-strong);color:var(--text)}
   .a-action-btn.danger:hover{background:var(--danger-soft);border-color:var(--danger-soft-border);color:var(--danger)}
   .a-action-btn.success:hover{background:var(--success-soft);border-color:var(--success-soft-border);color:var(--success)}
   .a-action-btn.primary{background:var(--brand-soft);border-color:var(--brand-soft-border);color:var(--brand)}
   .a-action-btn.primary:hover{background:var(--brand);border-color:var(--brand);color:white}
-  .a-bulk-bar{display:none;align-items:center;gap:12px;padding:12px 18px;background:var(--brand);color:white;border-radius:12px;box-shadow:var(--shadow-lg);margin-bottom:16px;flex-wrap:wrap}
+
+  /* Bulk bar */
+  .a-bulk-bar{display:none;align-items:center;gap:12px;padding:11px 16px;background:var(--brand);color:white;border-radius:10px;box-shadow:var(--shadow-lg);margin-bottom:14px;flex-wrap:wrap}
   .a-bulk-bar.show{display:flex}
-  .a-bulk-bar-count{font-weight:600;font-size:13.5px;display:inline-flex;align-items:center;gap:8px}
-  .a-bulk-bar-actions{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
-  .a-bulk-bar .btn{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.25);color:white;min-height:34px;font-size:12.5px;padding:7px 14px}
+  .a-bulk-bar-count{font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:8px}
+  .a-bulk-bar-actions{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+  .a-bulk-bar .btn{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.25);color:white;min-height:32px;font-size:12px;padding:6px 12px}
   .a-bulk-bar .btn:hover{background:rgba(255,255,255,.3);border-color:rgba(255,255,255,.45)}
-  .a-empty{padding:60px 24px;text-align:center;color:var(--text-muted)}
-  .a-empty i{display:block;font-size:36px;opacity:.4;margin-bottom:14px}
+
+  /* Empty */
+  .a-empty{padding:56px 24px;text-align:center;color:var(--text-muted)}
+  .a-empty i{display:block;font-size:34px;opacity:.4;margin-bottom:12px}
   .a-empty-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
   .a-empty-sub{font-size:12.5px;color:var(--text-secondary)}
-  .sub-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);gap:12px}
+
+  /* Submissions list in modal */
+  .sub-row{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border-bottom:1px solid var(--border);gap:10px}
   .sub-row:last-child{border-bottom:none}
   .sub-row:nth-child(even){background:var(--bg-subtle)}
   .sub-info{min-width:0;flex:1}
-  .sub-student{font-weight:600;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .sub-id{font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 8px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--text-secondary)}
-  .sub-meta{font-size:11px;color:var(--text-muted);margin-top:4px}
-  .sub-file{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text);margin-top:4px;display:flex;align-items:center;gap:6px}
-  .sub-file i{color:var(--brand);font-size:11px}
-  .sub-actions{display:flex;gap:6px;flex-shrink:0}
-  .sub-superseded{opacity:.5;text-decoration:line-through}
-  .a-role-note{padding:12px 14px;background:var(--info-soft);border:1px solid var(--info-soft-border);border-radius:8px;font-size:12px;color:var(--info-text);line-height:1.55;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .sub-student{font-weight:600;font-size:12.5px;color:var(--text);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .sub-id{font-family:'JetBrains Mono',monospace;font-size:10.5px;padding:2px 7px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--text-secondary)}
+  .sub-meta{font-size:10.5px;color:var(--text-muted);margin-top:3px}
+  .sub-file{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);margin-top:3px;display:flex;align-items:center;gap:5px;word-break:break-all}
+  .sub-file i{color:var(--brand);font-size:10px;flex-shrink:0}
+  .sub-actions{display:flex;gap:4px;flex-shrink:0}
+  .sub-superseded{opacity:.55}
+
+  /* Deadline display */
+  .a-deadline{display:flex;flex-direction:column;gap:2px;font-size:12px}
+  .a-deadline-main{font-weight:500;color:var(--text)}
+  .a-deadline-sub{font-size:10.5px;color:var(--text-muted)}
+  .a-deadline-sub.urgent{color:var(--danger);font-weight:600}
+  .a-deadline-sub.soon{color:var(--warning);font-weight:600}
+  .a-deadline-sub.past{color:var(--danger);opacity:.75}
+
+  /* Info banners */
+  .a-note{padding:12px 14px;border-radius:9px;font-size:12px;line-height:1.55;display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .a-note.info{background:var(--info-soft);border:1px solid var(--info-soft-border);color:var(--info-text)}
+  .a-note.warning{background:var(--warning-soft);border:1px solid var(--warning-soft-border);color:var(--warning-text)}
+  .a-note.danger{background:var(--danger-soft);border:1px solid var(--danger-soft-border);color:var(--danger-text)}
+  .a-note i{flex-shrink:0;margin-top:1px;font-size:13px}
+  .a-note > div{flex:1;min-width:0}
+
+  /* Analytics bars */
+  .bar-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .bar-row:last-child{border-bottom:none}
+  .bar-label{flex:0 0 200px;font-size:12px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar-track{flex:1;height:8px;background:var(--bg-subtle);border-radius:4px;overflow:hidden;position:relative}
+  .bar-fill{height:100%;background:linear-gradient(90deg,var(--brand),var(--brand-hover));border-radius:4px;transition:width 400ms ease}
+  .bar-val{flex:0 0 80px;font-size:12px;font-weight:600;color:var(--text);text-align:right;font-family:'JetBrains Mono',monospace}
+
+  /* Modal - file preview */
+  .preview-iframe{width:100%;height:70vh;border:none;background:var(--bg-subtle);border-radius:8px}
+
+  /* Bulk bar within storage tab */
+  .storage-summary{display:flex;gap:20px;padding:14px 18px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;flex-wrap:wrap}
+  .storage-summary-item{font-size:12px;color:var(--text-secondary)}
+  .storage-summary-item strong{color:var(--text);font-weight:700;font-family:'JetBrains Mono',monospace}
+
   @media (max-width:900px){.a-filters .search-wrap{max-width:none;margin-left:0;width:100%}}
-  @media (max-width:640px){.a-stats{grid-template-columns:repeat(2,1fr)}.sub-row{flex-wrap:wrap}.sub-actions{width:100%}}
+  @media (max-width:640px){
+    .a-stats{grid-template-columns:repeat(2,1fr)}
+    .sub-row{flex-wrap:wrap}
+    .sub-actions{width:100%;justify-content:flex-end}
+    .bar-label{flex:0 0 120px;font-size:11px}
+  }
 </style>
 </head>
 <body>
@@ -80,7 +139,7 @@
   <div class="page-header">
     <div>
       <h1 class="page-title"><i class="fas fa-file-pen"></i> Assignments</h1>
-      <p class="page-subtitle">All assignments across every faculty. Full control — edit, deactivate, view submissions, delete.</p>
+      <p class="page-subtitle">Full control over every assignment, submission, and file across all faculty.</p>
     </div>
     <button class="btn btn-primary" id="addBtn"><i class="fas fa-plus"></i> New assignment</button>
   </div>
@@ -97,59 +156,211 @@
     <a href="admin-settings.html" class="admin-tab"><i class="fas fa-gear"></i> Settings</a>
   </div>
 
+  <div class="local-tabs">
+    <button class="local-tab active" data-view="assignments"><i class="fas fa-file-pen"></i> Assignments <span class="badge" id="badgeAssignments">0</span></button>
+    <button class="local-tab" data-view="submissions"><i class="fas fa-inbox"></i> Submissions <span class="badge" id="badgeSubmissions">0</span></button>
+    <button class="local-tab" data-view="storage"><i class="fas fa-database"></i> Storage <span class="badge" id="badgeStorage">—</span></button>
+    <button class="local-tab" data-view="analytics"><i class="fas fa-chart-simple"></i> Analytics</button>
+  </div>
+
   <div class="a-stats" id="stats"></div>
 
-  <div class="a-filters">
-    <div class="chips" id="statusFilters">
-      <button class="chip" data-f="all">All</button>
-      <button class="chip" data-f="active">Active</button>
-      <button class="chip" data-f="past">Past deadline</button>
-      <button class="chip" data-f="inactive">Inactive</button>
+  <!-- ═══════════════ ASSIGNMENTS ═══════════════ -->
+  <section id="viewAssignments">
+    <div class="a-filters">
+      <div class="chips" id="statusFilters">
+        <button class="chip on" data-f="all">All</button>
+        <button class="chip" data-f="active">Active</button>
+        <button class="chip" data-f="past">Past deadline</button>
+        <button class="chip" data-f="inactive">Inactive</button>
+      </div>
+      <select class="input" id="facultyFilter"><option value="">All faculty</option></select>
+      <select class="input" id="courseFilter"><option value="">All courses</option></select>
+      <div class="search-wrap">
+        <i class="fas fa-search search-icon"></i>
+        <input class="input" id="search" placeholder="Search title, course, batch…">
+      </div>
     </div>
-    <select class="input" id="facultyFilter" style="max-width:200px"><option value="">All faculty</option></select>
-    <select class="input" id="courseFilter" style="max-width:160px"><option value="">All courses</option></select>
-    <div class="search-wrap">
-      <i class="fas fa-search search-icon"></i>
-      <input class="input" id="search" placeholder="Search title, course, batch…">
-    </div>
-  </div>
 
-  <div class="a-bulk-bar" id="bulkBar">
-    <span class="a-bulk-bar-count"><i class="fas fa-check-circle"></i><span id="bulkCount">0 selected</span></span>
-    <div class="a-bulk-bar-actions">
-      <button class="btn btn-sm" data-bulk="activate"><i class="fas fa-toggle-on"></i> Activate</button>
-      <button class="btn btn-sm" data-bulk="deactivate"><i class="fas fa-toggle-off"></i> Deactivate</button>
-      <button class="btn btn-sm" data-bulk="delete"><i class="fas fa-trash"></i> Delete</button>
-      <button class="btn btn-sm" data-bulk="clear"><i class="fas fa-xmark"></i> Clear</button>
+    <div class="a-bulk-bar" id="bulkBar">
+      <span class="a-bulk-bar-count"><i class="fas fa-check-circle"></i><span id="bulkCount">0 selected</span></span>
+      <div class="a-bulk-bar-actions">
+        <button class="btn btn-sm" data-bulk="activate"><i class="fas fa-toggle-on"></i> Activate</button>
+        <button class="btn btn-sm" data-bulk="deactivate"><i class="fas fa-toggle-off"></i> Deactivate</button>
+        <button class="btn btn-sm" data-bulk="delete"><i class="fas fa-trash"></i> Force delete + storage</button>
+        <button class="btn btn-sm" data-bulk="clear"><i class="fas fa-xmark"></i> Clear</button>
+      </div>
     </div>
-  </div>
 
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th style="width:36px"><input type="checkbox" id="selectAll" style="cursor:pointer;accent-color:var(--brand)"></th>
-          <th>Assignment</th>
-          <th>Faculty</th>
-          <th>Course · Batch</th>
-          <th>Deadline</th>
-          <th>Submissions</th>
-          <th>Status</th>
-          <th style="text-align:right">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="body"></tbody>
-    </table>
-  </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:36px"><input type="checkbox" id="selectAll" style="cursor:pointer;accent-color:var(--brand)"></th>
+            <th>Assignment</th>
+            <th>Faculty</th>
+            <th>Course · Batch</th>
+            <th>Deadline</th>
+            <th>Subs</th>
+            <th>Size</th>
+            <th>Status</th>
+            <th style="text-align:right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="bodyAssignments"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SUBMISSIONS ═══════════════ -->
+  <section id="viewSubmissions" style="display:none">
+    <div class="a-filters">
+      <select class="input" id="subAssignmentFilter"><option value="">All assignments</option></select>
+      <select class="input" id="subFacultyFilter"><option value="">All faculty</option></select>
+      <select class="input" id="subStateFilter">
+        <option value="current">Current only</option>
+        <option value="all">Include superseded</option>
+        <option value="superseded">Superseded only</option>
+        <option value="missing">File missing from storage</option>
+      </select>
+      <div class="search-wrap">
+        <i class="fas fa-search search-icon"></i>
+        <input class="input" id="subSearch" placeholder="Search student, file…">
+      </div>
+    </div>
+
+    <div class="a-bulk-bar" id="subBulkBar">
+      <span class="a-bulk-bar-count"><i class="fas fa-check-circle"></i><span id="subBulkCount">0 selected</span></span>
+      <div class="a-bulk-bar-actions">
+        <button class="btn btn-sm" data-sub-bulk="download"><i class="fas fa-download"></i> Export CSV</button>
+        <button class="btn btn-sm" data-sub-bulk="delete"><i class="fas fa-trash"></i> Delete + storage</button>
+        <button class="btn btn-sm" data-sub-bulk="clear"><i class="fas fa-xmark"></i> Clear</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:36px"><input type="checkbox" id="subSelectAll" style="cursor:pointer;accent-color:var(--brand)"></th>
+            <th>Student</th>
+            <th>Assignment</th>
+            <th>Faculty</th>
+            <th>File</th>
+            <th>Size</th>
+            <th>Uploaded</th>
+            <th style="text-align:right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="bodySubmissions"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════════ STORAGE ═══════════════ -->
+  <section id="viewStorage" style="display:none">
+    <div class="storage-summary" id="storageSummary">
+      <div class="storage-summary-item">Storage files: <strong id="ssFiles">—</strong></div>
+      <div class="storage-summary-item">Total size: <strong id="ssBytes">—</strong></div>
+      <div class="storage-summary-item">Orphans: <strong id="ssOrphans" style="color:var(--danger)">—</strong></div>
+      <div class="storage-summary-item">Missing files: <strong id="ssMissing" style="color:var(--warning)">—</strong></div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn btn-sm" id="scanBtn"><i class="fas fa-rotate"></i> Refresh scan</button>
+        <button class="btn btn-sm btn-danger" id="cleanupOrphansBtn" style="display:none"><i class="fas fa-broom"></i> Delete all orphans</button>
+      </div>
+    </div>
+
+    <div class="a-filters">
+      <select class="input" id="storageStateFilter">
+        <option value="all">All files</option>
+        <option value="orphan">Orphans only (in storage, no DB row)</option>
+        <option value="known">Known files only</option>
+      </select>
+      <div class="search-wrap">
+        <i class="fas fa-search search-icon"></i>
+        <input class="input" id="storageSearch" placeholder="Search file path…">
+      </div>
+    </div>
+
+    <div class="a-bulk-bar" id="storageBulkBar">
+      <span class="a-bulk-bar-count"><i class="fas fa-check-circle"></i><span id="storageBulkCount">0 selected</span></span>
+      <div class="a-bulk-bar-actions">
+        <button class="btn btn-sm" data-storage-bulk="delete"><i class="fas fa-trash"></i> Delete files</button>
+        <button class="btn btn-sm" data-storage-bulk="clear"><i class="fas fa-xmark"></i> Clear</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:36px"><input type="checkbox" id="storageSelectAll" style="cursor:pointer;accent-color:var(--brand)"></th>
+            <th>File path</th>
+            <th>Size</th>
+            <th>Updated</th>
+            <th>Status</th>
+            <th style="text-align:right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="bodyStorage"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════════ ANALYTICS ═══════════════ -->
+  <section id="viewAnalytics" style="display:none">
+    <div class="card" style="padding:20px;margin-bottom:20px">
+      <div class="card-title"><i class="fas fa-chart-simple"></i> Storage & submission stats</div>
+      <div id="analyticsSummary"></div>
+    </div>
+    <div class="card" style="padding:20px;margin-bottom:20px">
+      <div class="card-title"><i class="fas fa-building-user"></i> By faculty</div>
+      <div id="analyticsByFaculty"></div>
+    </div>
+    <div class="card" style="padding:20px">
+      <div class="card-title"><i class="fas fa-fire"></i> Top assignments by submissions</div>
+      <div id="analyticsTopAssignments"></div>
+    </div>
+  </section>
 </div>
 
 <script type="module">
 import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime, nowDate } from './js/core.js';
 
-// ── Update these two constants if your project differs ──
+// ─────────────────────────────────────────────────────────────
+// CONFIG — adjust if your project uses different names
+// ─────────────────────────────────────────────────────────────
 const SUBMIT_PAGE = 'submit.html';
 const BUCKET = 'assignment-submissions';
+const STORAGE_CHUNK = 100; // Supabase removes max 100 files per call
 
+// ─────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────
+const state = {
+  view: 'assignments',
+  assignments: [],
+  submissions: [],
+  faculty: [],
+  storageFiles: [],       // { path, size, updated_at }
+  storageScanned: false,
+  storageLoading: false,
+  storageSubPathSet: new Set(), // fast lookup during render
+  filters: {
+    status: 'all', faculty: '', course: '', search: '',
+    subAssignment: '', subFaculty: '', subState: 'current', subSearch: '',
+    storageState: 'all', storageSearch: '',
+  },
+  sel: {
+    assignments: new Set(),
+    submissions: new Set(),
+    storage: new Set(),
+  },
+};
+
+// ─────────────────────────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────────────────────────
 (async () => {
   const auth = await requireRole(['admin']);
   if (!auth) return;
@@ -157,85 +368,212 @@ const BUCKET = 'assignment-submissions';
 
   const $ = id => document.getElementById(id);
 
-  // ── URL param support (?status=active etc.) ──
+  // ── URL param (?status=active etc.)
   const params = new URLSearchParams(location.search);
-  let statusFilter = ['all','active','past','inactive'].includes(params.get('status'))
-    ? params.get('status') : 'all';
-  let facultyFilter = '';
-  let courseFilter  = '';
-  let search        = '';
-  let selected      = new Set();
-  let assignments   = [];
-  let submissions   = [];
-  let faculty       = [];
-  let subCountMap   = new Map();
+  if (['all','active','past','inactive'].includes(params.get('status'))) {
+    state.filters.status = params.get('status');
+    document.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x.dataset.f === state.filters.status));
+  }
 
-  document.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x.dataset.f === statusFilter));
+  // ── Local view tabs
+  document.querySelectorAll('[data-view]').forEach(btn => {
+    btn.onclick = () => switchView(btn.dataset.view);
+  });
+  function switchView(view) {
+    state.view = view;
+    document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+    ['Assignments','Submissions','Storage','Analytics'].forEach(v => {
+      document.getElementById('view' + v).style.display = (view === v.toLowerCase()) ? '' : 'none';
+    });
+    if (view === 'storage' && !state.storageScanned && !state.storageLoading) scanStorage();
+    if (view === 'analytics') renderAnalytics();
+  }
 
-  // ───────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────
+  // DATA
+  // ─────────────────────────────────────────────────────────────
   async function load() {
     const [aRes, sRes, fRes] = await Promise.all([
       supabase.from('assignments').select('*').order('created_at', { ascending: false }),
-      supabase.from('submissions').select('*').eq('is_superseded', false),
+      supabase.from('submissions').select('*'),
       supabase.from('profiles').select('id, full_name, email, role').in('role', ['faculty','admin']).order('full_name'),
     ]);
     if (aRes.error) return toast(aRes.error.message, 'error');
-    assignments = aRes.data ?? [];
-    submissions = sRes.data ?? [];
-    faculty     = fRes.data ?? [];
-    subCountMap = new Map();
-    submissions.forEach(s => {
-      subCountMap.set(s.assignment_id, (subCountMap.get(s.assignment_id) || 0) + 1);
-    });
-    selected.clear();
-    renderStats();
-    renderFilters();
-    render();
-    updateBulkBar();
+    state.assignments = aRes.data ?? [];
+    state.submissions = sRes.data ?? [];
+    state.faculty     = fRes.data ?? [];
+    Object.values(state.sel).forEach(s => s.clear());
+    renderAll();
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // STORAGE SCAN
+  // ─────────────────────────────────────────────────────────────
+  async function listAllFolder(path) {
+    const out = [];
+    let offset = 0;
+    const LIMIT = 100;
+    while (true) {
+      const { data, error } = await supabase.storage.from(BUCKET).list(path, { limit: LIMIT, offset });
+      if (error) throw error;
+      out.push(...data);
+      if (data.length < LIMIT) break;
+      offset += LIMIT;
+    }
+    return out;
+  }
+
+  async function scanStorage() {
+    if (state.storageLoading) return;
+    state.storageLoading = true;
+    renderStorage();
+    const t0 = Date.now();
+    try {
+      const folders = await listAllFolder('');
+      const files = [];
+      for (const folder of folders) {
+        if (folder.id) {
+          // Root-level file (unusual for our structure, but handle it)
+          files.push({
+            path: folder.name,
+            size: folder.metadata?.size || 0,
+            updated_at: folder.updated_at,
+          });
+        } else {
+          const subs = await listAllFolder(folder.name);
+          for (const f of subs) {
+            if (!f.id) continue;
+            files.push({
+              path: `${folder.name}/${f.name}`,
+              size: f.metadata?.size || 0,
+              updated_at: f.updated_at,
+            });
+          }
+        }
+      }
+      state.storageFiles = files;
+      state.storageSubPathSet = new Set(state.submissions.map(s => s.file_path));
+      state.storageScanned = true;
+      const secs = ((Date.now() - t0) / 1000).toFixed(1);
+      toast(`Scanned ${files.length} file(s) in ${secs}s`, 'success');
+    } catch (err) {
+      toast(err.message || 'Storage scan failed', 'error');
+      state.storageScanned = false;
+    } finally {
+      state.storageLoading = false;
+      renderAll();
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // STATS
+  // ─────────────────────────────────────────────────────────────
+  function calcStats() {
+    const A = state.assignments;
+    const S = state.submissions;
+    const curSubs = S.filter(s => !s.is_superseded);
+    const total = A.length;
+    const active = A.filter(a => a.is_active && (!a.deadline || new Date(a.deadline) > nowDate())).length;
+    const past = A.filter(a => a.is_active && a.deadline && new Date(a.deadline) <= nowDate()).length;
+    const dbBytes = curSubs.reduce((sum, s) => sum + (Number(s.file_size) || 0), 0);
+
+    let storageBytes = 0, orphanCount = 0, missingCount = 0;
+    if (state.storageScanned) {
+      storageBytes = state.storageFiles.reduce((sum, f) => sum + f.size, 0);
+      orphanCount = state.storageFiles.filter(f => !state.storageSubPathSet.has(f.path)).length;
+      const storagePaths = new Set(state.storageFiles.map(f => f.path));
+      missingCount = S.filter(s => !storagePaths.has(s.file_path)).length;
+    }
+
+    return { total, active, past, submissions: curSubs.length, dbBytes, storageBytes, orphanCount, missingCount };
+  }
+
+  function fmtBytes(n) {
+    if (n == null) return '—';
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+    if (n < 1073741824) return (n / 1048576).toFixed(1) + ' MB';
+    return (n / 1073741824).toFixed(2) + ' GB';
   }
 
   function renderStats() {
-    const total   = assignments.length;
-    const active  = assignments.filter(a => a.is_active && (!a.deadline || new Date(a.deadline) > nowDate())).length;
-    const past    = assignments.filter(a => a.is_active && a.deadline && new Date(a.deadline) <= nowDate()).length;
-    const totalSub= submissions.length;
-    const students= new Set(submissions.map(s => s.student_id)).size;
+    const s = calcStats();
+    const storageVal = state.storageScanned ? fmtBytes(s.storageBytes) : '—';
+    const orphanVal  = state.storageScanned ? s.orphanCount : '—';
+    const missingVal = state.storageScanned ? s.missingCount : '—';
 
-    $('stats').innerHTML = `
-      <div class="a-stat"><div class="a-stat-icon"><i class="fas fa-file-pen"></i></div><div class="a-stat-val">${total}</div><div class="a-stat-lbl">Total assignments</div></div>
-      <div class="a-stat"><div class="a-stat-icon success"><i class="fas fa-toggle-on"></i></div><div class="a-stat-val" style="color:var(--success)">${active}</div><div class="a-stat-lbl">Active</div></div>
-      <div class="a-stat"><div class="a-stat-icon warning"><i class="fas fa-clock"></i></div><div class="a-stat-val" style="color:var(--warning)">${past}</div><div class="a-stat-lbl">Past deadline</div></div>
-      <div class="a-stat"><div class="a-stat-icon info"><i class="fas fa-inbox"></i></div><div class="a-stat-val" style="color:var(--info)">${totalSub}</div><div class="a-stat-lbl">Submissions</div></div>
-      <div class="a-stat"><div class="a-stat-icon"><i class="fas fa-user-graduate"></i></div><div class="a-stat-val">${students}</div><div class="a-stat-lbl">Students</div></div>
+    document.getElementById('stats').innerHTML = `
+      <div class="a-stat"><div class="a-stat-icon"><i class="fas fa-file-pen"></i></div><div class="a-stat-val">${s.total}</div><div class="a-stat-lbl">Assignments</div></div>
+      <div class="a-stat"><div class="a-stat-icon success"><i class="fas fa-toggle-on"></i></div><div class="a-stat-val" style="color:var(--success)">${s.active}</div><div class="a-stat-lbl">Active</div></div>
+      <div class="a-stat"><div class="a-stat-icon warning"><i class="fas fa-clock"></i></div><div class="a-stat-val" style="color:var(--warning)">${s.past}</div><div class="a-stat-lbl">Past deadline</div></div>
+      <div class="a-stat"><div class="a-stat-icon info"><i class="fas fa-inbox"></i></div><div class="a-stat-val" style="color:var(--info)">${s.submissions}</div><div class="a-stat-lbl">Submissions</div></div>
+      <div class="a-stat"><div class="a-stat-icon"><i class="fas fa-database"></i></div><div class="a-stat-val">${storageVal}</div><div class="a-stat-lbl">Storage used</div><div class="a-stat-sub">DB reports ${fmtBytes(s.dbBytes)}</div></div>
+      <div class="a-stat"><div class="a-stat-icon ${s.orphanCount ? 'danger' : 'success'}"><i class="fas fa-broom"></i></div><div class="a-stat-val" style="color:${s.orphanCount ? 'var(--danger)' : 'var(--success)'}">${orphanVal}</div><div class="a-stat-lbl">Orphans</div>${state.storageScanned && s.missingCount ? `<div class="a-stat-sub" style="color:var(--warning)">${missingVal} missing files</div>` : ''}</div>
     `;
   }
 
-  function renderFilters() {
-    const fSel = $('facultyFilter'); const fCur = fSel.value;
-    fSel.innerHTML = '<option value="">All faculty</option>' +
-      faculty.map(f => `<option value="${f.id}">${escapeHtml(f.full_name || f.email)}</option>`).join('');
-    fSel.value = fCur;
-
-    const courses = [...new Set(assignments.map(a => a.course_code).filter(Boolean))].sort();
-    const cSel = $('courseFilter'); const cCur = cSel.value;
-    cSel.innerHTML = '<option value="">All courses</option>' +
-      courses.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-    cSel.value = cCur;
+  // ─────────────────────────────────────────────────────────────
+  // RENDER — ALL
+  // ─────────────────────────────────────────────────────────────
+  function renderAll() {
+    renderStats();
+    renderFilters();
+    renderAssignments();
+    renderSubmissions();
+    renderStorage();
+    renderBadges();
   }
 
+  function renderBadges() {
+    document.getElementById('badgeAssignments').textContent = state.assignments.length;
+    document.getElementById('badgeSubmissions').textContent = state.submissions.filter(s => !s.is_superseded).length;
+    document.getElementById('badgeStorage').textContent = state.storageScanned ? state.storageFiles.length : '—';
+  }
+
+  function renderFilters() {
+    const facSel = document.getElementById('facultyFilter');
+    const curFac = facSel.value;
+    facSel.innerHTML = '<option value="">All faculty</option>' +
+      state.faculty.map(f => `<option value="${f.id}">${escapeHtml(f.full_name || f.email)}</option>`).join('');
+    facSel.value = curFac;
+
+    const courses = [...new Set(state.assignments.map(a => a.course_code).filter(Boolean))].sort();
+    const cSel = document.getElementById('courseFilter');
+    const curCourse = cSel.value;
+    cSel.innerHTML = '<option value="">All courses</option>' +
+      courses.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    cSel.value = curCourse;
+
+    const subA = document.getElementById('subAssignmentFilter');
+    const curSubA = subA.value;
+    subA.innerHTML = '<option value="">All assignments</option>' +
+      state.assignments.map(a => `<option value="${a.id}">${escapeHtml(a.title)} · ${escapeHtml(a.batch)}</option>`).join('');
+    subA.value = curSubA;
+
+    const subF = document.getElementById('subFacultyFilter');
+    const curSubF = subF.value;
+    subF.innerHTML = '<option value="">All faculty</option>' +
+      state.faculty.map(f => `<option value="${f.id}">${escapeHtml(f.full_name || f.email)}</option>`).join('');
+    subF.value = curSubF;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // ASSIGNMENTS VIEW
+  // ─────────────────────────────────────────────────────────────
   function statusOf(a) {
     if (!a.is_active) return 'inactive';
     if (a.deadline && new Date(a.deadline) <= nowDate()) return 'past';
     return 'active';
   }
 
-  function filtered() {
-    let list = assignments;
-    if (statusFilter !== 'all') list = list.filter(a => statusOf(a) === statusFilter);
-    if (facultyFilter) list = list.filter(a => a.faculty_id === facultyFilter);
-    if (courseFilter)  list = list.filter(a => a.course_code === courseFilter);
-    if (search) {
-      const q = search.toLowerCase();
+  function filteredAssignments() {
+    const f = state.filters;
+    let list = state.assignments;
+    if (f.status !== 'all') list = list.filter(a => statusOf(a) === f.status);
+    if (f.faculty) list = list.filter(a => a.faculty_id === f.faculty);
+    if (f.course)  list = list.filter(a => a.course_code === f.course);
+    if (f.search) {
+      const q = f.search.toLowerCase();
       list = list.filter(a =>
         (a.title || '').toLowerCase().includes(q) ||
         (a.course_code || '').toLowerCase().includes(q) ||
@@ -246,19 +584,34 @@ const BUCKET = 'assignment-submissions';
     return list;
   }
 
-  function render() {
-    const list = filtered();
+  function submissionStatsByAssignment() {
+    const counts = new Map();
+    const bytes = new Map();
+    state.submissions.forEach(s => {
+      if (s.is_superseded) return;
+      counts.set(s.assignment_id, (counts.get(s.assignment_id) || 0) + 1);
+      bytes.set(s.assignment_id, (bytes.get(s.assignment_id) || 0) + (Number(s.file_size) || 0));
+    });
+    return { counts, bytes };
+  }
+
+  function renderAssignments() {
+    const list = filteredAssignments();
+    const body = document.getElementById('bodyAssignments');
+
     if (!list.length) {
-      $('body').innerHTML = `<tr><td colspan="8"><div class="a-empty"><i class="fas fa-file-circle-question"></i><div class="a-empty-title">No assignments match</div><div class="a-empty-sub">Try changing filters or create a new assignment.</div></div></td></tr>`;
-      $('selectAll').checked = false;
+      body.innerHTML = `<tr><td colspan="9"><div class="a-empty"><i class="fas fa-file-circle-question"></i><div class="a-empty-title">No assignments match</div><div class="a-empty-sub">Try changing filters or create a new assignment.</div></div></td></tr>`;
+      document.getElementById('selectAll').checked = false;
       return;
     }
-    const facMap = new Map(faculty.map(f => [f.id, f]));
+    const facMap = new Map(state.faculty.map(f => [f.id, f]));
+    const { counts, bytes } = submissionStatsByAssignment();
 
-    $('body').innerHTML = list.map(a => {
+    body.innerHTML = list.map(a => {
       const fac = facMap.get(a.faculty_id);
       const status = statusOf(a);
-      const count = subCountMap.get(a.id) || 0;
+      const cnt = counts.get(a.id) || 0;
+      const sz = bytes.get(a.id) || 0;
 
       let deadlineHtml = '<span style="color:var(--text-muted);font-size:12px">No deadline</span>';
       if (a.deadline) {
@@ -270,7 +623,7 @@ const BUCKET = 'assignment-submissions';
         else if (absDays < 1) { cls = 'urgent'; sub = 'Today'; }
         else if (absDays < 2) { cls = 'urgent'; sub = 'Tomorrow'; }
         else if (absDays <= 3) { cls = 'soon'; sub = `${Math.ceil(absDays)} days left`; }
-        else { sub = `${Math.ceil(absDays)} days left`; }
+        else sub = `${Math.ceil(absDays)} days left`;
         deadlineHtml = `<div class="a-deadline"><div class="a-deadline-main">${formatDateTime(a.deadline)}</div>${sub ? `<div class="a-deadline-sub ${cls}">${sub}</div>` : ''}</div>`;
       }
 
@@ -281,7 +634,7 @@ const BUCKET = 'assignment-submissions';
       }[status];
 
       return `<tr>
-        <td><input type="checkbox" class="row-select" data-id="${a.id}" ${selected.has(a.id) ? 'checked' : ''} style="cursor:pointer;accent-color:var(--brand)"></td>
+        <td><input type="checkbox" class="row-select-a" data-id="${a.id}" ${state.sel.assignments.has(a.id) ? 'checked' : ''} style="cursor:pointer;accent-color:var(--brand)"></td>
         <td>
           <div style="font-weight:600;color:var(--text);font-size:13px">${escapeHtml(a.title)}</div>
           ${a.description ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px">${escapeHtml(a.description)}</div>` : ''}
@@ -292,57 +645,93 @@ const BUCKET = 'assignment-submissions';
           <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${escapeHtml(a.batch || '—')}</div>
         </td>
         <td>${deadlineHtml}</td>
-        <td><span class="a-sub-count ${count === 0 ? 'zero' : ''}"><i class="fas fa-inbox"></i>${count}</span></td>
+        <td><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;background:var(--brand-soft);color:var(--brand-text);border-radius:999px;font-size:11.5px;font-weight:600"><i class="fas fa-inbox" style="font-size:10px"></i>${cnt}</span></td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-secondary)">${fmtBytes(sz)}</td>
         <td>${badge}</td>
         <td style="text-align:right">
           <div class="a-actions">
-            <button class="a-action-btn primary" data-view="${a.id}" title="View submissions"><i class="fas fa-inbox"></i></button>
+            <button class="a-action-btn primary" data-viewsubs="${a.id}" title="View submissions"><i class="fas fa-inbox"></i></button>
             <button class="a-action-btn" data-edit="${a.id}" title="Edit"><i class="fas fa-pen"></i></button>
             <button class="a-action-btn" data-copy="${a.id}" title="Copy share link"><i class="fas fa-link"></i></button>
-            <button class="a-action-btn ${a.is_active ? 'danger' : 'success'}" data-toggle="${a.id}" title="${a.is_active ? 'Deactivate' : 'Activate'}"><i class="fas fa-${a.is_active ? 'toggle-off' : 'toggle-on'}"></i></button>
-            <button class="a-action-btn danger" data-del="${a.id}" title="Delete"><i class="fas fa-trash"></i></button>
+            <button class="a-action-btn" data-extend="${a.id}" title="Extend deadline"><i class="fas fa-clock-rotate-left"></i></button>
+            <button class="a-action-btn" data-dup="${a.id}" title="Duplicate"><i class="fas fa-copy"></i></button>
+            <button class="a-action-btn ${a.is_active ? 'danger' : 'success'}" data-toggle="${a.id}" title="${a.is_active ? 'Disable' : 'Enable'}"><i class="fas fa-${a.is_active ? 'toggle-off' : 'toggle-on'}"></i></button>
+            <button class="a-action-btn danger" data-del="${a.id}" title="Force delete + storage"><i class="fas fa-trash"></i></button>
           </div>
         </td>
       </tr>`;
     }).join('');
 
-    document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => openSubmissions(b.dataset.view));
-    document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openEditor(b.dataset.edit));
-    document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => copyShareLink(b.dataset.copy));
-    document.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => toggleActive(b.dataset.toggle));
-    document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => deleteAssignment(b.dataset.del));
-    document.querySelectorAll('.row-select').forEach(cb => {
+    body.querySelectorAll('[data-viewsubs]').forEach(b => b.onclick = () => openSubmissionsModal(b.dataset.viewsubs));
+    body.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openEditor(b.dataset.edit));
+    body.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => copyShareLink(b.dataset.copy));
+    body.querySelectorAll('[data-extend]').forEach(b => b.onclick = () => extendDeadline(b.dataset.extend));
+    body.querySelectorAll('[data-dup]').forEach(b => b.onclick = () => duplicateAssignment(b.dataset.dup));
+    body.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => toggleActive(b.dataset.toggle));
+    body.querySelectorAll('[data-del]').forEach(b => b.onclick = () => forceDeleteAssignments([b.dataset.del]));
+
+    body.querySelectorAll('.row-select-a').forEach(cb => {
       cb.onchange = () => {
-        if (cb.checked) selected.add(cb.dataset.id); else selected.delete(cb.dataset.id);
-        updateBulkBar(); syncSelectAll(list);
+        if (cb.checked) state.sel.assignments.add(cb.dataset.id);
+        else state.sel.assignments.delete(cb.dataset.id);
+        updateBulkBar();
+        syncSelectAll('assignments', list);
       };
     });
-    syncSelectAll(list);
+    syncSelectAll('assignments', list);
   }
 
-  function syncSelectAll(list) {
-    if (!list.length) { $('selectAll').checked = false; return; }
-    const allSel = list.every(a => selected.has(a.id));
-    const someSel = list.some(a => selected.has(a.id));
-    $('selectAll').checked = allSel;
-    $('selectAll').indeterminate = someSel && !allSel;
+  function syncSelectAll(kind, list) {
+    const map = { assignments: 'selectAll', submissions: 'subSelectAll', storage: 'storageSelectAll' };
+    const el = document.getElementById(map[kind]);
+    if (!el) return;
+    if (!list.length) { el.checked = false; return; }
+    const ids = kind === 'storage'
+      ? list.map(f => f.path)
+      : list.map(x => x.id);
+    const set = state.sel[kind];
+    const allSel = ids.every(id => set.has(id));
+    const someSel = ids.some(id => set.has(id));
+    el.checked = allSel;
+    el.indeterminate = someSel && !allSel;
   }
 
   function updateBulkBar() {
-    $('bulkCount').textContent = `${selected.size} selected`;
-    $('bulkBar').classList.toggle('show', selected.size > 0);
+    document.getElementById('bulkCount').textContent = `${state.sel.assignments.size} selected`;
+    document.getElementById('bulkBar').classList.toggle('show', state.sel.assignments.size > 0);
+    document.getElementById('subBulkCount').textContent = `${state.sel.submissions.size} selected`;
+    document.getElementById('subBulkBar').classList.toggle('show', state.sel.submissions.size > 0);
+    document.getElementById('storageBulkCount').textContent = `${state.sel.storage.size} selected`;
+    document.getElementById('storageBulkBar').classList.toggle('show', state.sel.storage.size > 0);
   }
 
-  $('selectAll').onchange = e => {
-    const list = filtered();
-    if (e.target.checked) list.forEach(a => selected.add(a.id));
-    else selected.clear();
-    render(); updateBulkBar();
+  document.getElementById('selectAll').onchange = e => {
+    const list = filteredAssignments();
+    if (e.target.checked) list.forEach(a => state.sel.assignments.add(a.id));
+    else state.sel.assignments.clear();
+    renderAssignments();
+    updateBulkBar();
+  };
+  document.getElementById('subSelectAll').onchange = e => {
+    const list = filteredSubmissions();
+    if (e.target.checked) list.forEach(s => state.sel.submissions.add(s.id));
+    else state.sel.submissions.clear();
+    renderSubmissions();
+    updateBulkBar();
+  };
+  document.getElementById('storageSelectAll').onchange = e => {
+    const list = filteredStorage();
+    if (e.target.checked) list.forEach(f => state.sel.storage.add(f.path));
+    else state.sel.storage.clear();
+    renderStorage();
+    updateBulkBar();
   };
 
-  // ───────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────
+  // ASSIGNMENT ACTIONS
+  // ─────────────────────────────────────────────────────────────
   async function copyShareLink(id) {
-    const a = assignments.find(x => x.id === id);
+    const a = state.assignments.find(x => x.id === id);
     if (!a) return;
     const url = new URL(SUBMIT_PAGE, location.href);
     url.searchParams.set('t', a.share_token);
@@ -351,26 +740,83 @@ const BUCKET = 'assignment-submissions';
   }
 
   async function toggleActive(id) {
-    const a = assignments.find(x => x.id === id);
+    const a = state.assignments.find(x => x.id === id);
     if (!a) return;
     const { error } = await supabase.from('assignments').update({ is_active: !a.is_active }).eq('id', id);
     if (error) return toast(error.message, 'error');
-    toast(a.is_active ? 'Deactivated' : 'Activated', 'success');
+    toast(a.is_active ? 'Disabled — share link stops working' : 'Enabled — students can submit again', 'success');
     await load();
   }
 
-  async function deleteAssignment(id) {
-    const a = assignments.find(x => x.id === id);
+  async function extendDeadline(id) {
+    const a = state.assignments.find(x => x.id === id);
     if (!a) return;
-    const n = subCountMap.get(a.id) || 0;
-    if (!confirm(`Delete "${a.title}"?\n\nThis removes the assignment and ${n} submission${n === 1 ? '' : 's'} from the database. Uploaded files in storage become orphaned — clean them from the Supabase dashboard if needed.`)) return;
-    const { error } = await supabase.from('assignments').delete().eq('id', id);
-    if (error) return toast(error.message, 'error');
-    toast('Assignment deleted', 'success');
-    await load();
+    const cur = a.deadline ? new Date(a.deadline) : null;
+    const p = n => String(n).padStart(2, '0');
+    const iso = cur ? `${cur.getFullYear()}-${p(cur.getMonth()+1)}-${p(cur.getDate())}T${p(cur.getHours())}:${p(cur.getMinutes())}` : '';
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal-dialog';
+    dialog.innerHTML = `<div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title"><i class="fas fa-clock-rotate-left"></i> Extend deadline</div>
+          <div class="modal-sub">${escapeHtml(a.title)}</div>
+        </div>
+        <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="a-note info">
+          <i class="fas fa-info-circle"></i>
+          <div>Current deadline: <strong>${cur ? formatDateTime(a.deadline) : 'none'}</strong></div>
+        </div>
+        <label class="field"><span>New deadline</span><input class="input" type="datetime-local" id="extDl" value="${iso}"></label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <button class="btn btn-sm" data-quick="1">+1 day</button>
+          <button class="btn btn-sm" data-quick="3">+3 days</button>
+          <button class="btn btn-sm" data-quick="7">+1 week</button>
+          <button class="btn btn-sm" data-quick="clear" style="color:var(--danger)">Remove deadline</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-primary" id="extSave"><i class="fas fa-check"></i> Save</button>
+      </div>
+    </div>`;
+    document.body.appendChild(dialog); dialog.showModal();
+
+    const dl = dialog.querySelector('#extDl');
+    dialog.querySelectorAll('[data-quick]').forEach(b => b.onclick = () => {
+      const q = b.dataset.quick;
+      if (q === 'clear') { dl.value = ''; return; }
+      const days = parseInt(q);
+      const base = dl.value ? new Date(dl.value) : new Date();
+      base.setDate(base.getDate() + days);
+      dl.value = `${base.getFullYear()}-${p(base.getMonth()+1)}-${p(base.getDate())}T${p(base.getHours())}:${p(base.getMinutes())}`;
+    });
+
+    dialog.querySelector('#extSave').onclick = async () => {
+      const v = dl.value;
+      const { error } = await supabase.from('assignments').update({
+        deadline: v ? new Date(v).toISOString() : null,
+      }).eq('id', id);
+      if (error) return toast(error.message, 'error');
+      toast('Deadline updated', 'success');
+      dialog.close(); dialog.remove(); await load();
+    };
+
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+    dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+    dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  // ───────────────────────────────────────────────
+  function duplicateAssignment(id) {
+    const a = state.assignments.find(x => x.id === id);
+    if (!a) return;
+    const clone = { ...a, id: null, title: `Copy of ${a.title}`, share_token: null, is_active: false };
+    openEditor(null, clone);
+  }
+
   function generateToken() {
     const b = new Uint8Array(20); crypto.getRandomValues(b);
     return Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
@@ -382,15 +828,15 @@ const BUCKET = 'assignment-submissions';
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
   }
 
-  function openEditor(id) {
-    const editing = id ? assignments.find(x => x.id === id) : null;
+  function openEditor(id, prefill) {
+    const editing = id ? state.assignments.find(x => x.id === id) : null;
     const isNew = !editing;
-    const a = editing || {
+    const a = editing || prefill || {
       title: '', description: '', course_code: '', batch: '', drive_link: '',
       deadline: null, submission_policy: 'single', name_required: true,
       max_files: 1, max_size_mb: 25,
       allowed_types: ['pdf','doc','docx','ppt','pptx','txt','zip'],
-      is_active: true, faculty_id: faculty[0]?.id || '',
+      is_active: true, faculty_id: state.faculty[0]?.id || '',
     };
 
     const dialog = document.createElement('dialog');
@@ -404,19 +850,19 @@ const BUCKET = 'assignment-submissions';
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
-        ${isNew ? '' : `<div class="a-role-note">
+        ${isNew ? '' : `<div class="a-note info">
           <i class="fas fa-link"></i>
-          <span style="flex:1;min-width:0">Share link — students submit at <span class="mono">${SUBMIT_PAGE}?t=${a.share_token.slice(0, 8)}…</span></span>
+          <div>Share link — students submit at <span class="mono">${SUBMIT_PAGE}?t=${a.share_token.slice(0, 8)}…</span></div>
           <button class="btn btn-sm" id="regenToken"><i class="fas fa-rotate"></i> Regenerate</button>
         </div>`}
         <label class="field"><span>Faculty *</span><select class="input" id="eFaculty" ${isNew ? '' : 'disabled'}>
-          ${faculty.map(f => `<option value="${f.id}" ${f.id === a.faculty_id ? 'selected' : ''}>${escapeHtml(f.full_name || f.email)}${f.role === 'admin' ? ' (admin)' : ''}</option>`).join('')}
+          ${state.faculty.map(f => `<option value="${f.id}" ${f.id === a.faculty_id ? 'selected' : ''}>${escapeHtml(f.full_name || f.email)}${f.role === 'admin' ? ' (admin)' : ''}</option>`).join('')}
         </select>${isNew ? '' : '<div class="pw-hint">Faculty cannot be changed after creation.</div>'}</label>
         <label class="field"><span>Title *</span><input class="input" id="eTitle" value="${escapeHtml(a.title)}" placeholder="e.g. Assignment 3 — Graph Algorithms"></label>
         <label class="field"><span>Description</span><textarea class="input" id="eDesc" placeholder="Instructions…">${escapeHtml(a.description || '')}</textarea></label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
           <label class="field" style="margin-bottom:0"><span>Course code</span><input class="input" id="eCourse" value="${escapeHtml(a.course_code || '')}" placeholder="CSE202"></label>
-          <label class="field" style="margin-bottom:0"><span>Batch *</span><input class="input" id="eBatch" value="${escapeHtml(a.batch)}" placeholder="2023"></label>
+          <label class="field" style="margin-bottom:0"><span>Batch *</span><input class="input" id="eBatch" value="${escapeHtml(a.batch || '')}" placeholder="2023"></label>
         </div>
         <label class="field"><span>Drive link (optional)</span><input class="input" id="eDrive" value="${escapeHtml(a.drive_link || '')}" placeholder="https://drive.google.com/…"></label>
         <label class="field"><span>Deadline</span><input class="input" type="datetime-local" id="eDeadline" value="${toLocalInput(a.deadline)}"></label>
@@ -440,8 +886,7 @@ const BUCKET = 'assignment-submissions';
       </div>
     </div>`;
 
-    document.body.appendChild(dialog);
-    dialog.showModal();
+    document.body.appendChild(dialog); dialog.showModal();
 
     const regen = dialog.querySelector('#regenToken');
     if (regen) regen.onclick = async () => {
@@ -501,17 +946,278 @@ const BUCKET = 'assignment-submissions';
     dialog.onclick = e => { if (e.target === dialog) close(); };
   }
 
-  // ───────────────────────────────────────────────
-  function fmtSize(n) {
-    if (!n) return '—';
-    if (n < 1024) return n + ' B';
-    if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
-    return (n / 1048576).toFixed(1) + ' MB';
+  // ─────────────────────────────────────────────────────────────
+  // FORCE DELETE — DB + storage, atomic-ish
+  // ─────────────────────────────────────────────────────────────
+  async function deleteStoragePaths(paths) {
+    if (!paths.length) return { deleted: 0, failed: [] };
+    const failed = [];
+    let deleted = 0;
+    for (let i = 0; i < paths.length; i += STORAGE_CHUNK) {
+      const chunk = paths.slice(i, i + STORAGE_CHUNK);
+      const { data, error } = await supabase.storage.from(BUCKET).remove(chunk);
+      if (error) { failed.push(...chunk); continue; }
+      deleted += chunk.length - (data?.length || 0);
+      const removedSet = new Set((data || []).map(x => x.name || x));
+      chunk.forEach(p => { if (!removedSet.has(p)) failed.push(p); });
+    }
+    return { deleted: paths.length - failed.length, failed };
   }
 
-  async function openSubmissions(id) {
-    const a = assignments.find(x => x.id === id);
+  async function forceDeleteAssignments(ids) {
+    if (!ids.length) return;
+    const list = state.assignments.filter(a => ids.includes(a.id));
+    if (!list.length) return;
+
+    // Gather every storage file under each assignment's token folder
+    const allPaths = [];
+    for (const a of list) {
+      try {
+        const folder = await listAllFolder(a.share_token);
+        folder.forEach(f => { if (f.id) allPaths.push(`${a.share_token}/${f.name}`); });
+      } catch {}
+    }
+
+    const totalSubs = state.submissions.filter(s => ids.includes(s.assignment_id)).length;
+
+    const msg = list.length === 1
+      ? `Force delete "${list[0].title}"?\n\n` +
+        `• ${totalSubs} submission row(s) will be removed\n` +
+        `• ${allPaths.length} storage file(s) will be permanently deleted\n` +
+        `• The assignment itself will be removed\n\n` +
+        `⚠ This cannot be undone.`
+      : `Force delete ${list.length} assignments?\n\n` +
+        `• ${totalSubs} submission row(s) will be removed\n` +
+        `• ${allPaths.length} storage file(s) will be permanently deleted\n\n` +
+        `⚠ This cannot be undone.`;
+
+    if (!confirm(msg)) return;
+
+    toast('Deleting…', 'info');
+
+    // 1. Delete storage first
+    let storageResult = { deleted: 0, failed: [] };
+    if (allPaths.length) storageResult = await deleteStoragePaths(allPaths);
+
+    // 2. Delete DB rows (cascade removes submissions)
+    const { error } = await supabase.from('assignments').delete().in('id', ids);
+    if (error) return toast(error.message, 'error');
+
+    // 3. Report
+    if (storageResult.failed.length) {
+      toast(`Assignment(s) deleted — but ${storageResult.failed.length} file(s) couldn't be removed from storage. Check Storage tab.`, 'error');
+    } else {
+      toast(`${list.length} assignment${list.length === 1 ? '' : 's'} and ${storageResult.deleted} file${storageResult.deleted === 1 ? '' : 's'} permanently deleted`, 'success');
+    }
+
+    state.sel.assignments.clear();
+    await load();
+    if (state.storageScanned) scanStorage();
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // SUBMISSIONS VIEW
+  // ─────────────────────────────────────────────────────────────
+  function filteredSubmissions() {
+    const f = state.filters;
+    let list = state.submissions;
+    if (f.subState === 'current') list = list.filter(s => !s.is_superseded);
+    else if (f.subState === 'superseded') list = list.filter(s => s.is_superseded);
+    else if (f.subState === 'missing' && state.storageScanned) {
+      const storagePaths = new Set(state.storageFiles.map(x => x.path));
+      list = list.filter(s => !storagePaths.has(s.file_path));
+    }
+    if (f.subAssignment) list = list.filter(s => s.assignment_id === f.subAssignment);
+    if (f.subFaculty) {
+      const aIds = new Set(state.assignments.filter(a => a.faculty_id === f.subFaculty).map(a => a.id));
+      list = list.filter(s => aIds.has(s.assignment_id));
+    }
+    if (f.subSearch) {
+      const q = f.subSearch.toLowerCase();
+      list = list.filter(s =>
+        (s.student_id || '').toLowerCase().includes(q) ||
+        (s.student_name || '').toLowerCase().includes(q) ||
+        (s.file_name || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }
+
+  function renderSubmissions() {
+    const list = filteredSubmissions().slice(0, 500);
+    const body = document.getElementById('bodySubmissions');
+    const storagePaths = state.storageScanned ? new Set(state.storageFiles.map(f => f.path)) : null;
+    const aMap = new Map(state.assignments.map(a => [a.id, a]));
+    const fMap = new Map(state.faculty.map(f => [f.id, f]));
+
+    if (!list.length) {
+      body.innerHTML = `<tr><td colspan="8"><div class="a-empty"><i class="fas fa-inbox"></i><div class="a-empty-title">No submissions match</div><div class="a-empty-sub">Try changing filters.</div></div></td></tr>`;
+      document.getElementById('subSelectAll').checked = false;
+      return;
+    }
+
+    body.innerHTML = list.map(s => {
+      const a = aMap.get(s.assignment_id);
+      const fac = a ? fMap.get(a.faculty_id) : null;
+      const fileMissing = storagePaths && !storagePaths.has(s.file_path);
+      const date = new Date(s.submitted_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      return `<tr>
+        <td><input type="checkbox" class="row-select-s" data-id="${s.id}" ${state.sel.submissions.has(s.id) ? 'checked' : ''} style="cursor:pointer;accent-color:var(--brand)"></td>
+        <td>
+          <div style="font-weight:600;font-size:12.5px;color:var(--text)">${escapeHtml(s.student_name || '—')}</div>
+          <div class="mono" style="font-size:11px;color:var(--text-secondary);margin-top:2px">${escapeHtml(s.student_id)}</div>
+        </td>
+        <td>
+          <div style="font-weight:500;font-size:12px;color:var(--text)">${escapeHtml(a?.title || '—')}</div>
+          <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">${escapeHtml(a?.batch || '')}</div>
+        </td>
+        <td style="font-size:11.5px;color:var(--text-secondary)">${escapeHtml(fac?.full_name || fac?.email || '—')}</td>
+        <td>
+          <div class="mono" style="font-size:11px;color:var(--text);word-break:break-all;max-width:200px">${escapeHtml(s.file_name)}</div>
+          ${s.is_superseded ? '<span class="a-status inactive" style="margin-top:4px;display:inline-flex"><i class="fas fa-clock-rotate-left"></i>Superseded</span>' : ''}
+          ${fileMissing ? '<span class="a-status missing" style="margin-top:4px;display:inline-flex"><i class="fas fa-triangle-exclamation"></i>Missing</span>' : ''}
+        </td>
+        <td class="mono" style="font-size:11.5px;color:var(--text-secondary)">${fmtBytes(s.file_size)}</td>
+        <td style="font-size:11px;color:var(--text-secondary);white-space:nowrap">${date}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <div class="a-actions">
+            <button class="a-action-btn primary" data-dl="${escapeHtml(s.file_path)}" data-name="${escapeHtml(s.file_name)}" title="Download"><i class="fas fa-download"></i></button>
+            <button class="a-action-btn" data-preview="${escapeHtml(s.file_path)}" data-name="${escapeHtml(s.file_name)}" title="Preview"><i class="fas fa-eye"></i></button>
+            <button class="a-action-btn danger" data-delsub="${s.id}" title="Delete submission + storage"><i class="fas fa-trash"></i></button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    body.querySelectorAll('[data-dl]').forEach(b => b.onclick = () => downloadFile(b.dataset.dl, b.dataset.name));
+    body.querySelectorAll('[data-preview]').forEach(b => b.onclick = () => previewFile(b.dataset.preview, b.dataset.name));
+    body.querySelectorAll('[data-delsub]').forEach(b => b.onclick = () => deleteSubmission(b.dataset.delsub));
+    body.querySelectorAll('.row-select-s').forEach(cb => {
+      cb.onchange = () => {
+        if (cb.checked) state.sel.submissions.add(cb.dataset.id);
+        else state.sel.submissions.delete(cb.dataset.id);
+        updateBulkBar(); syncSelectAll('submissions', list);
+      };
+    });
+    syncSelectAll('submissions', list);
+  }
+
+  async function downloadFile(path, name) {
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 300);
+    if (error) return toast(error.message, 'error');
+    const link = document.createElement('a');
+    link.href = data.signedUrl; link.download = name; link.target = '_blank'; link.click();
+  }
+
+  async function previewFile(path, name) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 300);
+    if (error) return toast(error.message, 'error');
+
+    if (['pdf','png','jpg','jpeg','gif','webp','svg'].includes(ext)) {
+      const dialog = document.createElement('dialog');
+      dialog.className = 'modal-dialog';
+      const isImage = ['png','jpg','jpeg','gif','webp','svg'].includes(ext);
+      dialog.innerHTML = `<div class="modal-content modal-wide">
+        <div class="modal-header">
+          <div><div class="modal-title"><i class="fas fa-eye"></i> ${escapeHtml(name)}</div></div>
+          <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding:0;background:var(--bg-subtle)">
+          ${isImage
+            ? `<img src="${data.signedUrl}" alt="" style="width:100%;max-height:75vh;object-fit:contain;display:block">`
+            : `<iframe class="preview-iframe" src="${data.signedUrl}"></iframe>`}
+        </div>
+        <div class="modal-footer">
+          <button class="btn" data-close>Close</button>
+          <a class="btn btn-primary" href="${data.signedUrl}" download="${escapeHtml(name)}" target="_blank"><i class="fas fa-download"></i> Download</a>
+        </div>
+      </div>`;
+      document.body.appendChild(dialog); dialog.showModal();
+      const close = () => { dialog.close(); dialog.remove(); };
+      dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
+      dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
+      dialog.onclick = e => { if (e.target === dialog) close(); };
+    } else {
+      window.open(data.signedUrl, '_blank');
+    }
+  }
+
+  async function deleteSubmission(id) {
+    const sub = state.submissions.find(s => s.id === id);
+    if (!sub) return;
+    const a = state.assignments.find(x => x.id === sub.assignment_id);
+    if (!confirm(`Permanently delete this submission?\n\nStudent: ${sub.student_name || '—'} (${sub.student_id})\nAssignment: ${a?.title || '—'}\nFile: ${sub.file_name}\n\nThe file will be removed from Supabase Storage immediately. This cannot be undone.`)) return;
+
+    // 1. Storage delete
+    await supabase.storage.from(BUCKET).remove([sub.file_path]);
+
+    // 2. DB delete
+    const { error } = await supabase.from('submissions').delete().eq('id', id);
+    if (error) return toast(error.message, 'error');
+
+    toast('Submission and file deleted', 'success');
+    state.sel.submissions.delete(id);
+    await load();
+    if (state.storageScanned) scanStorage();
+  }
+
+  async function bulkDeleteSubmissions(ids) {
+    if (!ids.length) return;
+    const subs = state.submissions.filter(s => ids.includes(s.id));
+    if (!subs.length) return;
+    if (!confirm(`Permanently delete ${subs.length} submission(s) and their files?\n\nThis removes the DB rows AND deletes the files from Supabase Storage. Cannot be undone.`)) return;
+
+    toast('Deleting…', 'info');
+    const paths = subs.map(s => s.file_path);
+    const storageResult = await deleteStoragePaths(paths);
+
+    const { error } = await supabase.from('submissions').delete().in('id', ids);
+    if (error) return toast(error.message, 'error');
+
+    if (storageResult.failed.length) {
+      toast(`Deleted ${subs.length} submissions — ${storageResult.failed.length} file(s) remained in storage. Check Storage tab.`, 'error');
+    } else {
+      toast(`${subs.length} submission${subs.length === 1 ? '' : 's'} and ${storageResult.deleted} file${storageResult.deleted === 1 ? '' : 's'} deleted`, 'success');
+    }
+    state.sel.submissions.clear();
+    await load();
+    if (state.storageScanned) scanStorage();
+  }
+
+  function exportSubmissionsCSV(list) {
+    const aMap = new Map(state.assignments.map(a => [a.id, a]));
+    const fMap = new Map(state.faculty.map(f => [f.id, f]));
+    const rows = [['Student ID','Student Name','Assignment','Course','Batch','Faculty','File','Size','Submitted','Status']];
+    list.forEach(s => {
+      const a = aMap.get(s.assignment_id);
+      const fac = a ? fMap.get(a.faculty_id) : null;
+      rows.push([
+        s.student_id, s.student_name || '', a?.title || '', a?.course_code || '', a?.batch || '',
+        fac?.full_name || fac?.email || '', s.file_name, s.file_size || '',
+        new Date(s.submitted_at).toISOString(),
+        s.is_superseded ? 'Superseded' : 'Current',
+      ]);
+    });
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const link = document.createElement('a');
+    link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    link.download = `submissions-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // SUBMISSIONS MODAL (per-assignment view, with delete + superseded cleanup)
+  // ─────────────────────────────────────────────────────────────
+  async function openSubmissionsModal(id) {
+    const a = state.assignments.find(x => x.id === id);
     if (!a) return;
+
+    const subs = state.submissions.filter(s => s.assignment_id === id);
+    const cur = subs.filter(s => !s.is_superseded);
+    const old = subs.filter(s => s.is_superseded);
+    const storagePaths = state.storageScanned ? new Set(state.storageFiles.map(f => f.path)) : null;
+
     const dialog = document.createElement('dialog');
     dialog.className = 'modal-dialog';
     dialog.innerHTML = `<div class="modal-content modal-wide">
@@ -523,128 +1229,350 @@ const BUCKET = 'assignment-submissions';
         <button class="modal-close" data-close><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
-        <div id="subLoading" style="padding:32px;text-align:center;color:var(--text-muted)"><i class="fas fa-spinner fa-spin" style="font-size:24px"></i></div>
-        <div id="subContent" style="display:none"></div>
+        ${!subs.length ? `<div class="a-empty"><i class="fas fa-inbox"></i><div class="a-empty-title">No submissions yet</div></div>` : `
+          <div class="a-note info">
+            <i class="fas fa-info-circle"></i>
+            <div><strong>${new Set(cur.map(s => s.student_id)).size}</strong> student${new Set(cur.map(s => s.student_id)).size === 1 ? '' : 's'} · <strong>${cur.length}</strong> current file${cur.length === 1 ? '' : 's'}${old.length ? ` · <span style="opacity:.7">${old.length} superseded</span>` : ''}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn btn-sm" id="modalExport"><i class="fas fa-download"></i> Export CSV</button>
+              ${old.length ? `<button class="btn btn-sm" id="modalCleanSuperseded" style="color:var(--danger)"><i class="fas fa-broom"></i> Delete ${old.length} superseded</button>` : ''}
+            </div>
+          </div>
+          ${cur.map(s => subRowHtml(s, storagePaths)).join('')}
+          ${old.length ? `<details style="margin-top:16px"><summary style="cursor:pointer;padding:8px 0;font-size:12px;color:var(--text-secondary);font-weight:600">Show ${old.length} superseded file${old.length === 1 ? '' : 's'}</summary>${old.map(s => subRowHtml(s, storagePaths, true)).join('')}</details>` : ''}
+        `}
       </div>
       <div class="modal-footer">
         <button class="btn" data-close>Close</button>
-        <button class="btn" id="subExport" style="display:none"><i class="fas fa-download"></i> Export CSV</button>
       </div>
     </div>`;
-    document.body.appendChild(dialog);
-    dialog.showModal();
 
-    const { data: subs, error } = await supabase
-      .from('submissions').select('*').eq('assignment_id', id)
-      .order('student_id').order('submitted_at', { ascending: false });
-
-    dialog.querySelector('#subLoading').style.display = 'none';
-    const content = dialog.querySelector('#subContent');
-    content.style.display = 'block';
-
-    if (error) {
-      content.innerHTML = `<div class="empty"><i class="fas fa-triangle-exclamation" style="color:var(--danger)"></i>${escapeHtml(error.message)}</div>`;
-    } else if (!subs?.length) {
-      content.innerHTML = `<div class="empty"><i class="fas fa-inbox"></i><div style="margin-top:8px">No submissions yet</div></div>`;
-    } else {
-      const cur = subs.filter(s => !s.is_superseded);
-      const old = subs.filter(s => s.is_superseded);
-      const uniq = new Set(cur.map(s => s.student_id)).size;
-
-      const row = s => {
-        const date = new Date(s.submitted_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-        return `<div class="sub-row ${s.is_superseded ? 'sub-superseded' : ''}">
-          <div class="sub-info">
-            <div class="sub-student">${escapeHtml(s.student_name || '—')}<span class="sub-id">${escapeHtml(s.student_id)}</span></div>
-            <div class="sub-file"><i class="fas fa-file"></i>${escapeHtml(s.file_name)}<span style="color:var(--text-muted);font-weight:400"> · ${fmtSize(s.file_size)}</span></div>
-            <div class="sub-meta">${date}${s.is_superseded ? ' · Superseded' : ''}</div>
-          </div>
-          <div class="sub-actions">
-            <button class="btn btn-sm" data-dl="${escapeHtml(s.file_path)}" data-name="${escapeHtml(s.file_name)}"><i class="fas fa-download"></i> Download</button>
-          </div>
-        </div>`;
-      };
-
-      content.innerHTML = `
-        <div style="padding:12px 14px;background:var(--brand-soft);border:1px solid var(--brand-soft-border);border-radius:10px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-          <div style="font-size:13px;color:var(--brand-text)"><strong>${uniq}</strong> student${uniq === 1 ? '' : 's'} · <strong>${cur.length}</strong> current file${cur.length === 1 ? '' : 's'}${old.length ? ` · <span style="opacity:.7">${old.length} superseded</span>` : ''}</div>
-          <div style="font-size:11px;color:var(--brand-text);opacity:.7">Policy: ${a.submission_policy === 'single' ? 'Single' : 'Overwrite'}</div>
-        </div>
-        ${cur.map(row).join('')}
-        ${old.length ? `<details style="margin-top:16px"><summary style="cursor:pointer;padding:8px 0;font-size:12px;color:var(--text-secondary);font-weight:600">Show ${old.length} superseded file${old.length === 1 ? '' : 's'}</summary>${old.map(row).join('')}</details>` : ''}
-      `;
-
-      content.querySelectorAll('[data-dl]').forEach(b => b.onclick = async () => {
-        const path = b.dataset.dl, name = b.dataset.name;
-        b.disabled = true; b.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 300);
-        b.disabled = false; b.innerHTML = '<i class="fas fa-download"></i> Download';
-        if (error) return toast(error.message, 'error');
-        const link = document.createElement('a');
-        link.href = data.signedUrl; link.download = name; link.target = '_blank'; link.click();
-      });
-
-      const exp = dialog.querySelector('#subExport');
-      exp.style.display = 'inline-flex';
-      exp.onclick = () => {
-        const rows = [['Student ID', 'Student Name', 'File', 'Size', 'Submitted At', 'Status']];
-        subs.forEach(s => rows.push([
-          s.student_id, s.student_name || '', s.file_name,
-          s.file_size || '', new Date(s.submitted_at).toISOString(),
-          s.is_superseded ? 'Superseded' : 'Current'
-        ]));
-        const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-        const safeName = `${a.batch}-${a.course_code || 'assign'}-submissions`.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const link = document.createElement('a');
-        link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-        link.download = `${safeName}.csv`;
-        link.click();
-      };
-    }
+    document.body.appendChild(dialog); dialog.showModal();
 
     const close = () => { dialog.close(); dialog.remove(); };
     dialog.querySelectorAll('[data-close]').forEach(x => x.onclick = close);
     dialog.addEventListener('close', () => { if (dialog.isConnected) dialog.remove(); });
     dialog.onclick = e => { if (e.target === dialog) close(); };
+
+    dialog.querySelectorAll('[data-dl]').forEach(b => b.onclick = () => downloadFile(b.dataset.dl, b.dataset.name));
+    dialog.querySelectorAll('[data-preview]').forEach(b => b.onclick = () => previewFile(b.dataset.preview, b.dataset.name));
+    dialog.querySelectorAll('[data-delsub]').forEach(b => b.onclick = async () => {
+      await deleteSubmission(b.dataset.delsub);
+      close();
+      openSubmissionsModal(id);
+    });
+
+    const exp = dialog.querySelector('#modalExport');
+    if (exp) exp.onclick = () => exportSubmissionsCSV(subs);
+
+    const cleanBtn = dialog.querySelector('#modalCleanSuperseded');
+    if (cleanBtn) cleanBtn.onclick = async () => {
+      if (!confirm(`Delete ${old.length} superseded file${old.length === 1 ? '' : 's'}?\n\nThese are old versions replaced by re-submissions. Files will be removed from storage too.`)) return;
+      toast('Deleting superseded files…', 'info');
+      const paths = old.map(s => s.file_path);
+      const res = await deleteStoragePaths(paths);
+      const { error } = await supabase.from('submissions').delete().in('id', old.map(s => s.id));
+      if (error) return toast(error.message, 'error');
+      toast(`${old.length} superseded file${old.length === 1 ? '' : 's'} deleted${res.failed.length ? ` (${res.failed.length} storage errors)` : ''}`, 'success');
+      close();
+      await load();
+      if (state.storageScanned) scanStorage();
+    };
   }
 
-  // ───────────────────────────────────────────────
-  $('addBtn').onclick = () => {
-    if (!faculty.length) return toast('Create a faculty account first', 'error');
-    openEditor(null);
-  };
+  function subRowHtml(s, storagePaths, isOld) {
+    const missing = storagePaths && !storagePaths.has(s.file_path);
+    const date = new Date(s.submitted_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return `<div class="sub-row ${isOld ? 'sub-superseded' : ''}">
+      <div class="sub-info">
+        <div class="sub-student">${escapeHtml(s.student_name || '—')}<span class="sub-id">${escapeHtml(s.student_id)}</span>${missing ? '<span class="a-status missing"><i class="fas fa-triangle-exclamation"></i>Missing</span>' : ''}</div>
+        <div class="sub-file"><i class="fas fa-file"></i>${escapeHtml(s.file_name)}<span style="color:var(--text-muted);font-weight:400"> · ${fmtBytes(s.file_size)}</span></div>
+        <div class="sub-meta">${date}${isOld ? ' · Superseded' : ''}</div>
+      </div>
+      <div class="sub-actions">
+        <button class="btn btn-sm" data-preview="${escapeHtml(s.file_path)}" data-name="${escapeHtml(s.file_name)}" title="Preview"><i class="fas fa-eye"></i></button>
+        <button class="btn btn-sm" data-dl="${escapeHtml(s.file_path)}" data-name="${escapeHtml(s.file_name)}" title="Download"><i class="fas fa-download"></i></button>
+        <button class="btn btn-sm" data-delsub="${s.id}" title="Delete" style="color:var(--danger)"><i class="fas fa-trash"></i></button>
+      </div>
+    </div>`;
+  }
 
+  // ─────────────────────────────────────────────────────────────
+  // STORAGE VIEW
+  // ─────────────────────────────────────────────────────────────
+  function filteredStorage() {
+    const f = state.filters;
+    let list = state.storageFiles;
+    if (f.storageState === 'orphan') list = list.filter(file => !state.storageSubPathSet.has(file.path));
+    else if (f.storageState === 'known') list = list.filter(file => state.storageSubPathSet.has(file.path));
+    if (f.storageSearch) {
+      const q = f.storageSearch.toLowerCase();
+      list = list.filter(file => file.path.toLowerCase().includes(q));
+    }
+    return list;
+  }
+
+  function renderStorage() {
+    const summaryEl = document.getElementById('storageSummary');
+    const body = document.getElementById('bodyStorage');
+    const cleanBtn = document.getElementById('cleanupOrphansBtn');
+
+    if (state.storageLoading) {
+      summaryEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);width:100%"><i class="fas fa-spinner fa-spin"></i> Scanning storage…</div>';
+      body.innerHTML = '';
+      cleanBtn.style.display = 'none';
+      return;
+    }
+
+    if (!state.storageScanned) {
+      document.getElementById('ssFiles').textContent = '—';
+      document.getElementById('ssBytes').textContent = '—';
+      document.getElementById('ssOrphans').textContent = '—';
+      document.getElementById('ssMissing').textContent = '—';
+      cleanBtn.style.display = 'none';
+      body.innerHTML = `<tr><td colspan="6"><div class="a-empty"><i class="fas fa-database"></i><div class="a-empty-title">Not scanned yet</div><div class="a-empty-sub">Click "Refresh scan" to load the current storage state.</div></div></td></tr>`;
+      return;
+    }
+
+    const s = calcStats();
+    document.getElementById('ssFiles').textContent = state.storageFiles.length;
+    document.getElementById('ssBytes').textContent = fmtBytes(s.storageBytes);
+    document.getElementById('ssOrphans').textContent = s.orphanCount;
+    document.getElementById('ssMissing').textContent = s.missingCount;
+    cleanBtn.style.display = s.orphanCount > 0 ? '' : 'none';
+
+    const list = filteredStorage().slice(0, 500);
+    if (!list.length) {
+      body.innerHTML = `<tr><td colspan="6"><div class="a-empty"><i class="fas fa-database"></i><div class="a-empty-title">No files match</div></div></td></tr>`;
+      document.getElementById('storageSelectAll').checked = false;
+      return;
+    }
+
+    body.innerHTML = list.map(f => {
+      const isOrphan = !state.storageSubPathSet.has(f.path);
+      const date = f.updated_at ? new Date(f.updated_at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '—';
+      return `<tr>
+        <td><input type="checkbox" class="row-select-st" data-path="${escapeHtml(f.path)}" ${state.sel.storage.has(f.path) ? 'checked' : ''} style="cursor:pointer;accent-color:var(--brand)"></td>
+        <td><div class="mono" style="font-size:11px;color:var(--text);word-break:break-all;max-width:400px">${escapeHtml(f.path)}</div></td>
+        <td class="mono" style="font-size:11.5px;color:var(--text-secondary)">${fmtBytes(f.size)}</td>
+        <td style="font-size:11px;color:var(--text-secondary)">${date}</td>
+        <td>${isOrphan ? '<span class="a-status orphan"><i class="fas fa-triangle-exclamation"></i>Orphan</span>' : '<span class="a-status known"><i class="fas fa-check"></i>Known</span>'}</td>
+        <td style="text-align:right">
+          <div class="a-actions">
+            <button class="a-action-btn" data-dl="${escapeHtml(f.path)}" data-name="${escapeHtml(f.path.split('/').pop())}" title="Download"><i class="fas fa-download"></i></button>
+            <button class="a-action-btn danger" data-delfile="${escapeHtml(f.path)}" title="Delete"><i class="fas fa-trash"></i></button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    body.querySelectorAll('[data-dl]').forEach(b => b.onclick = () => downloadFile(b.dataset.dl, b.dataset.name));
+    body.querySelectorAll('[data-delfile]').forEach(b => b.onclick = () => deleteStorageFile(b.dataset.delfile));
+    body.querySelectorAll('.row-select-st').forEach(cb => {
+      cb.onchange = () => {
+        if (cb.checked) state.sel.storage.add(cb.dataset.path);
+        else state.sel.storage.delete(cb.dataset.path);
+        updateBulkBar(); syncSelectAll('storage', list);
+      };
+    });
+    syncSelectAll('storage', list);
+  }
+
+  async function deleteStorageFile(path) {
+    if (!confirm(`Delete this file from storage?\n\n${path}\n\nIf a matching DB submission exists, it will become "missing" until you also delete the submission. This cannot be undone.`)) return;
+    const { error } = await supabase.storage.from(BUCKET).remove([path]);
+    if (error) return toast(error.message, 'error');
+    toast('File deleted', 'success');
+    state.sel.storage.delete(path);
+    await load();
+    scanStorage();
+  }
+
+  async function deleteOrphansBulk() {
+    const orphans = state.storageFiles.filter(f => !state.storageSubPathSet.has(f.path));
+    if (!orphans.length) return toast('No orphans to delete', 'info');
+    if (!confirm(`Delete ${orphans.length} orphan file${orphans.length === 1 ? '' : 's'} from storage?\n\nThese files have no matching DB submission. This cannot be undone.`)) return;
+    toast('Deleting orphans…', 'info');
+    const paths = orphans.map(f => f.path);
+    const res = await deleteStoragePaths(paths);
+    if (res.failed.length) toast(`Deleted ${res.deleted} — ${res.failed.length} failed. Retry in a moment.`, 'error');
+    else toast(`${res.deleted} orphan file${res.deleted === 1 ? '' : 's'} deleted`, 'success');
+    await scanStorage();
+  }
+
+  async function bulkDeleteStorage(paths) {
+    if (!paths.length) return;
+    if (!confirm(`Delete ${paths.length} file${paths.length === 1 ? '' : 's'} from storage?\n\nFiles with matching DB submissions will become "missing". This cannot be undone.`)) return;
+    toast('Deleting…', 'info');
+    const res = await deleteStoragePaths(paths);
+    if (res.failed.length) toast(`Deleted ${res.deleted} — ${res.failed.length} failed.`, 'error');
+    else toast(`${res.deleted} file${res.deleted === 1 ? '' : 's'} deleted`, 'success');
+    state.sel.storage.clear();
+    await load();
+    await scanStorage();
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // ANALYTICS VIEW
+  // ─────────────────────────────────────────────────────────────
+  function renderAnalytics() {
+    const A = state.assignments;
+    const S = state.submissions.filter(s => !s.is_superseded);
+    const dbBytes = S.reduce((sum, s) => sum + (Number(s.file_size) || 0), 0);
+    const students = new Set(S.map(s => s.student_id)).size;
+
+    document.getElementById('analyticsSummary').innerHTML = `
+      <div class="a-stats" style="margin-bottom:0">
+        <div class="a-stat"><div class="a-stat-icon"><i class="fas fa-file-pen"></i></div><div class="a-stat-val">${A.length}</div><div class="a-stat-lbl">Assignments</div></div>
+        <div class="a-stat"><div class="a-stat-icon info"><i class="fas fa-inbox"></i></div><div class="a-stat-val" style="color:var(--info)">${S.length}</div><div class="a-stat-lbl">Submissions</div></div>
+        <div class="a-stat"><div class="a-stat-icon"><i class="fas fa-user-graduate"></i></div><div class="a-stat-val">${students}</div><div class="a-stat-lbl">Unique students</div></div>
+        <div class="a-stat"><div class="a-stat-icon success"><i class="fas fa-database"></i></div><div class="a-stat-val">${fmtBytes(dbBytes)}</div><div class="a-stat-lbl">Total file size</div></div>
+        <div class="a-stat"><div class="a-stat-icon"><i class="fas fa-chart-line"></i></div><div class="a-stat-val">${A.length ? (S.length / A.length).toFixed(1) : '0'}</div><div class="a-stat-lbl">Avg subs / assignment</div></div>
+      </div>
+    `;
+
+    // By faculty
+    const facStats = new Map();
+    state.faculty.forEach(f => facStats.set(f.id, { name: f.full_name || f.email, assignments: 0, submissions: 0, bytes: 0 }));
+    A.forEach(a => {
+      const s = facStats.get(a.faculty_id);
+      if (s) s.assignments++;
+    });
+    S.forEach(sub => {
+      const a = A.find(x => x.id === sub.assignment_id);
+      if (!a) return;
+      const s = facStats.get(a.faculty_id);
+      if (!s) return;
+      s.submissions++;
+      s.bytes += Number(sub.file_size) || 0;
+    });
+
+    const facList = [...facStats.values()].filter(f => f.assignments > 0).sort((a, b) => b.submissions - a.submissions);
+    if (!facList.length) {
+      document.getElementById('analyticsByFaculty').innerHTML = '<div class="a-empty" style="padding:30px"><i class="fas fa-building-user"></i><div class="a-empty-title">No faculty data</div></div>';
+    } else {
+      document.getElementById('analyticsByFaculty').innerHTML = `
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr style="border-bottom:1px solid var(--border)">
+            <th style="text-align:left;padding:8px;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Faculty</th>
+            <th style="text-align:right;padding:8px;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Assignments</th>
+            <th style="text-align:right;padding:8px;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Submissions</th>
+            <th style="text-align:right;padding:8px;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Size</th>
+          </tr></thead>
+          <tbody>
+            ${facList.map(f => `<tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:10px 8px;font-weight:500;color:var(--text)">${escapeHtml(f.name)}</td>
+              <td style="padding:10px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px">${f.assignments}</td>
+              <td style="padding:10px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px">${f.submissions}</td>
+              <td style="padding:10px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-secondary)">${fmtBytes(f.bytes)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    // Top assignments
+    const subByA = new Map();
+    S.forEach(s => { subByA.set(s.assignment_id, (subByA.get(s.assignment_id) || 0) + 1); });
+    const top = [...subByA.entries()]
+      .map(([id, cnt]) => ({ id, cnt, a: A.find(a => a.id === id) }))
+      .filter(x => x.a)
+      .sort((a, b) => b.cnt - a.cnt)
+      .slice(0, 10);
+
+    if (!top.length) {
+      document.getElementById('analyticsTopAssignments').innerHTML = '<div class="a-empty" style="padding:30px"><i class="fas fa-fire"></i><div class="a-empty-title">No submissions yet</div></div>';
+      return;
+    }
+
+    const max = top[0].cnt;
+    document.getElementById('analyticsTopAssignments').innerHTML = top.map(({ a, cnt }) => `
+      <div class="bar-row">
+        <div class="bar-label" title="${escapeHtml(a.title)}">${escapeHtml(a.title)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(cnt / max) * 100}%"></div></div>
+        <div class="bar-val">${cnt}</div>
+      </div>
+    `).join('');
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // FILTER EVENTS
+  // ─────────────────────────────────────────────────────────────
   document.querySelectorAll('[data-f]').forEach(b => b.onclick = () => {
-    statusFilter = b.dataset.f;
+    state.filters.status = b.dataset.f;
     document.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === b));
-    render();
+    renderAssignments();
   });
-  $('facultyFilter').onchange = e => { facultyFilter = e.target.value; render(); };
-  $('courseFilter').onchange  = e => { courseFilter  = e.target.value; render(); };
-  $('search').oninput         = e => { search        = e.target.value.trim(); render(); };
+  document.getElementById('facultyFilter').onchange = e => { state.filters.faculty = e.target.value; renderAssignments(); };
+  document.getElementById('courseFilter').onchange  = e => { state.filters.course  = e.target.value; renderAssignments(); };
+  document.getElementById('search').oninput         = e => { state.filters.search  = e.target.value.trim(); renderAssignments(); };
 
+  document.getElementById('subAssignmentFilter').onchange = e => { state.filters.subAssignment = e.target.value; renderSubmissions(); };
+  document.getElementById('subFacultyFilter').onchange    = e => { state.filters.subFaculty    = e.target.value; renderSubmissions(); };
+  document.getElementById('subStateFilter').onchange      = e => { state.filters.subState      = e.target.value; renderSubmissions(); };
+  document.getElementById('subSearch').oninput            = e => { state.filters.subSearch     = e.target.value.trim(); renderSubmissions(); };
+
+  document.getElementById('storageStateFilter').onchange = e => { state.filters.storageState = e.target.value; renderStorage(); };
+  document.getElementById('storageSearch').oninput       = e => { state.filters.storageSearch = e.target.value.trim(); renderStorage(); };
+
+  // ─────────────────────────────────────────────────────────────
+  // BULK ACTIONS
+  // ─────────────────────────────────────────────────────────────
   document.querySelectorAll('[data-bulk]').forEach(btn => btn.onclick = async () => {
     const action = btn.dataset.bulk;
-    if (action === 'clear') { selected.clear(); render(); updateBulkBar(); return; }
-    if (!selected.size) return;
-    const ids = [...selected];
+    if (action === 'clear') { state.sel.assignments.clear(); renderAssignments(); updateBulkBar(); return; }
+    const ids = [...state.sel.assignments];
+    if (!ids.length) return;
 
     if (action === 'activate' || action === 'deactivate') {
       const v = action === 'activate';
       const { error } = await supabase.from('assignments').update({ is_active: v }).in('id', ids);
       if (error) return toast(error.message, 'error');
-      toast(`${ids.length} ${v ? 'activated' : 'deactivated'}`, 'success');
+      toast(`${ids.length} ${v ? 'enabled' : 'disabled'}`, 'success');
+      state.sel.assignments.clear();
+      await load();
     } else if (action === 'delete') {
-      if (!confirm(`Delete ${ids.length} assignment${ids.length === 1 ? '' : 's'}?\n\nAll their submissions will be deleted too.`)) return;
-      const { error } = await supabase.from('assignments').delete().in('id', ids);
-      if (error) return toast(error.message, 'error');
-      toast(`${ids.length} deleted`, 'success');
+      await forceDeleteAssignments(ids);
     }
-    selected.clear();
-    await load();
   });
 
+  document.querySelectorAll('[data-sub-bulk]').forEach(btn => btn.onclick = async () => {
+    const action = btn.dataset.subBulk;
+    if (action === 'clear') { state.sel.submissions.clear(); renderSubmissions(); updateBulkBar(); return; }
+    const ids = [...state.sel.submissions];
+    if (!ids.length) return;
+    if (action === 'download') {
+      const list = state.submissions.filter(s => ids.includes(s.id));
+      exportSubmissionsCSV(list);
+    } else if (action === 'delete') {
+      await bulkDeleteSubmissions(ids);
+    }
+  });
+
+  document.querySelectorAll('[data-storage-bulk]').forEach(btn => btn.onclick = async () => {
+    const action = btn.dataset.storageBulk;
+    if (action === 'clear') { state.sel.storage.clear(); renderStorage(); updateBulkBar(); return; }
+    const paths = [...state.sel.storage];
+    if (!paths.length) return;
+    if (action === 'delete') await bulkDeleteStorage(paths);
+  });
+
+  document.getElementById('scanBtn').onclick = () => scanStorage();
+  document.getElementById('cleanupOrphansBtn').onclick = () => deleteOrphansBulk();
+
+  // ─────────────────────────────────────────────────────────────
+  // NEW BUTTON
+  // ─────────────────────────────────────────────────────────────
+  document.getElementById('addBtn').onclick = () => {
+    if (!state.faculty.length) return toast('Create a faculty account first', 'error');
+    openEditor(null);
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // GO
+  // ─────────────────────────────────────────────────────────────
   await load();
+  // Auto-scan storage once on first load so orphans appear in stats
+  scanStorage();
 })();
 </script>
 <script type="module" src="js/banner.js"></script>

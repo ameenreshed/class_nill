@@ -1,115 +1,103 @@
 // ============================================================
 // LPU Scheduler — Service Worker
-// Cache-first for static assets, network-first for HTML
-// Never cache Supabase API calls
+// Caches static assets; network-first for HTML/API
 // ============================================================
 
-const CACHE_VERSION = 'lpu-scheduler-v3';
-const CACHE_STATIC = CACHE_VERSION + '-static';
-const CACHE_PAGES  = CACHE_VERSION + '-pages';
+const VERSION = 'v3-student';
+const STATIC_CACHE = `static-${VERSION}`;
+const RUNTIME_CACHE = `runtime-${VERSION}`;
 
-// Files to pre-cache on install
-const PRECACHE = [
+const PRECACHE_URLS = [
   './',
   './index.html',
   './login.html',
-  './credits.html',
+  './manifest.json',
   './css/style.css',
   './css/admin.css',
   './css/mobile-app.css',
-  './js/config.js',
   './js/core.js',
-  './js/pwa.js',
+  './js/config.js',
   './js/banner.js',
+  './js/pwa.js',
   './icons/icon-192.svg',
   './icons/icon-512.svg',
+  './credits.html',
 ];
 
-// Supabase + external — never cache, always network
-const NETWORK_ONLY = [
-  'supabase.co',
-  'challenges.cloudflare.com',
-  'cdn.jsdelivr.net',
-  'fonts.googleapis.com',
-  'fonts.gstatic.com',
-];
-
+// Install: precache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_STATIC).then(cache => {
-      return Promise.allSettled(PRECACHE.map(url => cache.add(url).catch(() => {})));
-    }).then(() => self.skipWaiting())
+    caches.open(STATIC_CACHE)
+      .then(cache => cache.addAll(PRECACHE_URLS).catch(err => {
+        console.warn('[SW] Precache partial failure:', err);
+      }))
+      .then(() => self.skipWaiting())
   );
 });
 
+// Activate: clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then(keys => Promise.all(
-      keys.filter(k => !k.startsWith(CACHE_VERSION)).map(k => caches.delete(k))
+      keys
+        .filter(k => k !== STATIC_CACHE && k !== RUNTIME_CACHE)
+        .map(k => caches.delete(k))
     )).then(() => self.clients.claim())
   );
 });
 
+// Fetch strategy
 self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  const url = new URL(req.url);
+  const { request } = event;
+  const url = new URL(request.url);
 
-  // Only handle GET requests
-  if (req.method !== 'GET') return;
+  // Only handle GET
+  if (request.method !== 'GET') return;
 
-  // Skip cross-origin non-asset requests
-  for (const domain of NETWORK_ONLY) {
-    if (url.hostname.includes(domain)) {
-      return; // Network only — let browser handle
-    }
+  // Skip Supabase, Google Fonts, CDN — go straight to network
+  if (url.hostname.includes('supabase.co') ||
+      url.hostname.includes('googleapis.com') ||
+      url.hostname.includes('gstatic.com') ||
+      url.hostname.includes('cdnjs.cloudflare.com') ||
+      url.hostname.includes('jsdelivr.net')) {
+    return;
   }
 
-  // Skip other-origin requests entirely
+  // Skip cross-origin
   if (url.origin !== location.origin) return;
 
-  // HTML navigation — network first, cache fallback
-  if (req.mode === 'navigate' || req.destination === 'document') {
+  // HTML: network-first, fall back to cache
+  if (request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
-      fetch(req).then(res => {
-        const clone = res.clone();
-        caches.open(CACHE_PAGES).then(cache => cache.put(req, clone)).catch(() => {});
-        return res;
-      }).catch(() => {
-        return caches.match(req).then(cached => {
-          if (cached) return cached;
-          return caches.match('./index.html');
-        });
-      })
-    );
-    return;
-  }
-
-  // Static assets (CSS, JS, images, fonts) — cache first, update in background
-  if (['style', 'script', 'image', 'font'].includes(req.destination)) {
-    event.respondWith(
-      caches.match(req).then(cached => {
-        const networkFetch = fetch(req).then(res => {
+      fetch(request)
+        .then(res => {
           if (res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE_STATIC).then(cache => cache.put(req, clone)).catch(() => {});
+            const copy = res.clone();
+            caches.open(RUNTIME_CACHE).then(c => c.put(request, copy));
           }
           return res;
-        }).catch(() => cached);
-        return cached || networkFetch;
-      })
+        })
+        .catch(() => caches.match(request).then(cached => cached || caches.match('./login.html')))
     );
     return;
   }
 
-  // Everything else — network first
+  // Static assets: cache-first
   event.respondWith(
-    fetch(req).catch(() => caches.match(req))
+    caches.match(request).then(cached => {
+      if (cached) return cached;
+      return fetch(request).then(res => {
+        if (res.ok && res.type === 'basic') {
+          const copy = res.clone();
+          caches.open(RUNTIME_CACHE).then(c => c.put(request, copy));
+        }
+        return res;
+      });
+    })
   );
 });
 
-// Allow page to trigger skip waiting
+// Listen for skip-waiting message
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+  if (event.data === 'SKIP_WAITING') self.skipWaiting();
 });
