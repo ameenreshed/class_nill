@@ -3,6 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="LPU Scheduler">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Sign in · LPU Scheduler</title>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+
+<!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -10,12 +21,24 @@
 <meta name="apple-mobile-web-app-title" content="LPU Scheduler">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#EA580C">
-<title>Sign in · LPU Scheduler</title>
-<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/mobile-app.css">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<style>
+  .auth-help{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);font-size:13px;color:var(--text-secondary);line-height:1.6;text-align:center}
+  .auth-help a{color:var(--brand);font-weight:500;text-decoration:none}
+  .auth-help a:hover{text-decoration:underline}
+  .credits-link{margin-top:18px;padding-top:16px;border-top:1px solid var(--border);text-align:center;font-size:12px;color:var(--text-muted)}
+  .credits-link a{color:var(--text-secondary);text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:color 160ms ease}
+  .credits-link a:hover{color:var(--brand);text-decoration:underline}
+  .credits-link i{font-size:10px;color:var(--brand)}
+  .banner-warn{background:var(--warning-soft);border:1px solid var(--warning-soft-border);color:var(--warning-text);padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none;line-height:1.5}
+  .banner-warn.show{display:flex;gap:8px;align-items:flex-start}
+  .banner-warn i{flex-shrink:0;margin-top:1px}
+</style>
 </head>
 <body>
 
@@ -23,197 +46,268 @@
   <aside class="auth-brand-panel">
     <div class="auth-brand-content">
       <div class="auth-brand-mark"><i class="fas fa-calendar-check"></i></div>
-      <h1 class="auth-brand-title">LPU<span>.Scheduler</span></h1>
-      <p class="auth-brand-tagline">Live classroom availability. Smarter scheduling. Zero guesswork.</p>
+      <h1 class="auth-brand-title">LPU<span>.</span>Scheduler</h1>
+      <p class="auth-brand-tagline">Centralized classroom scheduling for faculty and administration.</p>
       <ul class="auth-features">
-        <li><i class="fas fa-bolt"></i> Real-time free-room grid across every building</li>
-        <li><i class="fas fa-shield-halved"></i> Role-based access for faculty &amp; students</li>
-        <li><i class="fas fa-file-pen"></i> Assignment collection with drag-and-drop uploads</li>
-        <li><i class="fas fa-mobile-screen"></i> Installable PWA — works offline</li>
+        <li><i class="fas fa-check"></i> Live room availability — every booking visible</li>
+        <li><i class="fas fa-check"></i> Faculty: makeup, events, leave in one place</li>
+        <li><i class="fas fa-check"></i> Admins: full control, zero guesswork</li>
       </ul>
     </div>
-    <div class="auth-brand-footer">
-      Built by students, for LPU — <a href="credits.html" style="color:rgba(255,255,255,.9);text-decoration:underline">Credits</a>
-    </div>
+    <div class="auth-brand-footer">Lovely Professional University · Scheduler</div>
   </aside>
 
   <main class="auth-form-panel">
     <div class="auth-form-wrap">
       <div class="auth-mobile-brand">
         <div class="auth-mobile-brand-icon"><i class="fas fa-calendar-check"></i></div>
-        <span>LPU<span style="color:var(--brand)">.</span>Scheduler</span>
+        <div>LPU<span style="color:var(--brand)">.</span>Scheduler</div>
       </div>
 
       <div class="auth-form-header">
-        <h2 class="auth-form-title">Welcome back</h2>
-        <p class="auth-form-sub">Sign in to continue to your dashboard.</p>
+        <h2 class="auth-form-title">Sign in</h2>
+        <p class="auth-form-sub">Enter your registration number and password to continue.</p>
       </div>
 
-      <form id="loginForm" autocomplete="on" novalidate>
+      <div class="banner-warn" id="verifyWarn">
+        <i class="fas fa-triangle-exclamation"></i>
+        <div id="verifyWarnText">Verification failed to load. Please check your connection and refresh.</div>
+      </div>
+
+      <form id="loginForm" novalidate>
         <label class="field">
-          <span>Email address</span>
-          <input class="input" type="email" id="email" name="email" autocomplete="email"
-                 placeholder="you@lpu.co.in" required autofocus>
+          <span>Registration number</span>
+          <input class="input" type="text" id="regno" inputmode="numeric" pattern="[0-9]*"
+                 placeholder="Enter registration number" autocomplete="username"
+                 required maxlength="20" autofocus>
         </label>
 
-        <label class="field">
+        <label class="field" style="margin-bottom:8px">
           <span>Password</span>
           <div class="pwd-wrap">
-            <input class="input" type="password" id="password" name="password"
-                   autocomplete="current-password" placeholder="Enter your password" required>
+            <input class="input" type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
             <button type="button" class="pwd-toggle" id="pwdToggle" aria-label="Show password">
               <i class="fas fa-eye"></i>
             </button>
           </div>
         </label>
 
-        <div id="errorBox" class="login-error" role="alert"></div>
+        <div style="text-align:right; margin-bottom:16px; font-size:13px">
+          <a href="https://ums.lpu.in/lpuums/forgetpassword.aspx" style="color:var(--brand);font-weight:500;text-decoration:none">
+            Forgot password?
+          </a>
+        </div>
 
-        <button type="submit" class="btn btn-primary btn-block" id="submitBtn" style="margin-top:8px;min-height:44px">
-          <i class="fas fa-right-to-bracket"></i> Sign in
+        <div id="turnstile-container" style="margin-bottom:16px; min-height:65px;"></div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="loginBtn" style="min-height:44px" disabled>
+          <i class="fas fa-shield-halved"></i> Loading verification…
         </button>
       </form>
 
-      <p class="auth-help">
-        Don't have an account? Contact your department admin.<br>
-        <a href="free-rooms.html">Browse free rooms without signing in</a>
-      </p>
+      <div id="errorMsg" class="login-error"></div>
+
+      <div class="auth-help">
+        <div style="font-weight:600;color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">
+          Need help signing in?
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:4px">
+          <i class="fas fa-circle-info" style="font-size:11px;opacity:0.7"></i>
+          <span>Contact your administrator or visit</span>
+          <a href="https://ums.lpu.in/lpuums/" target="_blank" rel="noopener noreferrer">
+            UMS Portal
+          </a>
+        </div>
+      </div>
+
+      <div class="credits-link">
+        <a href="credits.html"><i class="fas fa-heart"></i> Credits</a>
+      </div>
     </div>
   </main>
 </div>
 
 <script type="module">
-import { supabase, waitForSession, escapeHtml } from './js/core.js';
-
+import { supabase, initTheme, waitForSession } from './js/core.js';
+const EMAIL_DOMAIN = 'lpu.in';
+const TURNSTILE_SITE_KEY = '0x4AAAAAAFk78nRRRuS58LzL';
+initTheme();
 const $ = id => document.getElementById(id);
-const form = $('loginForm');
-const errorBox = $('errorBox');
-const submitBtn = $('submitBtn');
-const emailInput = $('email');
-const passwordInput = $('password');
-const pwdToggle = $('pwdToggle');
 
-// Query-string error
+let turnstileToken = null, turnstileWidgetId = null, turnstileReady = false, turnstileFailed = false;
+
+function setLoginButton(state) {
+  const btn = $('loginBtn');
+  if (state === 'ready') {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign in';
+  } else if (state === 'waiting') {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-shield-halved"></i> Verify to continue';
+  } else if (state === 'loading') {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading verification…';
+  } else if (state === 'signingin') {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
+  }
+}
+
+function showError(html) {
+  const el = $('errorMsg');
+  el.innerHTML = `<i class="fas fa-circle-exclamation"></i><div>${html}</div>`;
+  el.classList.add('show');
+}
+function clearError() { $('errorMsg').classList.remove('show'); }
+
 const params = new URLSearchParams(location.search);
 if (params.get('err') === 'suspended') {
   showError('Your account has been suspended. Contact an administrator.');
-} else if (params.get('err') === 'expired') {
-  showError('Your session expired. Please sign in again.');
+  history.replaceState({}, '', 'login.html');
 }
 
-// Password visibility toggle
-pwdToggle.onclick = () => {
-  const isPwd = passwordInput.type === 'password';
-  passwordInput.type = isPwd ? 'text' : 'password';
-  pwdToggle.innerHTML = isPwd ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
-  pwdToggle.setAttribute('aria-label', isPwd ? 'Hide password' : 'Show password');
-};
+(async () => {
+  const session = await waitForSession(1000);
+  if (!session) return;
+  const { data: profile } = await supabase.from('profiles').select('role, is_active, password_changed_at').eq('id', session.user.id).single();
+  if (!profile || profile.is_active === false) { await supabase.auth.signOut(); return; }
+  if (profile.password_changed_at === null) return location.replace('./profile.html?first=1');
+  if (profile.role === 'admin') return location.replace('./admin.html');
+  if (profile.role === 'faculty') return location.replace('./faculty.html');
+  await supabase.auth.signOut();
+})();
 
-// Theme toggle (top right)
-const themeBtn = document.createElement('button');
-themeBtn.className = 'nav-icon-btn';
-themeBtn.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10;width:40px;height:40px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-sm)';
-themeBtn.setAttribute('data-theme-toggle', '');
-themeBtn.setAttribute('aria-label', 'Toggle theme');
-document.body.appendChild(themeBtn);
-const applyThemeIcon = () => {
-  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-  themeBtn.innerHTML = dark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
-};
-applyThemeIcon();
-themeBtn.onclick = () => {
-  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const next = dark ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  try { localStorage.setItem('theme', next); } catch {}
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', next === 'dark' ? '#0B1220' : '#EA580C');
-  applyThemeIcon();
-};
+let pollAttempts = 0;
+const MAX_POLL_ATTEMPTS = 50;
 
-function showError(msg) {
-  errorBox.innerHTML = `<i class="fas fa-circle-exclamation"></i>${escapeHtml(msg)}`;
-  errorBox.classList.add('show');
-  errorBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-function hideError() {
-  errorBox.classList.remove('show');
-  errorBox.innerHTML = '';
-}
-
-function setLoading(loading) {
-  submitBtn.disabled = loading;
-  submitBtn.innerHTML = loading
-    ? '<i class="fas fa-spinner fa-spin"></i> Signing in…'
-    : '<i class="fas fa-right-to-bracket"></i> Sign in';
-}
-
-async function redirectByRole(userId) {
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('role, is_active')
-    .eq('id', userId)
-    .single();
-
-  if (error || !profile) {
-    await supabase.auth.signOut();
-    return showError('Your account profile is missing. Contact an administrator.');
+function initTurnstile() {
+  pollAttempts++;
+  if (!window.turnstile) {
+    if (pollAttempts >= MAX_POLL_ATTEMPTS) {
+      turnstileFailed = true;
+      $('verifyWarnText').innerHTML = 'Verification failed to load. Please check: (1) your internet connection, (2) your browser is not blocking <code>challenges.cloudflare.com</code>, (3) no ad-blocker is interfering. Then refresh the page.';
+      $('verifyWarn').classList.add('show');
+      setLoginButton('waiting');
+      return;
+    }
+    setTimeout(initTurnstile, 200);
+    return;
   }
+  const container = document.getElementById('turnstile-container');
+  if (!container || turnstileReady) return;
+  turnstileReady = true;
+  try {
+    turnstileWidgetId = window.turnstile.render(container, {
+      sitekey: TURNSTILE_SITE_KEY,
+      theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
+      size: 'normal',
+      callback: (token) => { turnstileToken = token; setLoginButton('ready'); clearError(); },
+      'expired-callback': () => { turnstileToken = null; setLoginButton('waiting'); },
+      'error-callback': (code) => {
+        turnstileToken = null; turnstileFailed = true; setLoginButton('waiting');
+        $('verifyWarnText').innerHTML = `Verification error (code ${code}). Please refresh and try again.`;
+        $('verifyWarn').classList.add('show');
+      },
+    });
+    setLoginButton('waiting');
+  } catch {
+    turnstileFailed = true; setLoginButton('waiting');
+    $('verifyWarnText').innerHTML = 'Verification could not start. Please refresh the page.';
+    $('verifyWarn').classList.add('show');
+  }
+}
+if (document.readyState === 'complete' || document.readyState === 'interactive') initTurnstile();
+else window.addEventListener('DOMContentLoaded', initTurnstile);
+
+$('pwdToggle').onclick = () => {
+  const pwd = $('password');
+  const isPwd = pwd.type === 'password';
+  pwd.type = isPwd ? 'text' : 'password';
+  $('pwdToggle').innerHTML = isPwd ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+};
+
+const regnoEl = $('regno');
+regnoEl.addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 20); });
+regnoEl.addEventListener('keypress', e => { if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault(); });
+regnoEl.addEventListener('paste', e => {
+  e.preventDefault();
+  const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+  regnoEl.value = text.replace(/\D/g, '').slice(0, 20);
+});
+
+$('loginForm').onsubmit = async (e) => {
+  e.preventDefault();
+  clearError();
+  if (!turnstileToken) { showError('Please complete the verification checkbox first.'); return; }
+  const regno = regnoEl.value.trim();
+  const password = $('password').value;
+  if (!/^\d{3,20}$/.test(regno)) { showError('Enter a valid registration number (3–20 digits).'); regnoEl.focus(); return; }
+  if (!password) { showError('Enter your password.'); $('password').focus(); return; }
+
+  setLoginButton('signingin');
+  const email = `${regno}@${EMAIL_DOMAIN}`;
+
+  let result;
+  try {
+    result = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken: turnstileToken } });
+  } catch (err) {
+    setLoginButton('waiting');
+    showError('Network error: ' + (err.message || err));
+    return;
+  }
+
+  if (result.error) {
+    const m = (result.error.message || '').toLowerCase();
+    let friendly = result.error.message;
+    if (m.includes('invalid login credentials')) friendly = 'Incorrect registration number or password.';
+    else if (m.includes('email not confirmed')) friendly = 'This account has not been confirmed. Contact your administrator.';
+    else if (m.includes('captcha')) {
+      friendly = 'Verification failed or token expired. Please tick the checkbox again.';
+      if (window.turnstile && turnstileWidgetId !== null) try { window.turnstile.reset(turnstileWidgetId); } catch {}
+      turnstileToken = null;
+    }
+    showError(friendly);
+    setLoginButton(turnstileToken ? 'ready' : 'waiting');
+    return;
+  }
+
+  if (!result.data?.session) {
+    showError('Sign-in failed. Please try again.');
+    setLoginButton(turnstileToken ? 'ready' : 'waiting');
+    return;
+  }
+
+  const { data: profile, error: profErr } = await supabase
+    .from('profiles').select('role, is_active, password_changed_at').eq('id', result.data.session.user.id).single();
+
+  if (profErr || !profile) {
+    await supabase.auth.signOut();
+    showError('Your profile is missing. Contact your administrator.');
+    setLoginButton(turnstileToken ? 'ready' : 'waiting');
+    return;
+  }
+
   if (profile.is_active === false) {
     await supabase.auth.signOut();
-    return showError('Your account has been suspended. Contact an administrator.');
+    showError('Your account has been suspended. Contact an administrator.');
+    setLoginButton(turnstileToken ? 'ready' : 'waiting');
+    return;
   }
-  const dest = profile.role === 'admin' ? 'admin.html'
-             : profile.role === 'student' ? 'student.html'
-             : 'faculty.html';
-  location.replace(dest);
-}
 
-form.onsubmit = async (e) => {
-  e.preventDefault();
-  hideError();
-
-  const email = emailInput.value.trim().toLowerCase();
-  const password = passwordInput.value;
-
-  if (!email || !password) return showError('Enter both email and password.');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showError('Enter a valid email address.');
-
-  setLoading(true);
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      const msg = error.message === 'Invalid login credentials'
-        ? 'Incorrect email or password.'
-        : error.message === 'Email not confirmed'
-        ? 'Your email is not confirmed. Contact an administrator.'
-        : error.message;
-      showError(msg);
-      setLoading(false);
-      return;
-    }
-    if (!data?.user) {
-      showError('Sign-in failed — no user returned.');
-      setLoading(false);
-      return;
-    }
-    await redirectByRole(data.user.id);
-  } catch (err) {
-    console.error(err);
-    showError('Network error — check your connection and try again.');
-    setLoading(false);
+  if (profile.password_changed_at === null) {
+    return location.replace('./profile.html?first=1');
   }
+
+  if (profile.role === 'admin') return location.replace('./admin.html');
+  if (profile.role === 'faculty') return location.replace('./faculty.html');
+
+  await supabase.auth.signOut();
+  showError('Your account role is not supported. Contact your administrator.');
+  setLoginButton(turnstileToken ? 'ready' : 'waiting');
 };
-
-// Auto-redirect if already signed in
-(async () => {
-  const session = await waitForSession(1200);
-  if (session?.user) {
-    try { await redirectByRole(session.user.id); } catch {}
-  }
-})();
 </script>
-<script type="module" src="js/pwa.js"></script>
+
+<!-- Centralized site banner -->
+<script type="module" src="js/banner.js"></script>
 </body>
 </html>
