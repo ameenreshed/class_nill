@@ -99,7 +99,7 @@
 </head>
 <body>
 
-<a href="/auth/login.html" class="back-fab"><i class="fas fa-arrow-left"></i> Back</a>
+<a href="/" class="back-fab" id="backBtn"><i class="fas fa-arrow-left"></i> Back</a>
 
 <section class="hero">
   <div class="hero-inner">
@@ -164,6 +164,23 @@
 </footer>
 
 <!-- PWA — this page doesn't import core.js, so load pwa.js directly -->
+<script>
+// Back button: return to where the visitor came from (login or landing page)
+(function(){
+  var btn=document.getElementById('backBtn'); if(!btn) return;
+  var from=new URLSearchParams(location.search).get('from');
+  var target='/';
+  if(from==='login') target='/auth/login.html';
+  else if(from==='home') target='/';
+  else if(document.referrer){
+    try{
+      var r=new URL(document.referrer);
+      if(r.origin===location.origin && r.pathname.indexOf('/auth/login')===0) target='/auth/login.html';
+    }catch(e){}
+  }
+  btn.setAttribute('href',target);
+})();
+</script>
 <script type="module" src="/assets/js/pwa.js"></script>
 </body>
 </html>
