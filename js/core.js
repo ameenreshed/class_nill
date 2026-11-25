@@ -254,14 +254,8 @@ export async function renderNav(profile) {
   initTheme();
 
   const initial = ((profile.full_name || profile.email || '?').trim()[0] || '?').toUpperCase();
-
-  // ▼ student-aware role icon + home page
-  const roleIcon = profile.role === 'admin'   ? 'shield-halved'
-                 : profile.role === 'student' ? 'user-graduate'
-                 :                              'chalkboard-user';
-  const home     = profile.role === 'admin'   ? 'admin.html'
-                 : profile.role === 'student' ? 'student.html'
-                 :                              'faculty.html';
+  const roleIcon = profile.role === 'admin' ? 'shield-halved' : 'chalkboard-user';
+  const home = profile.role === 'admin' ? 'admin.html' : 'faculty.html';
   const currentPage = location.pathname.split('/').pop() || home;
   const isDark = getCurrentTheme() === 'dark';
 
@@ -274,10 +268,6 @@ export async function renderNav(profile) {
     { href:'admin-import.html',       label:'Import',      icon:'fa-file-import',    active: currentPage === 'admin-import.html' },
     { href:'free-rooms.html',         label:'Free rooms',  icon:'fa-building',       active: currentPage === 'free-rooms.html' },
     { href:'admin-settings.html',     label:'Settings',    icon:'fa-gear',           active: currentPage === 'admin-settings.html' },
-  ] : profile.role === 'student' ? [
-    { href:'student.html',            label:'Dashboard',   icon:'fa-gauge-high',     active: currentPage === 'student.html' },
-    { href:'free-rooms.html',         label:'Free rooms',  icon:'fa-building',       active: currentPage === 'free-rooms.html' },
-    { href:'profile.html',            label:'Profile',     icon:'fa-user',           active: currentPage === 'profile.html' },
   ] : [
     { href:'faculty.html',             label:'Dashboard',   icon:'fa-gauge-high', active: currentPage === 'faculty.html' },
     { href:'faculty-assignments.html', label:'Assignments', icon:'fa-file-pen',   active: currentPage === 'faculty-assignments.html' },
@@ -291,10 +281,6 @@ export async function renderNav(profile) {
     { href:'admin-bookings.html',    label:'Bookings',  icon:'fa-calendar-check', active: currentPage === 'admin-bookings.html' },
     { href:'admin-assignments.html', label:'Assign',    icon:'fa-file-pen',       active: currentPage === 'admin-assignments.html' },
     { more: true,                    label:'More',      icon:'fa-ellipsis' },
-  ] : profile.role === 'student' ? [
-    { href:'student.html',            label:'Home',        icon:'fa-house',       active: currentPage === 'student.html' },
-    { href:'free-rooms.html',         label:'Rooms',       icon:'fa-building',    active: currentPage === 'free-rooms.html' },
-    { href:'profile.html',            label:'Profile',     icon:'fa-circle-user', active: currentPage === 'profile.html' },
   ] : [
     { href:'faculty.html',             label:'Home',        icon:'fa-house',       active: currentPage === 'faculty.html' },
     { href:'faculty-assignments.html', label:'Assignments', icon:'fa-file-pen',    active: currentPage === 'faculty-assignments.html' },
@@ -303,8 +289,6 @@ export async function renderNav(profile) {
   ];
 
   const moreItems = profile.role === 'admin' ? [
-    { href:'admin-student-accounts.html', label:'Student accounts',  icon:'fa-user-graduate' },
-    { href:'admin-students.html',         label:'Student directory', icon:'fa-users-rectangle' },
     { href:'admin-import.html',      label:'Import CSV',        icon:'fa-file-import' },
     { href:'admin-faculty.html',     label:'Users',             icon:'fa-users' },
     { href:'free-rooms.html',        label:'Free rooms',        icon:'fa-building' },

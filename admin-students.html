@@ -147,20 +147,6 @@
 <div id="nav"></div>
 <div class="container">
 
-  <div class="admin-tabs">
-    <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
-    <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
-    <a href="admin-import.html" class="admin-tab"><i class="fas fa-file-import"></i> Import</a>
-    <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a>
-    <a href="admin-assignments.html" class="admin-tab"><i class="fas fa-file-pen"></i> Assignments</a>
-    <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
-    <a href="admin-students.html" class="admin-tab active"><i class="fas fa-users-rectangle"></i> Directory</a>
-    <a href="admin-student-accounts.html" class="admin-tab"><i class="fas fa-user-graduate"></i> Students</a>
-    <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
-    <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
-    <a href="admin-settings.html" class="admin-tab"><i class="fas fa-gear"></i> Settings</a>
-  </div>
-
   <!-- ═══════════════ HERO ═══════════════ -->
   <div class="stu-hero">
     <div class="stu-hero-left">
@@ -301,7 +287,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
   const $ = id => document.getElementById(id);
   const PAGE_SIZE = 100;
 
-  let parsed = null;
+  let parsed = null;          // { headers, rows, mapping, fileName }
   let currentPage = 0;
   let totalStudents = 0;
   let currentFilters = { search: '', batch: '' };
@@ -310,17 +296,21 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
      LOAD STATS + LIST
      ═══════════════════════════════════════════════════════════ */
   async function loadStats() {
+    // Total
     const { count: total } = await supabase.from('students').select('*', { count: 'exact', head: true });
     $('statTotal').textContent = (total ?? 0).toLocaleString();
 
+    // Batches
     const { data: batches } = await supabase.rpc('get_student_batches');
     $('statBatches').textContent = (batches?.length ?? 0).toLocaleString();
 
+    // Batch filter
     const sel = $('batchFilter');
     const current = sel.value;
     sel.innerHTML = '<option value="">All batches</option>' +
       (batches ?? []).map(b => `<option value="${escapeHtml(b.batch)}" ${current === b.batch ? 'selected' : ''}>${escapeHtml(b.batch)} (${b.cnt})</option>`).join('');
 
+    // Latest import
     const { data: latest } = await supabase.from('students')
       .select('created_at').order('created_at', { ascending: false }).limit(1);
     $('statLatest').textContent = latest?.[0]?.created_at ? formatRelativeTime(latest[0].created_at) : '—';
@@ -391,6 +381,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
       };
     });
 
+    // Pagination
     const totalPages = Math.ceil(total / PAGE_SIZE);
     if (totalPages > 1) {
       renderPagination(totalPages, total);
@@ -507,9 +498,11 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     const lower = headers.map(h => h.toLowerCase().trim());
 
     for (const [key, patterns] of Object.entries(COLUMN_PATTERNS)) {
+      // Exact match first
       for (let i = 0; i < lower.length; i++) {
         if (patterns.includes(lower[i])) { mapping[key] = i; break; }
       }
+      // Fuzzy match
       if (mapping[key] === null) {
         for (let i = 0; i < lower.length; i++) {
           if (patterns.some(p => lower[i].includes(p) || p.includes(lower[i]))) {
@@ -529,6 +522,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     $('previewSection').classList.add('show');
     $('progressSection').classList.remove('show');
 
+    // Column mapping
     const fields = [
       { key: 'id', label: 'Student ID', required: true },
       { key: 'name', label: 'Full Name', required: true },
@@ -558,6 +552,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
   function updateSamplePreview() {
     const { mapping, rows } = parsed;
 
+    // Missing columns?
     const missing = [];
     if (mapping.id === null) missing.push('Student ID');
     if (mapping.name === null) missing.push('Full Name');
@@ -594,6 +589,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
       </tbody>
     </table>`;
 
+    // Stats
     const valid = rows.filter(r => {
       return get(r, mapping.id) && get(r, mapping.name) && get(r, mapping.batch);
     });
@@ -605,6 +601,10 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
       const id = get(r, mapping.id);
       if (seen.has(id)) duplicates++;
       seen.add(id);
+    });
+    const finalRows = valid.filter((r, i) => {
+      // keep first occurrence only for preview count
+      return true;
     });
     const uniqueIds = new Set(valid.map(r => get(r, mapping.id)));
 
@@ -631,6 +631,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
     if (!parsed) return;
     const mode = document.querySelector('input[name="importMode"]:checked').value;
 
+    // Build clean rows
     const { mapping, rows } = parsed;
     const get = (row, idx) => String(row[idx] ?? '').trim();
 
@@ -655,12 +656,14 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
       if (!confirm(`This will DELETE all ${totalStudents} existing students and replace with ${cleaned.length} from this file.\n\nContinue?`)) return;
     }
 
+    // Show progress
     $('progressSection').classList.add('show');
     $('startImportBtn').disabled = true;
     $('cancelImportBtn').disabled = true;
     setProgress(0, `Preparing ${cleaned.length} rows…`);
 
     try {
+      // Replace mode: delete all first
       if (mode === 'replace') {
         setProgress(5, 'Clearing existing students…');
         const { error: delErr } = await supabase.from('students').delete().neq('id', '___never___');
@@ -668,6 +671,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
         setProgress(10, 'Existing students cleared');
       }
 
+      // Chunk and upsert
       const CHUNK = 500;
       const totalChunks = Math.ceil(cleaned.length / CHUNK);
       let imported = 0;
@@ -697,6 +701,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatRelativeTime
 
       toast(parts.join(' · '), errors.length ? 'info' : 'success');
 
+      // Reset
       setTimeout(async () => {
         parsed = null;
         $('previewSection').classList.remove('show');
