@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- PWA -->
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192.svg">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="LPU Scheduler">
@@ -14,9 +14,9 @@
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/admin.css">
-<link rel="stylesheet" href="css/mobile-app.css">
+<link rel="stylesheet" href="/assets/css/style.css">
+<link rel="stylesheet" href="/assets/css/admin.css">
+<link rel="stylesheet" href="/assets/css/mobile-app.css">
 <style>
   .import-zone{border:2px dashed var(--border-strong);border-radius:14px;padding:48px 24px;text-align:center;cursor:pointer;transition:all 180ms ease;background:var(--surface)}
   .import-zone:hover,.import-zone.drag{border-color:var(--brand);background:var(--brand-soft)}
@@ -101,14 +101,14 @@
   </div>
 
   <div class="admin-tabs">
-    <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
-    <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
-    <a href="admin-import.html" class="admin-tab active"><i class="fas fa-file-import"></i> Import</a>
-    <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a><a href="admin-assignments.html" class="admin-tab"><i class="fas fa-file-pen"></i> Assignments</a>
-    <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
-    <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
-    <a href="admin-calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
-    <a href="admin-settings.html" class="admin-tab"><i class="fas fa-gear"></i> Settings</a>
+    <a href="/admin/rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
+    <a href="/admin/timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
+    <a href="/admin/import.html" class="admin-tab active"><i class="fas fa-file-import"></i> Import</a>
+    <a href="/admin/bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a><a href="/admin/assignments.html" class="admin-tab"><i class="fas fa-file-pen"></i> Assignments</a>
+    <a href="/admin/faculty.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
+    <a href="/admin/slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
+    <a href="/admin/calendar.html" class="admin-tab"><i class="fas fa-calendar-days"></i> Calendar</a>
+    <a href="/admin/settings.html" class="admin-tab"><i class="fas fa-gear"></i> Settings</a>
   </div>
 
   <div id="step1">
@@ -210,15 +210,15 @@
       <div id="errorsContainer" style="margin-top:16px"></div>
       <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
         <button class="btn" id="againBtn"><i class="fas fa-rotate"></i> Import another file</button>
-        <a href="admin-timetable.html" class="btn btn-primary"><i class="fas fa-table"></i> View timetable</a>
-        <a href="free-rooms.html" class="btn"><i class="fas fa-building"></i> View free rooms</a>
+        <a href="/admin/timetable.html" class="btn btn-primary"><i class="fas fa-table"></i> View timetable</a>
+        <a href="/shared/free-rooms.html" class="btn"><i class="fas fa-building"></i> View free rooms</a>
       </div>
     </div>
   </div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.js';
+import { requireRole, renderNav, supabase, escapeHtml, toast } from '/assets/js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
@@ -826,6 +826,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast } from './js/core.j
 })();
 </script>
 <!-- Centralized site banner -->
-<script type="module" src="js/banner.js"></script>
+<script type="module" src="/assets/js/banner.js"></script>
 </body>
 </html>

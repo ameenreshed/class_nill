@@ -4,25 +4,26 @@
 // Never cache Supabase API calls
 // ============================================================
 
-const CACHE_VERSION = 'lpu-scheduler-v3';
+const CACHE_VERSION = 'lpu-scheduler-v4';
 const CACHE_STATIC = CACHE_VERSION + '-static';
 const CACHE_PAGES  = CACHE_VERSION + '-pages';
 
 // Files to pre-cache on install
 const PRECACHE = [
-  './',
-  './index.html',
-  './login.html',
-  './credits.html',
-  './css/style.css',
-  './css/admin.css',
-  './css/mobile-app.css',
-  './js/config.js',
-  './js/core.js',
-  './js/pwa.js',
-  './js/banner.js',
-  './icons/icon-192.svg',
-  './icons/icon-512.svg',
+  '/',
+  '/index.html',
+  '/auth/login.html',
+  '/auth/redirect.html',
+  '/shared/credits.html',
+  '/assets/css/style.css',
+  '/assets/css/admin.css',
+  '/assets/css/mobile-app.css',
+  '/assets/js/config.js',
+  '/assets/js/core.js',
+  '/assets/js/pwa.js',
+  '/assets/js/banner.js',
+  '/assets/icons/icon-192.svg',
+  '/assets/icons/icon-512.svg',
 ];
 
 // Supabase + external — never cache, always network
@@ -77,7 +78,7 @@ self.addEventListener('fetch', (event) => {
       }).catch(() => {
         return caches.match(req).then(cached => {
           if (cached) return cached;
-          return caches.match('./index.html');
+          return caches.match('/index.html');
         });
       })
     );

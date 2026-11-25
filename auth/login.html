@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- PWA -->
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192.svg">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="LPU Scheduler">
@@ -14,8 +14,8 @@
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 
 <!-- PWA -->
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192.svg">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="LPU Scheduler">
@@ -24,8 +24,8 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/mobile-app.css">
+<link rel="stylesheet" href="/assets/css/style.css">
+<link rel="stylesheet" href="/assets/css/mobile-app.css">
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
   .auth-help{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);font-size:13px;color:var(--text-secondary);line-height:1.6;text-align:center}
@@ -121,14 +121,14 @@
       </div>
 
       <div class="credits-link">
-        <a href="credits.html"><i class="fas fa-heart"></i> Credits</a>
+        <a href="/shared/credits.html"><i class="fas fa-heart"></i> Credits</a>
       </div>
     </div>
   </main>
 </div>
 
 <script type="module">
-import { supabase, initTheme, waitForSession } from './js/core.js';
+import { supabase, initTheme, waitForSession } from '/assets/js/core.js';
 const EMAIL_DOMAIN = 'lpu.in';
 const TURNSTILE_SITE_KEY = '0x4AAAAAAFk78nRRRuS58LzL';
 initTheme();
@@ -163,7 +163,7 @@ function clearError() { $('errorMsg').classList.remove('show'); }
 const params = new URLSearchParams(location.search);
 if (params.get('err') === 'suspended') {
   showError('Your account has been suspended. Contact an administrator.');
-  history.replaceState({}, '', 'login.html');
+  history.replaceState({}, '', '/auth/login.html');
 }
 
 (async () => {
@@ -171,9 +171,9 @@ if (params.get('err') === 'suspended') {
   if (!session) return;
   const { data: profile } = await supabase.from('profiles').select('role, is_active, password_changed_at').eq('id', session.user.id).single();
   if (!profile || profile.is_active === false) { await supabase.auth.signOut(); return; }
-  if (profile.password_changed_at === null) return location.replace('./profile.html?first=1');
-  if (profile.role === 'admin') return location.replace('./admin.html');
-  if (profile.role === 'faculty') return location.replace('./faculty.html');
+  if (profile.password_changed_at === null) return location.replace('/shared/profile.html?first=1');
+  if (profile.role === 'admin') return location.replace('/admin/');
+  if (profile.role === 'faculty') return location.replace('/faculty/');
   await supabase.auth.signOut();
 })();
 
@@ -295,11 +295,11 @@ $('loginForm').onsubmit = async (e) => {
   }
 
   if (profile.password_changed_at === null) {
-    return location.replace('./profile.html?first=1');
+    return location.replace('/shared/profile.html?first=1');
   }
 
-  if (profile.role === 'admin') return location.replace('./admin.html');
-  if (profile.role === 'faculty') return location.replace('./faculty.html');
+  if (profile.role === 'admin') return location.replace('/admin/');
+  if (profile.role === 'faculty') return location.replace('/faculty/');
 
   await supabase.auth.signOut();
   showError('Your account role is not supported. Contact your administrator.');
@@ -308,6 +308,6 @@ $('loginForm').onsubmit = async (e) => {
 </script>
 
 <!-- Centralized site banner -->
-<script type="module" src="js/banner.js"></script>
+<script type="module" src="/assets/js/banner.js"></script>
 </body>
 </html>

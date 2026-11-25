@@ -1,13 +1,13 @@
 // ============================================================
 // LPU Scheduler — lightweight PWA bootstrap
-// Used by index.html, login.html, credits.html (which don't
+// Used by index.html, /auth/login.html, /shared/credits.html (which don't
 // import the full core.js navigation stack)
 // ============================================================
 
 // Service worker registration
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').then(reg => {
+    navigator.serviceWorker.register('/sw.js').then(reg => {
       setInterval(() => { reg.update().catch(() => {}); }, 60 * 60 * 1000);
     }).catch(err => {
       console.warn('[PWA] SW registration failed:', err);

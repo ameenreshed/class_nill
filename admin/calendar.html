@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- PWA -->
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192.svg">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="LPU Scheduler">
@@ -14,9 +14,9 @@
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/admin.css">
-<link rel="stylesheet" href="css/mobile-app.css">
+<link rel="stylesheet" href="/assets/css/style.css">
+<link rel="stylesheet" href="/assets/css/admin.css">
+<link rel="stylesheet" href="/assets/css/mobile-app.css">
 </head>
 <body>
 <div id="nav"></div>
@@ -29,19 +29,19 @@
     <button class="btn btn-primary" id="addBtn"><i class="fas fa-plus"></i> Add entry</button>
   </div>
   <div class="admin-tabs">
-    <a href="admin-rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
-    <a href="admin-timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
-    <a href="admin-import.html" class="admin-tab"><i class="fas fa-file-import"></i> Import</a>
-    <a href="admin-bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a><a href="admin-assignments.html" class="admin-tab"><i class="fas fa-file-pen"></i> Assignments</a>
-    <a href="admin-faculty.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
-    <a href="admin-slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
-    <a href="admin-calendar.html" class="admin-tab active"><i class="fas fa-calendar-days"></i> Calendar</a>
-    <a href="admin-settings.html" class="admin-tab"><i class="fas fa-gear"></i> Settings</a>
+    <a href="/admin/rooms.html" class="admin-tab"><i class="fas fa-door-open"></i> Rooms</a>
+    <a href="/admin/timetable.html" class="admin-tab"><i class="fas fa-table"></i> Timetable</a>
+    <a href="/admin/import.html" class="admin-tab"><i class="fas fa-file-import"></i> Import</a>
+    <a href="/admin/bookings.html" class="admin-tab"><i class="fas fa-calendar-check"></i> Bookings</a><a href="/admin/assignments.html" class="admin-tab"><i class="fas fa-file-pen"></i> Assignments</a>
+    <a href="/admin/faculty.html" class="admin-tab"><i class="fas fa-users"></i> Users</a>
+    <a href="/admin/slots.html" class="admin-tab"><i class="fas fa-clock"></i> Time slots</a>
+    <a href="/admin/calendar.html" class="admin-tab active"><i class="fas fa-calendar-days"></i> Calendar</a>
+    <a href="/admin/settings.html" class="admin-tab"><i class="fas fa-gear"></i> Settings</a>
   </div>
   <div class="table-wrap"><table><thead><tr><th>Date</th><th>Kind</th><th>Label</th><th style="text-align:right">Actions</th></tr></thead><tbody id="body"></tbody></table></div>
 </div>
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from './js/core.js';
+import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '/assets/js/core.js';
 (async () => {
   const auth = await requireRole(['admin']); if (!auth) return;
   renderNav(auth.profile);
@@ -84,6 +84,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, todayISO } from '.
 })();
 </script>
 <!-- Centralized site banner -->
-<script type="module" src="js/banner.js"></script>
+<script type="module" src="/assets/js/banner.js"></script>
 </body>
 </html>

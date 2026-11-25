@@ -1,31 +1,56 @@
 # LPU Scheduler
 
 Centralized classroom scheduling for Lovely Professional University.
-Admin + faculty roles only. Live free-rooms grid. Makeup-from-leave. CSV import.
+Admin + faculty roles. Live free-rooms grid, makeup-from-leave, CSV import, assignment collection.
 
-## Prerequisites
+## Folder structure
 
-- A Supabase project (free tier works)
-- Node.js (only if running locally with a dev server)
-- A Cloudflare account (for Turnstile bot protection)
+```
+/
+├── index.html            Public landing page (what the app is, Sign in button)
+├── manifest.json         PWA manifest
+├── sw.js                 Service worker (must stay at root)
+├── vercel.json           Security headers + redirects from the old flat URLs
+│
+├── auth/
+│   ├── login.html        Sign in (Turnstile + Supabase auth)
+│   └── redirect.html     Role router: checks session/profile, sends to /admin/, /faculty/ or login
+│
+├── admin/                Admin only
+│   ├── index.html        Dashboard
+│   └── assignments, bookings, calendar, faculty, import, rooms, settings, slots, students, timetable .html
+│
+├── faculty/              Faculty only
+│   ├── index.html        Dashboard
+│   └── assignments.html
+│
+├── shared/               Any signed-in user (+ public credits)
+│   ├── free-rooms.html
+│   ├── profile.html
+│   └── credits.html
+│
+├── submit/index.html     Public student upload page (opened via share link ?token=...)
+│
+├── assets/
+│   ├── css/              style.css, admin.css, mobile-app.css
+│   ├── js/               config.js (Supabase keys), core.js, banner.js, pwa.js
+│   └── icons/
+│
+└── supabase/             schema.sql, assignments.sql, admin-assignment.sql
+```
 
-## Setup — 5 minutes
+## User flow
 
-### 1. Supabase
+`/` landing → **Sign in** → `/auth/login.html` → `/auth/redirect.html` logic →
+first login: `/shared/profile.html?first=1` (set password) → `/admin/` or `/faculty/`.
 
-1. Create project at https://supabase.com
-2. **SQL Editor** → paste `supabase/PRODUCTION-CLEAN.sql` → edit admin credentials (line ~380) → Run
-3. **Authentication → Providers → Email** → enabled (default ON)
-4. **Authentication → URL Configuration**:
-   - Site URL: `https://your-domain.com`
-   - Redirect URLs: `https://your-domain.com/reset-password.html`
-5. **Project Settings → API** → copy `Project URL` and `anon public` key
+All internal links are root-absolute (`/admin/rooms.html`), so serve the folder from the web root
+(Vercel, or locally `npx serve .` / `python3 -m http.server`). Opening files via `file://` will not work.
 
-### 2. Cloudflare Turnstile
+## Setup
 
-1. Visit https://dash.cloudflare.com → Turnstile → Add site
-2. Domain: `your-domain.com`
-3. Widget mode: **Managed**
-4. Copy **Site Key** → replace in `login.html`:
-   ```js
-   const TURNSTILE_SITE_KEY = '0x4AAAAAAA...';
+1. **Supabase**: create a project, run `supabase/schema.sql`, then `assignments.sql` and `admin-assignment.sql`.
+   Authentication → Email provider enabled. Set Site URL / Redirect URLs to your domain.
+2. **Config**: put your Project URL and anon key in `assets/js/config.js`.
+3. **Cloudflare Turnstile**: add your site key as `TURNSTILE_SITE_KEY` in `auth/login.html`.
+4. **Deploy** to Vercel with this folder as the project root.

@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- PWA -->
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192.svg">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="LPU Scheduler">
@@ -14,8 +14,8 @@
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/mobile-app.css">
+<link rel="stylesheet" href="/assets/css/style.css">
+<link rel="stylesheet" href="/assets/css/mobile-app.css">
 <style>
 .dash-stats{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:24px}
 .dash-stat{padding:18px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:all 160ms ease;text-decoration:none;color:inherit;display:block}
@@ -67,7 +67,7 @@
       <h1 class="page-title"><i class="fas fa-gauge-high"></i> Dashboard</h1>
       <p class="page-subtitle">Welcome back, <strong id="welcomeName" style="color:var(--text)">…</strong> · <span id="liveTime" class="mono">--:--:--</span></p>
     </div>
-    <a href="admin-settings.html" class="btn btn-primary"><i class="fas fa-gear"></i> Settings</a>
+    <a href="/admin/settings.html" class="btn btn-primary"><i class="fas fa-gear"></i> Settings</a>
   </div>
 
   <div class="live-banner">
@@ -88,12 +88,12 @@
     <div class="card">
       <div class="card-title"><i class="fas fa-hourglass-half" style="color:var(--warning)"></i> Pending bookings <span class="badge badge-pending" id="pendingCount" style="margin-left:auto">0</span></div>
       <div id="pendingPreview"></div>
-      <a href="admin-bookings.html" class="btn btn-block" style="margin-top:12px"><i class="fas fa-arrow-right"></i> Review bookings</a>
+      <a href="/admin/bookings.html" class="btn btn-block" style="margin-top:12px"><i class="fas fa-arrow-right"></i> Review bookings</a>
     </div>
     <div class="card">
       <div class="card-title"><i class="fas fa-plane-departure" style="color:var(--info)"></i> Faculty on leave today <span class="badge badge-gray" id="leaveCount" style="margin-left:auto">0</span></div>
       <div id="leavePreview"></div>
-      <a href="admin-faculty.html" class="btn btn-block" style="margin-top:12px"><i class="fas fa-arrow-right"></i> View faculty</a>
+      <a href="/admin/faculty.html" class="btn btn-block" style="margin-top:12px"><i class="fas fa-arrow-right"></i> View faculty</a>
     </div>
   </div>
 
@@ -101,21 +101,21 @@
     <h2 style="font-size:15px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px"><i class="fas fa-bolt" style="color:var(--brand);font-size:14px"></i> Manage everything</h2>
   </div>
   <div class="quick-grid">
-    <a href="admin-rooms.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-door-open"></i></div><div><div class="quick-link-title">Rooms & Buildings</div><div class="quick-link-sub">Blocks, floors, rooms</div></div></a>
-    <a href="admin-timetable.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-table"></i></div><div><div class="quick-link-title">Timetable</div><div class="quick-link-sub">Assign classes to faculty</div></div></a>
-    <a href="admin-import.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-file-import"></i></div><div><div class="quick-link-title">Import</div><div class="quick-link-sub">Upload CSV timetable</div></div></a>
-    <a href="admin-bookings.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-calendar-check"></i></div><div><div class="quick-link-title">Bookings</div><div class="quick-link-sub">Approve, reject, block</div></div></a>
-    <a href="admin-assignments.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-file-pen"></i></div><div><div class="quick-link-title">Assignments</div><div class="quick-link-sub">All faculty, all submissions</div></div></a>
-    <a href="admin-faculty.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-users"></i></div><div><div class="quick-link-title">Users</div><div class="quick-link-sub">Faculty, admins, access</div></div></a>
-    <a href="admin-slots.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-clock"></i></div><div><div class="quick-link-title">Time slots</div><div class="quick-link-sub">Period definitions</div></div></a>
-    <a href="admin-calendar.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-calendar-days"></i></div><div><div class="quick-link-title">Calendar</div><div class="quick-link-sub">Holidays & exam weeks</div></div></a>
-    <a href="free-rooms.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-building"></i></div><div><div class="quick-link-title">Free rooms</div><div class="quick-link-sub">Live availability</div></div></a>
-    <a href="admin-settings.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-gear"></i></div><div><div class="quick-link-title">Settings</div><div class="quick-link-sub">Policy, LPU API</div></div></a>
+    <a href="/admin/rooms.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-door-open"></i></div><div><div class="quick-link-title">Rooms & Buildings</div><div class="quick-link-sub">Blocks, floors, rooms</div></div></a>
+    <a href="/admin/timetable.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-table"></i></div><div><div class="quick-link-title">Timetable</div><div class="quick-link-sub">Assign classes to faculty</div></div></a>
+    <a href="/admin/import.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-file-import"></i></div><div><div class="quick-link-title">Import</div><div class="quick-link-sub">Upload CSV timetable</div></div></a>
+    <a href="/admin/bookings.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-calendar-check"></i></div><div><div class="quick-link-title">Bookings</div><div class="quick-link-sub">Approve, reject, block</div></div></a>
+    <a href="/admin/assignments.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-file-pen"></i></div><div><div class="quick-link-title">Assignments</div><div class="quick-link-sub">All faculty, all submissions</div></div></a>
+    <a href="/admin/faculty.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-users"></i></div><div><div class="quick-link-title">Users</div><div class="quick-link-sub">Faculty, admins, access</div></div></a>
+    <a href="/admin/slots.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-clock"></i></div><div><div class="quick-link-title">Time slots</div><div class="quick-link-sub">Period definitions</div></div></a>
+    <a href="/admin/calendar.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-calendar-days"></i></div><div><div class="quick-link-title">Calendar</div><div class="quick-link-sub">Holidays & exam weeks</div></div></a>
+    <a href="/shared/free-rooms.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-building"></i></div><div><div class="quick-link-title">Free rooms</div><div class="quick-link-sub">Live availability</div></div></a>
+    <a href="/admin/settings.html" class="quick-link"><div class="quick-link-icon"><i class="fas fa-gear"></i></div><div><div class="quick-link-title">Settings</div><div class="quick-link-sub">Policy, LPU API</div></div></a>
   </div>
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, formatTime, dayOfWeekNum, humanDate, loadBaseData } from './js/core.js';
+import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, formatTime, dayOfWeekNum, humanDate, loadBaseData } from '/assets/js/core.js';
 
 (async () => {
   const auth = await requireRole(['admin']);
@@ -155,12 +155,12 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, format
     }
 
     $('stats').innerHTML = `
-      <a href="admin-faculty.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-chalkboard-user"></i></div><div class="dash-stat-val">${fac?.length ?? 0}</div><div class="dash-stat-lbl">Faculty</div></a>
-      <a href="admin-rooms.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-door-open"></i></div><div class="dash-stat-val">${base.rooms.length}</div><div class="dash-stat-lbl">Rooms</div></a>
-      <a href="admin-timetable.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-table"></i></div><div class="dash-stat-val">${tt?.length ?? 0}</div><div class="dash-stat-lbl">Classes today</div></a>
-      <a href="admin-bookings.html" class="dash-stat"><div class="dash-stat-icon" style="background:var(--warning-soft);color:var(--warning)"><i class="fas fa-hourglass-half"></i></div><div class="dash-stat-val" style="color:var(--warning)">${pending?.length ?? 0}</div><div class="dash-stat-lbl">Pending</div></a>
-      <a href="admin-bookings.html" class="dash-stat"><div class="dash-stat-icon" style="background:var(--success-soft);color:var(--success)"><i class="fas fa-calendar-day"></i></div><div class="dash-stat-val" style="color:var(--success)">${todayBk?.length ?? 0}</div><div class="dash-stat-lbl">Today's bookings</div></a>
-      <a href="admin-assignments.html?status=active" class="dash-stat"><div class="dash-stat-icon" style="background:var(--info-soft);color:var(--info)"><i class="fas fa-file-pen"></i></div><div class="dash-stat-val" style="color:var(--info)">${assignAct?.length ?? 0}</div><div class="dash-stat-lbl">Active assignments</div></a>`;
+      <a href="/admin/faculty.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-chalkboard-user"></i></div><div class="dash-stat-val">${fac?.length ?? 0}</div><div class="dash-stat-lbl">Faculty</div></a>
+      <a href="/admin/rooms.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-door-open"></i></div><div class="dash-stat-val">${base.rooms.length}</div><div class="dash-stat-lbl">Rooms</div></a>
+      <a href="/admin/timetable.html" class="dash-stat"><div class="dash-stat-icon"><i class="fas fa-table"></i></div><div class="dash-stat-val">${tt?.length ?? 0}</div><div class="dash-stat-lbl">Classes today</div></a>
+      <a href="/admin/bookings.html" class="dash-stat"><div class="dash-stat-icon" style="background:var(--warning-soft);color:var(--warning)"><i class="fas fa-hourglass-half"></i></div><div class="dash-stat-val" style="color:var(--warning)">${pending?.length ?? 0}</div><div class="dash-stat-lbl">Pending</div></a>
+      <a href="/admin/bookings.html" class="dash-stat"><div class="dash-stat-icon" style="background:var(--success-soft);color:var(--success)"><i class="fas fa-calendar-day"></i></div><div class="dash-stat-val" style="color:var(--success)">${todayBk?.length ?? 0}</div><div class="dash-stat-lbl">Today's bookings</div></a>
+      <a href="/admin/assignments.html?status=active" class="dash-stat"><div class="dash-stat-icon" style="background:var(--info-soft);color:var(--info)"><i class="fas fa-file-pen"></i></div><div class="dash-stat-val" style="color:var(--info)">${assignAct?.length ?? 0}</div><div class="dash-stat-lbl">Active assignments</div></a>`;
 
     if (!cur) {
       $('liveSlotName').textContent = 'No active period';
@@ -185,7 +185,7 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, format
       const slotMap = new Map(base.slots.map(s => [s.slot_id, s]));
       $('pendingPreview').innerHTML = pending.map(b => {
         const slot = slotMap.get(b.slot_id);
-        return `<a href="admin-bookings.html" class="preview-row"><div class="preview-info"><div class="preview-title"><span class="mono">${escapeHtml(roomMap.get(b.room_id) || b.room_id)}</span> <span class="badge badge-gray" style="margin-left:4px">${escapeHtml(b.type)}</span></div><div class="preview-meta">${b.course_code ? escapeHtml(b.course_code) + ' · ' : ''}${humanDate(b.book_date)} · ${escapeHtml(slot?.label || b.slot_id)}</div></div><i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:11px"></i></a>`;
+        return `<a href="/admin/bookings.html" class="preview-row"><div class="preview-info"><div class="preview-title"><span class="mono">${escapeHtml(roomMap.get(b.room_id) || b.room_id)}</span> <span class="badge badge-gray" style="margin-left:4px">${escapeHtml(b.type)}</span></div><div class="preview-meta">${b.course_code ? escapeHtml(b.course_code) + ' · ' : ''}${humanDate(b.book_date)} · ${escapeHtml(slot?.label || b.slot_id)}</div></div><i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:11px"></i></a>`;
       }).join('');
     }
 
@@ -219,7 +219,7 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, format
           <strong>Password change required</strong>
           You're still using the temporary password.
         </div>
-        <a href="profile.html?first=1" class="btn btn-sm btn-primary">Change now</a>
+        <a href="/shared/profile.html?first=1" class="btn btn-sm btn-primary">Change now</a>
         <button class="pw-reminder-x" onclick="this.parentElement.remove()" title="Dismiss">×</button>
       `;
       document.body.appendChild(banner);
@@ -227,6 +227,6 @@ import { requireRole, renderNav, supabase, escapeHtml, todayISO, nowDate, format
   } catch {}
 })();
 </script>
-<script type="module" src="js/banner.js"></script>
+<script type="module" src="/assets/js/banner.js"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 export { SUPABASE_URL, SUPABASE_ANON_KEY };
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-export const BASE = new URL('.', location.href).href;
+export const BASE = location.origin + '/';
 
 // NOTE: Service worker registration is handled exclusively by initPWA()
 // at the bottom of this file (or by pwa.js on pages that don't import
@@ -224,16 +224,16 @@ export function initTheme() {
 
 export async function requireRole(allowed) {
   const session = await waitForSession(2500);
-  if (!session) { location.replace(`${BASE}login.html`); return null; }
+  if (!session) { location.replace(`/auth/login.html`); return null; }
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-  if (!profile) { location.replace(`${BASE}login.html`); return null; }
+  if (!profile) { location.replace(`/auth/login.html`); return null; }
   if (profile.is_active === false) {
     try { await supabase.auth.signOut(); } catch {}
-    location.replace(`${BASE}login.html?err=suspended`);
+    location.replace(`/auth/login.html?err=suspended`);
     return null;
   }
   if (allowed && !allowed.includes(profile.role)) {
-    location.replace(`${BASE}${profile.role}.html`);
+    location.replace(`${profile.role === 'admin' ? '/admin/' : '/faculty/'}`);
     return null;
   }
   syncServerTime();
@@ -242,7 +242,7 @@ export async function requireRole(allowed) {
 
 export async function signOut() {
   try { await supabase.auth.signOut(); } catch {}
-  location.replace(`${BASE}login.html`);
+  location.replace(`/auth/login.html`);
 }
 
 /* ============================================================
@@ -255,49 +255,49 @@ export async function renderNav(profile) {
 
   const initial = ((profile.full_name || profile.email || '?').trim()[0] || '?').toUpperCase();
   const roleIcon = profile.role === 'admin' ? 'shield-halved' : 'chalkboard-user';
-  const home = profile.role === 'admin' ? 'admin.html' : 'faculty.html';
-  const currentPage = location.pathname.split('/').pop() || home;
+  const home = profile.role === 'admin' ? '/admin/' : '/faculty/';
+  const currentPage = location.pathname.replace(/index\.html$/, '');
   const isDark = getCurrentTheme() === 'dark';
 
   const topItems = profile.role === 'admin' ? [
-    { href:'admin.html',              label:'Dashboard',   icon:'fa-gauge-high',     active: currentPage === 'admin.html' },
-    { href:'admin-timetable.html',    label:'Timetable',   icon:'fa-table',          active: currentPage === 'admin-timetable.html' },
-    { href:'admin-bookings.html',     label:'Bookings',    icon:'fa-calendar-check', active: currentPage === 'admin-bookings.html' },
-    { href:'admin-assignments.html',  label:'Assignments', icon:'fa-file-pen',       active: currentPage === 'admin-assignments.html' },
-    { href:'admin-faculty.html',      label:'Users',       icon:'fa-users',          active: currentPage === 'admin-faculty.html' },
-    { href:'admin-import.html',       label:'Import',      icon:'fa-file-import',    active: currentPage === 'admin-import.html' },
-    { href:'free-rooms.html',         label:'Free rooms',  icon:'fa-building',       active: currentPage === 'free-rooms.html' },
-    { href:'admin-settings.html',     label:'Settings',    icon:'fa-gear',           active: currentPage === 'admin-settings.html' },
+    { href:'/admin/',              label:'Dashboard',   icon:'fa-gauge-high',     active: currentPage === '/admin/' },
+    { href:'/admin/timetable.html',    label:'Timetable',   icon:'fa-table',          active: currentPage === '/admin/timetable.html' },
+    { href:'/admin/bookings.html',     label:'Bookings',    icon:'fa-calendar-check', active: currentPage === '/admin/bookings.html' },
+    { href:'/admin/assignments.html',  label:'Assignments', icon:'fa-file-pen',       active: currentPage === '/admin/assignments.html' },
+    { href:'/admin/faculty.html',      label:'Users',       icon:'fa-users',          active: currentPage === '/admin/faculty.html' },
+    { href:'/admin/import.html',       label:'Import',      icon:'fa-file-import',    active: currentPage === '/admin/import.html' },
+    { href:'/shared/free-rooms.html',         label:'Free rooms',  icon:'fa-building',       active: currentPage === '/shared/free-rooms.html' },
+    { href:'/admin/settings.html',     label:'Settings',    icon:'fa-gear',           active: currentPage === '/admin/settings.html' },
   ] : [
-    { href:'faculty.html',             label:'Dashboard',   icon:'fa-gauge-high', active: currentPage === 'faculty.html' },
-    { href:'faculty-assignments.html', label:'Assignments', icon:'fa-file-pen',   active: currentPage === 'faculty-assignments.html' },
-    { href:'free-rooms.html',          label:'Free rooms',  icon:'fa-building',   active: currentPage === 'free-rooms.html' },
-    { href:'profile.html',             label:'Profile',     icon:'fa-user',       active: currentPage === 'profile.html' },
+    { href:'/faculty/',             label:'Dashboard',   icon:'fa-gauge-high', active: currentPage === '/faculty/' },
+    { href:'/faculty/assignments.html', label:'Assignments', icon:'fa-file-pen',   active: currentPage === '/faculty/assignments.html' },
+    { href:'/shared/free-rooms.html',          label:'Free rooms',  icon:'fa-building',   active: currentPage === '/shared/free-rooms.html' },
+    { href:'/shared/profile.html',             label:'Profile',     icon:'fa-user',       active: currentPage === '/shared/profile.html' },
   ];
 
   const bottomItems = profile.role === 'admin' ? [
-    { href:'admin.html',             label:'Home',      icon:'fa-house',          active: currentPage === 'admin.html' },
-    { href:'admin-timetable.html',   label:'Schedule',  icon:'fa-table',          active: currentPage === 'admin-timetable.html' },
-    { href:'admin-bookings.html',    label:'Bookings',  icon:'fa-calendar-check', active: currentPage === 'admin-bookings.html' },
-    { href:'admin-assignments.html', label:'Assign',    icon:'fa-file-pen',       active: currentPage === 'admin-assignments.html' },
+    { href:'/admin/',             label:'Home',      icon:'fa-house',          active: currentPage === '/admin/' },
+    { href:'/admin/timetable.html',   label:'Schedule',  icon:'fa-table',          active: currentPage === '/admin/timetable.html' },
+    { href:'/admin/bookings.html',    label:'Bookings',  icon:'fa-calendar-check', active: currentPage === '/admin/bookings.html' },
+    { href:'/admin/assignments.html', label:'Assign',    icon:'fa-file-pen',       active: currentPage === '/admin/assignments.html' },
     { more: true,                    label:'More',      icon:'fa-ellipsis' },
   ] : [
-    { href:'faculty.html',             label:'Home',        icon:'fa-house',       active: currentPage === 'faculty.html' },
-    { href:'faculty-assignments.html', label:'Assignments', icon:'fa-file-pen',    active: currentPage === 'faculty-assignments.html' },
-    { href:'free-rooms.html',          label:'Rooms',       icon:'fa-building',    active: currentPage === 'free-rooms.html' },
-    { href:'profile.html',             label:'Profile',     icon:'fa-circle-user', active: currentPage === 'profile.html' },
+    { href:'/faculty/',             label:'Home',        icon:'fa-house',       active: currentPage === '/faculty/' },
+    { href:'/faculty/assignments.html', label:'Assignments', icon:'fa-file-pen',    active: currentPage === '/faculty/assignments.html' },
+    { href:'/shared/free-rooms.html',          label:'Rooms',       icon:'fa-building',    active: currentPage === '/shared/free-rooms.html' },
+    { href:'/shared/profile.html',             label:'Profile',     icon:'fa-circle-user', active: currentPage === '/shared/profile.html' },
   ];
 
   const moreItems = profile.role === 'admin' ? [
-    { href:'admin-import.html',      label:'Import CSV',        icon:'fa-file-import' },
-    { href:'admin-faculty.html',     label:'Users',             icon:'fa-users' },
-    { href:'free-rooms.html',        label:'Free rooms',        icon:'fa-building' },
-    { href:'admin-rooms.html',       label:'Rooms & buildings', icon:'fa-door-open' },
-    { href:'admin-slots.html',       label:'Time slots',        icon:'fa-clock' },
-    { href:'admin-calendar.html',    label:'Calendar',          icon:'fa-calendar-days' },
-    { href:'admin-assignments.html', label:'Assignments',       icon:'fa-file-pen' },
-    { href:'profile.html',           label:'Profile',           icon:'fa-user' },
-    { href:'admin-settings.html',    label:'Settings',          icon:'fa-gear' },
+    { href:'/admin/import.html',      label:'Import CSV',        icon:'fa-file-import' },
+    { href:'/admin/faculty.html',     label:'Users',             icon:'fa-users' },
+    { href:'/shared/free-rooms.html',        label:'Free rooms',        icon:'fa-building' },
+    { href:'/admin/rooms.html',       label:'Rooms & buildings', icon:'fa-door-open' },
+    { href:'/admin/slots.html',       label:'Time slots',        icon:'fa-clock' },
+    { href:'/admin/calendar.html',    label:'Calendar',          icon:'fa-calendar-days' },
+    { href:'/admin/assignments.html', label:'Assignments',       icon:'fa-file-pen' },
+    { href:'/shared/profile.html',           label:'Profile',           icon:'fa-user' },
+    { href:'/admin/settings.html',    label:'Settings',          icon:'fa-gear' },
   ] : [];
 
   el.innerHTML = `
@@ -327,7 +327,7 @@ export async function renderNav(profile) {
           </div>
         </div>
         <div class="avatar-menu-divider"></div>
-        <a href="profile.html" class="avatar-menu-item" role="menuitem"><i class="fas fa-user"></i> Profile</a>
+        <a href="/shared/profile.html" class="avatar-menu-item" role="menuitem"><i class="fas fa-user"></i> Profile</a>
         <button class="avatar-menu-item install-app-item" id="installAppBtn" role="menuitem"><i class="fas fa-download"></i> Install app</button>
         <button class="avatar-menu-item" id="themeMenuItem" role="menuitem">${isDark ? '<i class="fas fa-sun"></i> Light mode' : '<i class="fas fa-moon"></i> Dark mode'}</button>
         <div class="avatar-menu-divider"></div>
@@ -384,7 +384,7 @@ export async function renderNav(profile) {
         </div>
       </div>
       <div class="mas-list">
-        <a href="profile.html" class="mas-item" role="menuitem">
+        <a href="/shared/profile.html" class="mas-item" role="menuitem">
           <span class="mas-item-icon"><i class="fas fa-user"></i></span>
           <span class="mas-item-label">Profile</span>
           <i class="fas fa-chevron-right mas-item-chevron"></i>
@@ -584,7 +584,7 @@ export function initPWA() {
 
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').then(reg => {
+      navigator.serviceWorker.register('/sw.js').then(reg => {
         setInterval(() => { reg.update().catch(() => {}); }, 60 * 60 * 1000);
       }).catch(err => {
         console.warn('[PWA] SW registration failed:', err);

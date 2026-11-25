@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="/manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="LPU Scheduler">
 <title>Assignments · LPU Scheduler</title>
 <script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/mobile-app.css">
+<link rel="stylesheet" href="/assets/css/style.css">
+<link rel="stylesheet" href="/assets/css/mobile-app.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   .asn-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
@@ -87,7 +87,7 @@
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } from './js/core.js';
+import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } from '/assets/js/core.js';
 
 (async () => {
   const auth = await requireRole(['faculty','admin']); if (!auth) return;
@@ -150,7 +150,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
     }
     $('list').innerHTML = assignments.map(a => {
       const st = stats[a.id] || { students: new Set(), files: 0, bytes: 0, superseded: 0 };
-      const shareUrl = `${BASE}submit.html?token=${a.share_token}`;
+      const shareUrl = `${BASE}submit/?token=${a.share_token}`;
       const sCount = st.students.size;
       const fCount = st.files;
       const totalSize = st.bytes;
@@ -708,6 +708,6 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, BASE, todayISO } f
   await load();
 })();
 </script>
-<script type="module" src="js/banner.js"></script>
+<script type="module" src="/assets/js/banner.js"></script>
 </body>
 </html>
