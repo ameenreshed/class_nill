@@ -31,6 +31,9 @@
   .auth-help{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);font-size:13px;color:var(--text-secondary);line-height:1.6;text-align:center}
   .auth-help a{color:var(--brand);font-weight:500;text-decoration:none}
   .auth-help a:hover{text-decoration:underline}
+  .back-home{position:fixed;top:16px;left:16px;z-index:20;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;background:var(--surface);border:1px solid var(--border);border-radius:999px;color:var(--text);font-size:13px;font-weight:500;text-decoration:none;box-shadow:var(--shadow-md);transition:all 180ms cubic-bezier(.4,0,.2,1)}
+  .back-home:hover{color:var(--brand);border-color:var(--brand);text-decoration:none}
+  .back-home i{font-size:12px}
   .credits-link{margin-top:18px;padding-top:16px;border-top:1px solid var(--border);text-align:center;font-size:12px;color:var(--text-muted)}
   .credits-link a{color:var(--text-secondary);text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:color 160ms ease}
   .credits-link a:hover{color:var(--brand);text-decoration:underline}
@@ -41,6 +44,7 @@
 </style>
 </head>
 <body>
+<a href="/" class="back-home" aria-label="Back to home"><i class="fas fa-arrow-left"></i> Back</a>
 
 <div class="auth-shell">
   <aside class="auth-brand-panel">
