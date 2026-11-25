@@ -98,10 +98,10 @@
 </div>
 
 <script type="module">
-import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime, formatRelativeTime } from '/assets/js/core.js';
+import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime, formatRelativeTime, homeFor } from '/assets/js/core.js';
 
 (async () => {
-  const auth = await requireRole(['admin', 'faculty']);
+  const auth = await requireRole(['admin', 'faculty', 'student']);
   if (!auth) return;
   renderNav(auth.profile);
   const $ = id => document.getElementById(id);
@@ -201,8 +201,7 @@ import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime, fo
     toast('Password updated successfully', 'success');
     history.replaceState({}, '', '/shared/profile.html');
     setTimeout(() => {
-      const home = p.role === 'admin' ? '/admin/' : '/faculty/';
-      location.replace('./' + home);
+      location.replace(homeFor(p.role));
     }, 900);
   };
 

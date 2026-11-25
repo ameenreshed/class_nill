@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="LPU Scheduler">
+<meta name="mobile-web-app-capable" content="yes">
+<title>My assignments · LPU Scheduler</title>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/assets/css/style.css">
+<link rel="stylesheet" href="/assets/css/mobile-app.css">
+<style>
+  .st-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:var(--space-5)}
+  .st-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--surface-active);color:var(--text-secondary)}
+  .st-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:var(--space-5)}
+  .st-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;box-shadow:var(--shadow-xs)}
+  .st-stat-val{font-size:24px;font-weight:700;color:var(--text);line-height:1.1}
+  .st-stat-lbl{font-size:12px;color:var(--text-muted);margin-top:4px}
+  .st-list{display:grid;gap:12px}
+  .st-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-xs);display:flex;flex-direction:column;gap:12px}
+  .st-card-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+  .st-title{font-size:16px;font-weight:600;color:var(--text);margin:0}
+  .st-meta{font-size:12.5px;color:var(--text-secondary);display:flex;gap:12px;flex-wrap:wrap;margin-top:4px}
+  .st-desc{font-size:13px;color:var(--text-secondary);line-height:1.5;margin:0}
+  .st-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .pill-ok{background:var(--success-soft);color:var(--success-text)}
+  .pill-due{background:var(--warning-soft);color:var(--warning-text)}
+  .pill-late{background:var(--danger-soft);color:var(--danger-text)}
+  .pill-none{background:var(--surface-active);color:var(--text-secondary)}
+  .st-files{border-top:1px dashed var(--border);padding-top:10px;display:grid;gap:6px}
+  .st-file{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--text-secondary)}
+  .st-file span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+  .st-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .st-empty{text-align:center;padding:40px 16px;color:var(--text-muted)}
+  .st-empty i{font-size:28px;margin-bottom:10px;display:block;color:var(--text-muted)}
+  .st-error{max-width:520px;margin:40px auto;text-align:center}
+  .st-error i{font-size:30px;color:var(--warning);margin-bottom:12px;display:block}
+  .st-muted{color:var(--text-muted)}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+
+  <div class="st-hero">
+    <div>
+      <h1 class="page-title"><i class="fas fa-file-pen"></i> My assignments</h1>
+      <p class="page-subtitle" id="greeting">Loading your dashboard…</p>
+    </div>
+    <div class="row" id="batchChip"></div>
+  </div>
+
+  <div id="content"><div class="st-empty"><i class="fas fa-spinner fa-spin"></i>Loading…</div></div>
+</div>
+
+<script type="module" src="/assets/js/banner.js"></script>
+<script type="module">
+import { requireRole, renderNav, supabase, escapeHtml, toast, formatDateTime, nowDate } from '/assets/js/core.js';
+
+const SUBMIT_PAGE = '/submit/';
+const $ = id => document.getElementById(id);
+let lastData = null;
+
+(async () => {
+  const auth = await requireRole(['student']);
+  if (!auth) return;
+  renderNav(auth.profile);
+
+  // First sign-in: force the student to choose their own password first
+  if (auth.profile.password_changed_at === null) {
+    location.replace('/shared/profile.html?first=1');
+    return;
+  }
+
+  await load();
+  // Keep countdowns fresh without reloading
+  setInterval(() => { if (lastData) render(lastData); }, 60_000);
+})();
+
+async function load() {
+  const { data, error } = await supabase.rpc('student_dashboard');
+  if (error || !data || data.error) {
+    const msg = error?.message || data?.error || 'Could not load your dashboard.';
+    $('greeting').textContent = '';
+    $('content').innerHTML = `
+      <div class="card st-error">
+        <i class="fas fa-triangle-exclamation"></i>
+        <div style="font-weight:600;color:var(--text);margin-bottom:6px">Dashboard unavailable</div>
+        <div class="st-muted" style="font-size:13.5px">${escapeHtml(msg)}</div>
+        <button class="btn btn-sm" style="margin-top:14px" id="retryBtn"><i class="fas fa-rotate"></i> Try again</button>
+      </div>`;
+    $('retryBtn').onclick = load;
+    return;
+  }
+  lastData = data;
+  render(data);
+}
+
+function deadlineInfo(deadline) {
+  if (!deadline) return { closed: false, label: 'No deadline', cls: 'pill-none' };
+  const end = new Date(deadline);
+  const diff = end - nowDate();
+  if (diff <= 0) return { closed: true, label: 'Deadline passed', cls: 'pill-late' };
+  const mins = Math.floor(diff / 60000);
+  const days = Math.floor(mins / 1440);
+  const hrs  = Math.floor((mins % 1440) / 60);
+  const rem  = mins % 60;
+  let label;
+  if (days > 0)      label = `Due in ${days}d ${hrs}h`;
+  else if (hrs > 0)  label = `Due in ${hrs}h ${rem}m`;
+  else               label = `Due in ${rem}m`;
+  return { closed: false, label, cls: days < 1 ? 'pill-due' : 'pill-none', soon: days < 1 };
+}
+
+function render(data) {
+  const s = data.student;
+  const list = data.assignments || [];
+
+  $('greeting').textContent = `Hi ${s.name || s.id}, here is what is due for you.`;
+  $('batchChip').innerHTML = `
+    <span class="st-chip"><i class="fas fa-layer-group"></i> Batch ${escapeHtml(s.batch)}</span>
+    <span class="st-chip"><i class="fas fa-id-card"></i> ${escapeHtml(s.id)}</span>`;
+
+  const now = list.map(a => {
+    const files = a.files || [];
+    const submitted = files.length > 0;
+    const dl = deadlineInfo(a.deadline);
+    const missed = !submitted && dl.closed;
+    return { a, files, submitted, dl, missed };
+  });
+
+  const total     = now.length;
+  const submitted = now.filter(x => x.submitted).length;
+  const pending   = now.filter(x => !x.submitted && !x.dl.closed).length;
+  const missed    = now.filter(x => x.missed).length;
+
+  $('content').innerHTML = `
+    <div class="st-stats">
+      <div class="st-stat"><div class="st-stat-val">${total}</div><div class="st-stat-lbl">Assignments</div></div>
+      <div class="st-stat"><div class="st-stat-val">${submitted}</div><div class="st-stat-lbl">Submitted</div></div>
+      <div class="st-stat"><div class="st-stat-val">${pending}</div><div class="st-stat-lbl">Pending</div></div>
+      <div class="st-stat"><div class="st-stat-val">${missed}</div><div class="st-stat-lbl">Missed</div></div>
+    </div>
+    ${total === 0 ? `
+      <div class="card st-empty">
+        <i class="fas fa-inbox"></i>
+        No assignments for your batch yet.
+      </div>` : `
+      <div class="st-list">${now.map(renderCard).join('')}</div>`}
+  `;
+
+  document.querySelectorAll('[data-copy]').forEach(btn => {
+    btn.onclick = async () => {
+      try { await navigator.clipboard.writeText(btn.dataset.copy); toast('Link copied', 'success'); }
+      catch { toast('Could not copy link', 'error'); }
+    };
+  });
+}
+
+function renderCard({ a, files, submitted, dl, missed }) {
+  let statusPill;
+  if (submitted)      statusPill = `<span class="st-pill pill-ok"><i class="fas fa-circle-check"></i> Submitted</span>`;
+  else if (missed)    statusPill = `<span class="st-pill pill-late"><i class="fas fa-circle-xmark"></i> Missed</span>`;
+  else                statusPill = `<span class="st-pill pill-due"><i class="fas fa-hourglass-half"></i> Not submitted</span>`;
+
+  const deadlineText = a.deadline
+    ? `<span><i class="fas fa-clock"></i> ${escapeHtml(formatDateTime(a.deadline))}</span>`
+    : '';
+  const countdown = `<span class="st-pill ${dl.cls}">${escapeHtml(dl.label)}</span>`;
+
+  const isSingle = a.submission_policy === 'single';
+  let action = '';
+  if (dl.closed) {
+    action = `<button class="btn btn-sm" disabled><i class="fas fa-lock"></i> Submissions closed</button>`;
+  } else if (submitted && isSingle) {
+    action = `<span class="st-muted" style="font-size:12.5px"><i class="fas fa-lock"></i> One submission only. Already received.</span>`;
+  } else {
+    const label = submitted ? 'Replace files' : 'Submit files';
+    action = `<a class="btn btn-primary btn-sm" href="${SUBMIT_PAGE}?token=${encodeURIComponent(a.share_token)}">
+                <i class="fas fa-upload"></i> ${label}</a>`;
+  }
+
+  const filesHtml = files.length ? `
+    <div class="st-files">
+      ${files.map(f => `
+        <div class="st-file">
+          <span><i class="fas fa-paperclip"></i> ${escapeHtml(f.name)}</span>
+          <span>${formatSize(f.size)} · ${escapeHtml(formatDateTime(f.uploaded_at))}</span>
+        </div>`).join('')}
+    </div>` : '';
+
+  return `
+    <div class="st-card">
+      <div class="st-card-top">
+        <div style="min-width:0">
+          <h3 class="st-title">${escapeHtml(a.title)}</h3>
+          <div class="st-meta">
+            ${a.course_code ? `<span><i class="fas fa-book"></i> ${escapeHtml(a.course_code)}</span>` : ''}
+            ${deadlineText}
+            <span><i class="fas fa-file"></i> up to ${a.max_files} file${a.max_files === 1 ? '' : 's'}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+          ${statusPill}
+          ${dl.closed ? '' : countdown}
+        </div>
+      </div>
+      ${a.description ? `<p class="st-desc">${escapeHtml(a.description)}</p>` : ''}
+      ${filesHtml}
+      <div class="st-actions">${action}</div>
+    </div>`;
+}
+
+function formatSize(bytes) {
+  if (!bytes && bytes !== 0) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+</script>
+</body>
+</html>

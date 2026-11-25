@@ -55,6 +55,7 @@ import { supabase, waitForSession } from '/assets/js/core.js';
   if (profile.password_changed_at === null) return location.replace('/shared/profile.html?first=1');
   if (profile.role === 'admin') return location.replace('/admin/');
   if (profile.role === 'faculty') return location.replace('/faculty/');
+  if (profile.role === 'student') return location.replace('/student/');
   await supabase.auth.signOut();
   location.replace('/auth/login.html');
 })();

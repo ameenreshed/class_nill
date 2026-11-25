@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="LPU Scheduler">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Batches · LPU Scheduler</title>
+<script>(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(d?'dark':'light'))}catch(e){}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/assets/css/style.css">
+<link rel="stylesheet" href="/assets/css/admin.css">
+<link rel="stylesheet" href="/assets/css/mobile-app.css">
+<style>
+  .bt-create{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .bt-create .input{max-width:320px}
+  .bt-table td,.bt-table th{vertical-align:middle}
+  .bt-num{font-variant-numeric:tabular-nums;font-weight:600}
+  .bt-name{font-weight:600;color:var(--text)}
+  .bt-switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:none;border:none;padding:0;font:inherit;color:inherit}
+  .bt-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .bt-on{background:var(--success)}
+  .bt-off{background:var(--danger)}
+  .bt-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .bt-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .bt-toolbar-group{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .bt-check{width:16px;height:16px;accent-color:var(--brand);cursor:pointer}
+  .bt-pill{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .bt-pill-ok{background:var(--success-soft);color:var(--success-text)}
+  .bt-pill-none{background:var(--surface-active);color:var(--text-secondary)}
+  .bt-muted{color:var(--text-muted);font-size:12.5px}
+  .bt-empty{text-align:center;padding:36px 16px;color:var(--text-muted)}
+  .bt-detail{display:none}
+  .bt-detail.open{display:block}
+  .bt-hint{font-size:12.5px;color:var(--text-secondary);margin-top:10px;line-height:1.6}
+  .bt-pw{display:flex;gap:6px;align-items:center}
+  .bt-pw .input{max-width:200px;font-family:'JetBrains Mono',monospace}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fas fa-layer-group"></i> Batches</h1>
+      <p class="page-subtitle">Control which students can sign in, manage their accounts, and move them between batches.</p>
+    </div>
+    <div class="row">
+      <a class="btn" href="/admin/students.html"><i class="fas fa-user-graduate"></i> Import students</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="fas fa-plus"></i> Create batch</div>
+    <div class="bt-create">
+      <input class="input" id="newBatchName" placeholder="e.g. 2023" maxlength="40">
+      <button class="btn btn-primary" id="createBatchBtn"><i class="fas fa-plus"></i> Create batch</button>
+    </div>
+    <p class="bt-hint">Batches are created automatically when you import students or assignments. Use this to set one up before importing.</p>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title"><i class="fas fa-table-list"></i> All batches</div>
+    <div class="table-wrap">
+      <table class="table bt-table">
+        <thead>
+          <tr>
+            <th>Batch</th>
+            <th style="text-align:right">Students</th>
+            <th style="text-align:right">Logins</th>
+            <th style="text-align:right">Assignments</th>
+            <th>Sign-in access</th>
+            <th style="text-align:right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="batchBody">
+          <tr><td colspan="6" class="bt-empty"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card bt-detail" id="detailCard" style="margin-top:16px">
+    <div class="bt-toolbar">
+      <div>
+        <div class="card-title" style="margin-bottom:4px"><i class="fas fa-users"></i> Batch <span id="detailName"></span></div>
+        <div class="bt-muted" id="detailSummary"></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="closeDetailBtn"><i class="fas fa-xmark"></i> Close</button>
+    </div>
+
+    <div class="bt-toolbar">
+      <div class="bt-toolbar-group">
+        <label class="bt-muted" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" class="bt-check" id="selectAll"> Select all
+        </label>
+        <span class="bt-muted" id="selCount">0 selected</span>
+      </div>
+    </div>
+
+    <div class="table-wrap" style="max-height:520px;overflow:auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:40px"></th>
+            <th>Student ID</th>
+            <th>Name</th>
+            <th>Login</th>
+          </tr>
+        </thead>
+        <tbody id="studentBody"></tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:18px;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+      <div class="card" style="margin:0;box-shadow:none">
+        <div class="card-title" style="font-size:14px"><i class="fas fa-key"></i> Create logins for selected</div>
+        <p class="bt-hint" style="margin:0 0 10px">Login ID is the student ID. Each student is asked to set their own password on first sign-in. Students who already have a login are skipped.</p>
+        <div class="bt-pw">
+          <input class="input" id="tempPw" placeholder="Temporary password (6+)" minlength="6">
+          <button class="btn btn-sm" id="genPwBtn" title="Generate"><i class="fas fa-dice"></i></button>
+        </div>
+        <button class="btn btn-primary btn-sm" id="provisionBtn" style="margin-top:10px"><i class="fas fa-user-plus"></i> Create logins</button>
+      </div>
+
+      <div class="card" style="margin:0;box-shadow:none">
+        <div class="card-title" style="font-size:14px"><i class="fas fa-right-left"></i> Move selected to another batch</div>
+        <p class="bt-hint" style="margin:0 0 10px">Moved students take the target batch's sign-in access.</p>
+        <div class="bt-pw">
+          <select class="input" id="moveTarget" style="max-width:260px"></select>
+          <button class="btn btn-sm" id="moveBtn"><i class="fas fa-arrow-right"></i> Move</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/assets/js/banner.js"></script>
+<script type="module">
+import { requireRole, renderNav, supabase, escapeHtml, toast } from '/assets/js/core.js';
+
+const $ = id => document.getElementById(id);
+let batches = [];
+let openName = null;
+let students = [];
+const selected = new Set();
+
+(async () => {
+  const auth = await requireRole(['admin']);
+  if (!auth) return;
+  renderNav(auth.profile);
+
+  $('createBatchBtn').onclick = createBatch;
+  $('newBatchName').addEventListener('keydown', e => { if (e.key === 'Enter') createBatch(); });
+  $('closeDetailBtn').onclick = closeDetail;
+  $('selectAll').onchange = e => {
+    selected.clear();
+    if (e.target.checked) students.forEach(s => selected.add(s.id));
+    renderStudents();
+  };
+  $('genPwBtn').onclick = () => { $('tempPw').value = generatePassword(); };
+  $('provisionBtn').onclick = provisionSelected;
+  $('moveBtn').onclick = moveSelected;
+
+  await loadBatches();
+})();
+
+/* ─────────── batches ─────────── */
+
+async function loadBatches() {
+  const { data, error } = await supabase.rpc('get_student_batches');
+  if (error) {
+    $('batchBody').innerHTML = `<tr><td colspan="6" class="bt-empty">Could not load batches: ${escapeHtml(error.message)}</td></tr>`;
+    return;
+  }
+  batches = data ?? [];
+  renderBatches();
+  if (openName) {
+    const still = batches.find(b => b.batch === openName);
+    if (still) fillMoveTargets(); else closeDetail();
+  }
+}
+
+function renderBatches() {
+  const body = $('batchBody');
+  if (!batches.length) {
+    body.innerHTML = `<tr><td colspan="6" class="bt-empty"><i class="fas fa-layer-group" style="font-size:24px;display:block;margin-bottom:8px"></i>No batches yet. Create one above or import students.</td></tr>`;
+    return;
+  }
+  body.innerHTML = batches.map(b => {
+    const name = escapeHtml(b.batch);
+    const attr = escapeHtml(b.batch);
+    const canDelete = b.cnt === 0 && b.assignments === 0;
+    return `
+      <tr ${openName === b.batch ? 'style="background:var(--surface-active)"' : ''}>
+        <td><span class="bt-name">${name}</span></td>
+        <td style="text-align:right" class="bt-num">${b.cnt}</td>
+        <td style="text-align:right" class="bt-num">${b.accounts}</td>
+        <td style="text-align:right" class="bt-num">${b.assignments}</td>
+        <td>
+          <button class="bt-switch" data-toggle="${attr}" data-active="${b.is_active}" title="Click to ${b.is_active ? 'pause' : 'resume'} sign-in">
+            <span class="bt-dot ${b.is_active ? 'bt-on' : 'bt-off'}"></span>
+            <span>${b.is_active ? 'Active' : 'Paused'}</span>
+          </button>
+        </td>
+        <td>
+          <div class="bt-actions">
+            <button class="btn btn-sm" data-open="${attr}"><i class="fas fa-users"></i> Students</button>
+            <button class="btn btn-sm" data-rename="${attr}"><i class="fas fa-pen"></i> Rename</button>
+            <button class="btn btn-sm btn-ghost" data-delete="${attr}" ${canDelete ? '' : 'disabled title="Only empty batches with no assignments can be deleted"'}><i class="fas fa-trash"></i></button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  body.querySelectorAll('[data-open]').forEach(b => b.onclick = () => openBatch(b.dataset.open));
+  body.querySelectorAll('[data-rename]').forEach(b => b.onclick = () => renameBatch(b.dataset.rename));
+  body.querySelectorAll('[data-delete]').forEach(b => b.onclick = () => deleteBatch(b.dataset.delete));
+  body.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => toggleBatch(b.dataset.toggle, b.dataset.active === 'true'));
+}
+
+async function createBatch() {
+  const name = $('newBatchName').value.trim();
+  if (!name) return toast('Enter a batch name', 'error');
+  if (batches.some(b => b.batch === name)) return toast('That batch already exists', 'error');
+  const { error } = await supabase.from('batches').insert({ name });
+  if (error) return toast(error.message, 'error');
+  $('newBatchName').value = '';
+  toast(`Batch ${name} created`, 'success');
+  await loadBatches();
+}
+
+async function toggleBatch(name, currentlyActive) {
+  const next = !currentlyActive;
+  if (!next && !confirm(`Pause batch ${name}?\n\nStudents in this batch will be signed out and cannot sign in until you resume it.`)) return;
+  const { data, error } = await supabase.rpc('admin_set_batch_active', { p_name: name, p_active: next });
+  if (error || data?.error) return toast(error?.message || data.error, 'error');
+  toast(`Batch ${name} ${next ? 'resumed' : 'paused'}`, 'success');
+  await loadBatches();
+}
+
+async function renameBatch(name) {
+  const next = prompt(`Rename batch "${name}" to:`, name);
+  if (next === null) return;
+  const clean = next.trim();
+  if (!clean || clean === name) return;
+  const { data, error } = await supabase.rpc('admin_rename_batch', { p_old: name, p_new: clean });
+  if (error || data?.error) return toast(error?.message || data.error, 'error');
+  toast(`Renamed to ${clean}. Students and assignments were updated.`, 'success');
+  if (openName === name) openName = clean;
+  await loadBatches();
+  if (openName === clean) await openBatch(clean);
+}
+
+async function deleteBatch(name) {
+  if (!confirm(`Delete empty batch "${name}"?`)) return;
+  const { error } = await supabase.from('batches').delete().eq('name', name);
+  if (error) return toast(error.message, 'error');
+  toast(`Batch ${name} deleted`, 'success');
+  if (openName === name) closeDetail();
+  await loadBatches();
+}
+
+/* ─────────── batch detail ─────────── */
+
+async function fetchAllStudents(batch) {
+  const out = [];
+  const size = 1000;
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase.from('students')
+      .select('id, full_name, user_id')
+      .eq('batch', batch).order('id')
+      .range(from, from + size - 1);
+    if (error) throw error;
+    out.push(...(data ?? []));
+    if (!data || data.length < size) break;
+    from += size;
+  }
+  return out;
+}
+
+async function openBatch(name) {
+  openName = name;
+  selected.clear();
+  $('selectAll').checked = false;
+  $('detailName').textContent = name;
+  $('detailCard').classList.add('open');
+  $('studentBody').innerHTML = `<tr><td colspan="4" class="bt-empty"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr>`;
+  try {
+    students = await fetchAllStudents(name);
+  } catch (e) {
+    students = [];
+    return toast(e.message, 'error');
+  }
+  fillMoveTargets();
+  renderBatches();
+  renderStudents();
+  $('detailCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closeDetail() {
+  openName = null;
+  students = [];
+  selected.clear();
+  $('detailCard').classList.remove('open');
+  renderBatches();
+}
+
+function fillMoveTargets() {
+  const sel = $('moveTarget');
+  sel.innerHTML = batches
+    .filter(b => b.batch !== openName)
+    .map(b => `<option value="${escapeHtml(b.batch)}">${escapeHtml(b.batch)}${b.is_active ? '' : ' (paused)'}</option>`)
+    .join('') || '<option value="">No other batch</option>';
+}
+
+function renderStudents() {
+  const withLogin = students.filter(s => s.user_id).length;
+  const b = batches.find(x => x.batch === openName);
+  $('detailSummary').textContent =
+    `${students.length} student${students.length === 1 ? '' : 's'} · ${withLogin} with login · ${b?.is_active === false ? 'paused' : 'active'}`;
+  $('selCount').textContent = `${selected.size} selected`;
+
+  const body = $('studentBody');
+  if (!students.length) {
+    body.innerHTML = `<tr><td colspan="4" class="bt-empty">No students in this batch yet. Import a student sheet to add them.</td></tr>`;
+    return;
+  }
+  body.innerHTML = students.map(s => `
+    <tr>
+      <td><input type="checkbox" class="bt-check" data-id="${escapeHtml(s.id)}" ${selected.has(s.id) ? 'checked' : ''}></td>
+      <td class="mono" style="font-size:12.5px">${escapeHtml(s.id)}</td>
+      <td>${escapeHtml(s.full_name || '—')}</td>
+      <td>${s.user_id
+        ? '<span class="bt-pill bt-pill-ok"><i class="fas fa-circle-check"></i> Has login</span>'
+        : '<span class="bt-pill bt-pill-none">No login</span>'}</td>
+    </tr>`).join('');
+
+  body.querySelectorAll('input[data-id]').forEach(cb => {
+    cb.onchange = () => {
+      cb.checked ? selected.add(cb.dataset.id) : selected.delete(cb.dataset.id);
+      $('selCount').textContent = `${selected.size} selected`;
+      $('selectAll').checked = selected.size === students.length && students.length > 0;
+    };
+  });
+}
+
+function selectedIds() {
+  return [...selected];
+}
+
+async function provisionSelected() {
+  const ids = selectedIds();
+  if (!ids.length) return toast('Select students first', 'error');
+  const pw = $('tempPw').value;
+  if (pw.length < 6) return toast('Temporary password must be 6+ characters', 'error');
+  const pending = ids.filter(id => students.find(s => s.id === id && !s.user_id)).length;
+  if (!pending) return toast('All selected students already have logins', 'info');
+  if (!confirm(`Create logins for ${pending} student${pending === 1 ? '' : 's'}?\n\nThey will sign in with their student ID and the temporary password, then be asked to set their own.`)) return;
+
+  const btn = $('provisionBtn');
+  btn.disabled = true;
+  try {
+    const { data, error } = await supabase.rpc('admin_provision_students', { p_ids: ids, p_password: pw });
+    if (error || data?.error) return toast(error?.message || data.error, 'error');
+    const skipped = (data.skipped || []).length;
+    toast(`${data.created} created · ${data.linked} linked${skipped ? ` · ${skipped} skipped (staff email)` : ''}`,
+          skipped ? 'error' : 'success');
+    selected.clear();
+    $('tempPw').value = '';
+    await loadBatches();
+    await openBatch(openName);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function moveSelected() {
+  const ids = selectedIds();
+  if (!ids.length) return toast('Select students first', 'error');
+  const target = $('moveTarget').value;
+  if (!target) return toast('No target batch available', 'error');
+  if (!confirm(`Move ${ids.length} student${ids.length === 1 ? '' : 's'} to batch ${target}?`)) return;
+  const { data, error } = await supabase.rpc('admin_move_students', { p_ids: ids, p_batch: target });
+  if (error || data?.error) return toast(error?.message || data.error, 'error');
+  toast(`Moved ${data.moved} student${data.moved === 1 ? '' : 's'} to ${target}`, 'success');
+  selected.clear();
+  await loadBatches();
+  await openBatch(openName);
+}
+
+function generatePassword() {
+  const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const buf = new Uint32Array(10);
+  crypto.getRandomValues(buf);
+  return Array.from(buf, n => chars[n % chars.length]).join('');
+}
+</script>
+</body>
+</html>

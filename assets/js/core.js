@@ -222,6 +222,10 @@ export function initTheme() {
   applyTheme(stored || (systemDark ? 'dark' : 'light'));
 }
 
+export function homeFor(role) {
+  return role === 'admin' ? '/admin/' : role === 'student' ? '/student/' : '/faculty/';
+}
+
 export async function requireRole(allowed) {
   const session = await waitForSession(2500);
   if (!session) { location.replace(`/auth/login.html`); return null; }
@@ -233,7 +237,7 @@ export async function requireRole(allowed) {
     return null;
   }
   if (allowed && !allowed.includes(profile.role)) {
-    location.replace(`${profile.role === 'admin' ? '/admin/' : '/faculty/'}`);
+    location.replace(homeFor(profile.role));
     return null;
   }
   syncServerTime();
@@ -255,15 +259,25 @@ export async function renderNav(profile) {
 
   const initial = ((profile.full_name || profile.email || '?').trim()[0] || '?').toUpperCase();
   const roleIcon = profile.role === 'admin' ? 'shield-halved' : 'chalkboard-user';
-  const home = profile.role === 'admin' ? '/admin/' : '/faculty/';
+  const home = homeFor(profile.role);
   const currentPage = location.pathname.replace(/index\.html$/, '');
   const isDark = getCurrentTheme() === 'dark';
 
-  const topItems = profile.role === 'admin' ? [
+  const STUDENT_TOP = [
+    { href:'/student/', label:'My assignments', icon:'fa-file-pen', active: currentPage === '/student/' },
+  ];
+  const STUDENT_BOTTOM = [
+    { href:'/student/',              label:'Home',    icon:'fa-house',       active: currentPage === '/student/' },
+    { href:'/shared/profile.html',   label:'Profile', icon:'fa-circle-user', active: currentPage === '/shared/profile.html' },
+  ];
+
+  const topItems = profile.role === 'student' ? STUDENT_TOP : profile.role === 'admin' ? [
     { href:'/admin/',              label:'Dashboard',   icon:'fa-gauge-high',     active: currentPage === '/admin/' },
     { href:'/admin/timetable.html',    label:'Timetable',   icon:'fa-table',          active: currentPage === '/admin/timetable.html' },
     { href:'/admin/bookings.html',     label:'Bookings',    icon:'fa-calendar-check', active: currentPage === '/admin/bookings.html' },
     { href:'/admin/assignments.html',  label:'Assignments', icon:'fa-file-pen',       active: currentPage === '/admin/assignments.html' },
+    { href:'/admin/batches.html',      label:'Batches',     icon:'fa-layer-group',    active: currentPage === '/admin/batches.html' },
+    { href:'/admin/students.html',     label:'Students',    icon:'fa-user-graduate',  active: currentPage === '/admin/students.html' },
     { href:'/admin/faculty.html',      label:'Users',       icon:'fa-users',          active: currentPage === '/admin/faculty.html' },
     { href:'/admin/import.html',       label:'Import',      icon:'fa-file-import',    active: currentPage === '/admin/import.html' },
     { href:'/shared/free-rooms.html',         label:'Free rooms',  icon:'fa-building',       active: currentPage === '/shared/free-rooms.html' },
@@ -275,7 +289,7 @@ export async function renderNav(profile) {
     { href:'/shared/profile.html',             label:'Profile',     icon:'fa-user',       active: currentPage === '/shared/profile.html' },
   ];
 
-  const bottomItems = profile.role === 'admin' ? [
+  const bottomItems = profile.role === 'student' ? STUDENT_BOTTOM : profile.role === 'admin' ? [
     { href:'/admin/',             label:'Home',      icon:'fa-house',          active: currentPage === '/admin/' },
     { href:'/admin/timetable.html',   label:'Schedule',  icon:'fa-table',          active: currentPage === '/admin/timetable.html' },
     { href:'/admin/bookings.html',    label:'Bookings',  icon:'fa-calendar-check', active: currentPage === '/admin/bookings.html' },
@@ -288,8 +302,10 @@ export async function renderNav(profile) {
     { href:'/shared/profile.html',             label:'Profile',     icon:'fa-circle-user', active: currentPage === '/shared/profile.html' },
   ];
 
-  const moreItems = profile.role === 'admin' ? [
+  const moreItems = profile.role === 'student' ? [] : profile.role === 'admin' ? [
     { href:'/admin/import.html',      label:'Import CSV',        icon:'fa-file-import' },
+    { href:'/admin/batches.html',     label:'Batches',           icon:'fa-layer-group' },
+    { href:'/admin/students.html',    label:'Students',          icon:'fa-user-graduate' },
     { href:'/admin/faculty.html',     label:'Users',             icon:'fa-users' },
     { href:'/shared/free-rooms.html',        label:'Free rooms',        icon:'fa-building' },
     { href:'/admin/rooms.html',       label:'Rooms & buildings', icon:'fa-door-open' },

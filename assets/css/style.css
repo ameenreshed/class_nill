@@ -271,6 +271,7 @@ input[type="checkbox"]{width:16px;height:16px;cursor:pointer;accent-color:var(--
 .badge i{font-size:9px}
 .badge-admin{background:var(--brand-soft);color:var(--brand-text)}
 .badge-faculty{background:var(--success-soft);color:var(--success-text)}
+.badge-student{background:var(--info-soft);color:var(--info-text)}
 .badge-pending{background:var(--warning-soft);color:var(--warning-text)}
 .badge-approved{background:var(--success-soft);color:var(--success-text)}
 .badge-rejected{background:var(--danger-soft);color:var(--danger-text)}
